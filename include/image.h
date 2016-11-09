@@ -1492,6 +1492,8 @@ struct cipher_algo *image_get_cipher_algo(const char *full_name);
 #if !defined(USE_HOSTCC)
 #if defined(CONFIG_ANDROID_BOOT_IMAGE)
 struct andr_img_hdr;
+struct blk_desc;
+struct disk_partition;
 int android_image_check_header(const struct andr_img_hdr *hdr);
 int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 			     ulong *os_data, ulong *os_len);
@@ -1509,6 +1511,25 @@ void android_print_contents(const struct andr_img_hdr *hdr);
 #if !defined(CONFIG_SPL_BUILD)
 bool android_image_print_dtb_contents(ulong hdr_addr);
 #endif
+
+/** android_image_load - Load an Android Image from storage.
+ *
+ * Load an Android Image based on the header size in the storage. Return the
+ * number of bytes read from storage, which could be bigger than the actual
+ * Android Image as described in the header size. In case of error reading the
+ * image or if the image size needed to be read from disk is bigger than the
+ * the passed |max_size| a negative number is returned.
+ *
+ * @dev_desc:		The device where to read the image from
+ * @part_info:		The partition in |dev_desc| where to read the image from
+ * @load_address:	The address where the image will be loaded
+ * @max_size:		The maximum loaded size, in bytes
+ * @return the number of bytes read or a negative number in case of error.
+ */
+long android_image_load(struct blk_desc *dev_desc,
+			const struct disk_partition *part_info,
+			unsigned long load_address,
+			unsigned long max_size);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 #endif /* !USE_HOSTCC */
