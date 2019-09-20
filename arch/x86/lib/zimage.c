@@ -29,6 +29,9 @@
 #endif
 #include <linux/compiler.h>
 #include <linux/libfdt.h>
+#include <image.h>
+#include <log.h>
+#include <mapmem.h>
 
 /*
  * Memory lay-out:
@@ -352,6 +355,34 @@ int do_zboot(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	/* we assume that the kernel is in place */
 	return boot_linux_kernel((ulong)base_ptr, load_address, false);
 }
+
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+int android_bootloader_boot_kernel(unsigned long image_address)
+{
+	ulong kernel_address;
+	ulong ramdisk_address, ramdisk_len;
+	char kernel_addr_str[12], ramdisk_addr_str[12], ramdisk_len_str[12];
+	char *zboot_args[] = {
+		"zboot", kernel_addr_str, "0", ramdisk_addr_str, ramdisk_len_str, NULL };
+	void* buf = map_sysmem(image_address, 0);
+
+	if (android_image_get_kernel(buf, images.verify, NULL, NULL))
+		return -1;
+	if (android_image_get_ramdisk(buf, &ramdisk_address, &ramdisk_len))
+		return -1;
+
+	kernel_address = android_image_get_kload(buf);
+	sprintf(kernel_addr_str, "0x%lx", kernel_address);
+	sprintf(ramdisk_addr_str, "0x%lx", ramdisk_address);
+	sprintf(ramdisk_len_str, "0x%lx", ramdisk_len);
+
+	printf("Booting kernel at %s with fdt at %s ramdisk %s (%s bytes)...\n\n\n",
+		kernel_addr_str, env_get("fdtaddr"), ramdisk_addr_str, ramdisk_len_str);
+	do_zboot(NULL, 0, 5, zboot_args);
+
+	return -1;
+}
+#endif
 
 U_BOOT_CMD(
 	zboot, 5, 0,	do_zboot,
