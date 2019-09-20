@@ -158,14 +158,14 @@ static int android_bootloader_boot_bootloader(void)
 	return -1;
 }
 
-static int android_bootloader_boot_kernel(unsigned long kernel_address)
+__weak int android_bootloader_boot_kernel(unsigned long image_address)
 {
 	char kernel_addr_str[12];
 	char *fdt_addr = env_get("fdtaddr");
 	char *bootm_args[] = {
 		"bootm", kernel_addr_str, kernel_addr_str, fdt_addr, NULL };
 
-	sprintf(kernel_addr_str, "0x%lx", kernel_address);
+	sprintf(kernel_addr_str, "0x%lx", image_address);
 
 	printf("Booting kernel at %s with fdt at %s...\n\n\n",
 	       kernel_addr_str, fdt_addr);
