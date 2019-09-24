@@ -182,7 +182,7 @@ static int ab_compare_slots(const struct slot_metadata *a,
 	return 0;
 }
 
-int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info)
+int ab_select_slot(struct blk_desc *dev_desc, const struct disk_partition *part_info)
 {
 	struct bootloader_control *abc = NULL;
 	u32 crc32_le;

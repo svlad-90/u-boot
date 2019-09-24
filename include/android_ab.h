@@ -26,10 +26,10 @@ struct disk_partition;
  * registered before returning from this function so it isn't selected
  * indefinitely.
  *
- * @param[in] dev_desc Place to store the device description pointer
- * @param[in] part_info Place to store the partition information
+ * @param[in] dev_desc Device where we should read/write the boot_control struct.
+ * @param[in] part_info Partition on the 'dev_desc' to read/write.
  * @return The slot number (>= 0) on success, or a negative on error
  */
-int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info);
+int ab_select_slot(struct blk_desc *dev_desc, const struct disk_partition *part_info);
 
 #endif /* __ANDROID_AB_H */
