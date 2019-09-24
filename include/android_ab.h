@@ -28,8 +28,10 @@ struct disk_partition;
  *
  * @param[in] dev_desc Device where we should read/write the boot_control struct.
  * @param[in] part_info Partition on the 'dev_desc' to read/write.
+ * @param[in] normal_boot True if a normal boot, false if booting to recovery.
  * @return The slot number (>= 0) on success, or a negative on error
  */
-int ab_select_slot(struct blk_desc *dev_desc, const struct disk_partition *part_info);
+int ab_select_slot(struct blk_desc *dev_desc, const struct disk_partition *part_info,
+				   bool normal_boot);
 
 #endif /* __ANDROID_AB_H */
