@@ -7,6 +7,7 @@
 #include <android_bootloader.h>
 #include <android_bootloader_message.h>
 
+#include <android_ab.h>
 #include <cli.h>
 #include <common.h>
 #include <image.h>
@@ -316,11 +317,27 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		return android_bootloader_boot_bootloader();
 	}
 
+	/* Look for an optional slot suffix override. */
+	if (!slot || !slot[0])
+		slot = env_get("android_slot_suffix");
+
 	slot_suffix[0] = '\0';
 	if (slot && slot[0]) {
 		slot_suffix[0] = '_';
 		slot_suffix[1] = slot[0];
 		slot_suffix[2] = '\0';
+	} else {
+#ifdef CONFIG_ANDROID_AB
+		bool normal_boot = (mode == ANDROID_BOOT_MODE_NORMAL);
+		int slot_num = ab_select_slot(dev_desc, misc_part_info, normal_boot);
+		if (slot_num < 0) {
+			log_err("Could not determine Android boot slot.\n");
+			return -1;
+		}
+		slot_suffix[0] = '_';
+		slot_suffix[1] = BOOT_SLOT_NAME(slot_num);
+		slot_suffix[2] = '\0';
+#endif
 	}
 
 	/* Load the kernel from the desired "boot" partition. */
