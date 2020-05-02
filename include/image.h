@@ -1521,13 +1521,17 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * the passed |max_size| a negative number is returned.
  *
  * @dev_desc:		The device where to read the image from
- * @part_info:		The partition in |dev_desc| where to read the image from
+ * @boot_img_info:	The partition in |dev_desc| to read the kernel and init
+ * @device_info:	The partition in |dev_desc| to read device specific
+ * 			content from. This partition is not expected on devices
+ * 			with android boot images version 1 and 2.
  * @load_address:	The address where the image will be loaded
  * @max_size:		The maximum loaded size, in bytes
  * @return the number of bytes read or a negative number in case of error.
  */
 long android_image_load(struct blk_desc *dev_desc,
-			const struct disk_partition *part_info,
+			const struct disk_partition *boot_img_info,
+			const struct disk_partition *device_info,
 			unsigned long load_address,
 			unsigned long max_size);
 
