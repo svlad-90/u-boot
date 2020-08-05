@@ -97,8 +97,9 @@ static int ab_control_create_from_disk(struct blk_desc *dev_desc,
 				  part_info->blksz);
 	if (abc_offset + abc_blocks > part_info->size) {
 		log_err("ANDROID: boot control partition too small. Need at");
-		log_err(" least %lu blocks but have %lu blocks.\n",
-			abc_offset + abc_blocks, part_info->size);
+		log_err(" least %lu blocks but have %llu blocks.\n",
+			abc_offset + abc_blocks,
+			(unsigned long long)part_info->size);
 		return -EINVAL;
 	}
 	*abc = malloc_cache_aligned(abc_blocks * part_info->blksz);
