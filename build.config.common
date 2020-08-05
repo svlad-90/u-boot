@@ -1,0 +1,13 @@
+BRANCH=u-boot-mainline
+SKIP_CP_KERNEL_HDR=1
+KERNEL_DIR=u-boot
+
+CLANG_PREBUILT_BIN=prebuilts-master/clang/host/linux-x86/clang-r383902/bin
+CC="clang -no-integrated-as"
+HOSTCC=clang
+NM=llvm-nm
+
+# b/162850629
+# py3-cmd distutils is broken; use clang's copy
+LIBUFDT_PREBUILTS_BIN=build/build-tools/path/linux-x86
+BUILDTOOLS_PREBUILT_BIN=${CLANG_PREBUILT_BIN}/../python3/bin
