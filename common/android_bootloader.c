@@ -14,6 +14,7 @@
 #include <malloc.h>
 
 #define ANDROID_PARTITION_BOOT "boot"
+#define ANDROID_PARTITION_VENDOR_BOOT "vendor_boot"
 #define ANDROID_PARTITION_RECOVERY "recovery"
 #define ANDROID_PARTITION_SYSTEM "system"
 
@@ -270,12 +271,14 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 {
 	enum android_boot_mode mode;
 	disk_partition_t boot_part_info;
-	int boot_part_num;
+	disk_partition_t vendor_boot_part_info;
+	int boot_part_num, vendor_boot_part_num;
 	int ret;
 	char *command_line;
 	char slot_suffix[3];
 	const char *mode_cmdline = NULL;
 	const char *boot_partition = ANDROID_PARTITION_BOOT;
+	const char *vendor_boot_partition = ANDROID_PARTITION_VENDOR_BOOT;
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 	int system_part_num
 	disk_partition_t system_part_info;
@@ -341,6 +344,11 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	boot_part_num =
 	    android_part_get_info_by_name_suffix(dev_desc, boot_partition,
 						 slot_suffix, &boot_part_info);
+        /* Load the vendor boot partition if there is one. */
+	vendor_boot_part_num =
+	    android_part_get_info_by_name_suffix(dev_desc, vendor_boot_partition,
+						 slot_suffix,
+						 &vendor_boot_part_info);
 	if (boot_part_num < 0)
 		return -1;
 	debug("ANDROID: Loading kernel from \"%s\", partition %d.\n",
@@ -358,8 +366,19 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	      system_part_info.name, system_part_num);
 #endif
 
-	ret = android_image_load(dev_desc, &boot_part_info, kernel_address,
-				 -1UL);
+	disk_partition_t *vendor_boot_part_info_ptr = &vendor_boot_part_info;
+	if (vendor_boot_part_num < 0) {
+		vendor_boot_part_info_ptr = NULL;
+	} else {
+		printf("ANDROID: Loading vendor ramdisk from \"%s\", partition"
+		       " %d.\n", vendor_boot_part_info.name,
+		       vendor_boot_part_num);
+	}
+
+	ret = android_image_load(dev_desc, &boot_part_info,
+				 vendor_boot_part_info_ptr,
+				 kernel_address, -1UL);
+
 	if (ret < 0)
 		return ret;
 
