@@ -161,14 +161,16 @@ static int android_bootloader_boot_bootloader(void)
 	return -1;
 }
 
-__weak int android_bootloader_boot_kernel(unsigned long image_address)
+__weak int android_bootloader_boot_kernel(const struct andr_boot_info_t* boot_info)
 {
 	char kernel_addr_str[12];
 	char *fdt_addr = env_get("fdtaddr");
 	char *bootm_args[] = {
 		"bootm", kernel_addr_str, kernel_addr_str, fdt_addr, NULL };
 
-	sprintf(kernel_addr_str, "0x%lx", image_address);
+	/* FIXME: Broken
+	sprintf(kernel_addr_str, "0x%lx", andr_img_get_kernel_kload(boot_info));
+	*/
 
 	printf("Booting kernel at %s with fdt at %s...\n\n\n",
 	       kernel_addr_str, fdt_addr);
@@ -273,7 +275,6 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	disk_partition_t boot_part_info;
 	disk_partition_t vendor_boot_part_info;
 	int boot_part_num, vendor_boot_part_num;
-	int ret;
 	char *command_line;
 	char slot_suffix[3];
 	const char *mode_cmdline = NULL;
@@ -344,7 +345,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	boot_part_num =
 	    android_part_get_info_by_name_suffix(dev_desc, boot_partition,
 						 slot_suffix, &boot_part_info);
-        /* Load the vendor boot partition if there is one. */
+	/* Load the vendor boot partition if there is one. */
 	vendor_boot_part_num =
 	    android_part_get_info_by_name_suffix(dev_desc, vendor_boot_partition,
 						 slot_suffix,
@@ -375,12 +376,12 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		       vendor_boot_part_num);
 	}
 
-	ret = android_image_load(dev_desc, &boot_part_info,
+	struct andr_boot_info_t* boot_info = android_image_load(dev_desc, &boot_part_info,
 				 vendor_boot_part_info_ptr,
-				 kernel_address, -1UL);
+				 kernel_address);
 
-	if (ret < 0)
-		return ret;
+	if (!boot_info)
+		return -1;
 
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 	/* Set Android root variables. */
@@ -394,8 +395,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	env_set("bootargs", command_line);
 
 	debug("ANDROID: bootargs: \"%s\"\n", command_line);
-
-	android_bootloader_boot_kernel(kernel_address);
+	android_bootloader_boot_kernel(boot_info);
 
 	/* TODO: If the kernel doesn't boot mark the selected slot as bad. */
 	return -1;

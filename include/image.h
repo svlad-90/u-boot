@@ -1417,21 +1417,21 @@ struct cipher_algo *image_get_cipher_algo(const char *full_name);
 #endif /* CONFIG_FIT */
 
 #if defined(CONFIG_ANDROID_BOOT_IMAGE)
-struct andr_img_hdr;
-int android_image_check_header(const struct andr_img_hdr *hdr);
-int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
+struct andr_boot_info_t;
+int android_image_check_header(const struct andr_boot_info_t *boot_info);
+int android_image_get_kernel(const struct andr_boot_info_t *boot_info, int verify,
 			     ulong *os_data, ulong *os_len);
-int android_image_get_ramdisk(const struct andr_img_hdr *hdr,
+int android_image_get_ramdisk(const struct andr_boot_info_t *boot_info,
 			      ulong *rd_data, ulong *rd_len);
-int android_image_get_second(const struct andr_img_hdr *hdr,
+int android_image_get_second(const struct andr_boot_info_t *boot_info,
 			      ulong *second_data, ulong *second_len);
 bool android_image_get_dtbo(ulong hdr_addr, ulong *addr, u32 *size);
 bool android_image_get_dtb_by_index(ulong hdr_addr, u32 index, ulong *addr,
 				    u32 *size);
-ulong android_image_get_end(const struct andr_img_hdr *hdr);
-ulong android_image_get_kload(const struct andr_img_hdr *hdr);
-ulong android_image_get_kcomp(const struct andr_img_hdr *hdr);
-void android_print_contents(const struct andr_img_hdr *hdr);
+ulong android_image_get_end(const struct andr_boot_info_t *boot_info);
+ulong android_image_get_kload(const struct andr_boot_info_t *boot_info);
+ulong android_image_get_kcomp(const struct andr_boot_info_t *boot_info);
+void android_print_contents(const struct andr_boot_info_t *boot_info);
 #if !defined(CONFIG_SPL_BUILD)
 bool android_image_print_dtb_contents(ulong hdr_addr);
 #endif
@@ -1451,13 +1451,12 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * 			with android boot images version 1 and 2.
  * @load_address:	The address where the image will be loaded
  * @max_size:		The maximum loaded size, in bytes
- * @return the number of bytes read or a negative number in case of error.
+ * @return: android boot info struct pointer
  */
-long android_image_load(struct blk_desc *dev_desc,
+struct andr_boot_info_t* android_image_load(struct blk_desc *dev_desc,
 			const disk_partition_t *boot_img_info,
 			const disk_partition_t *device_info,
-			unsigned long load_address,
-			unsigned long max_size);
+			unsigned long load_address);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 
