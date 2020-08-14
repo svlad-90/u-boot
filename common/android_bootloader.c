@@ -12,6 +12,7 @@
 #include <malloc.h>
 
 #define ANDROID_PARTITION_BOOT "boot"
+#define ANDROID_PARTITION_RECOVERY "recovery"
 #define ANDROID_PARTITION_SYSTEM "system"
 
 #define ANDROID_ARG_SLOT_SUFFIX "androidboot.slot_suffix="
@@ -267,12 +268,16 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 {
 	enum android_boot_mode mode;
 	disk_partition_t boot_part_info;
-	disk_partition_t system_part_info;
-	int boot_part_num, system_part_num;
+	int boot_part_num;
 	int ret;
 	char *command_line;
 	char slot_suffix[3];
 	const char *mode_cmdline = NULL;
+	const char *boot_partition = ANDROID_PARTITION_BOOT;
+#ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
+	int system_part_num
+	disk_partition_t system_part_info;
+#endif
 
 	/* Determine the boot mode and clear its value for the next boot if
 	 * needed.
@@ -282,16 +287,22 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 
 	switch (mode) {
 	case ANDROID_BOOT_MODE_NORMAL:
+#ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 		/* In normal mode, we load the kernel from "boot" but append
 		 * "skip_initramfs" to the cmdline to make it ignore the
 		 * recovery initramfs in the boot partition.
 		 */
 		mode_cmdline = "skip_initramfs";
+#endif
 		break;
 	case ANDROID_BOOT_MODE_RECOVERY:
+#ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 		/* In recovery mode we still boot the kernel from "boot" but
 		 * don't skip the initramfs so it boots to recovery.
 		 */
+#else
+		boot_partition = ANDROID_PARTITION_RECOVERY;
+#endif
 		break;
 	case ANDROID_BOOT_MODE_BOOTLOADER:
 		/* Bootloader mode enters fastboot. If this operation fails we
@@ -310,14 +321,14 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 
 	/* Load the kernel from the desired "boot" partition. */
 	boot_part_num =
-	    android_part_get_info_by_name_suffix(dev_desc,
-						 ANDROID_PARTITION_BOOT,
+	    android_part_get_info_by_name_suffix(dev_desc, boot_partition,
 						 slot_suffix, &boot_part_info);
 	if (boot_part_num < 0)
 		return -1;
 	debug("ANDROID: Loading kernel from \"%s\", partition %d.\n",
 	      boot_part_info.name, boot_part_num);
 
+#ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 	system_part_num =
 	    android_part_get_info_by_name_suffix(dev_desc,
 						 ANDROID_PARTITION_SYSTEM,
@@ -327,15 +338,18 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		return -1;
 	debug("ANDROID: Using system image from \"%s\", partition %d.\n",
 	      system_part_info.name, system_part_num);
+#endif
 
 	ret = android_image_load(dev_desc, &boot_part_info, kernel_address,
 				 -1UL);
 	if (ret < 0)
 		return ret;
 
+#ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 	/* Set Android root variables. */
 	env_set_ulong("android_root_devnum", dev_desc->devnum);
 	env_set_ulong("android_root_partnum", system_part_num);
+#endif
 	env_set("android_slotsufix", slot_suffix);
 
 	/* Assemble the command line */
