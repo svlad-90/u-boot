@@ -15,6 +15,8 @@
 #include <tee.h>
 #include <tee/optee_ta_avb.h>
 
+#define AVB_BOOTARGS	"avb_bootargs"
+
 /**
  * ============================================================================
  * Boot states support (GREEN, YELLOW, ORANGE, RED) and dm_verity
@@ -965,6 +967,18 @@ int avb_verify(struct AvbOps *ops,
 	return avb_verify_partitions(ops, slot_suffix, requested_partitions, out_data, out_cmdline);
 }
 
+static void do_avb_update_cmdline(struct AvbOps *ops, bool unlocked, AvbSlotVerifyData *out_data)
+{
+	char *cmdline;
+	char *extra_args = avb_set_state(ops, unlocked ? AVB_ORANGE : AVB_GREEN);
+	if (extra_args)
+		cmdline = append_cmd_line(out_data->cmdline, extra_args);
+	else
+		cmdline = out_data->cmdline;
+
+	env_set(AVB_BOOTARGS, cmdline);
+}
+
 int avb_verify_partitions(struct AvbOps *ops,
 	       const char *slot_suffix,
 	       const char * const requested_partitions[],
@@ -999,10 +1013,18 @@ int avb_verify_partitions(struct AvbOps *ops,
 	switch (slot_result) {
 	case AVB_SLOT_VERIFY_RESULT_OK:
 		printf("Verification passed successfully\n");
+		if(out_data)
+			do_avb_update_cmdline(ops, unlocked, *out_data);
 		goto success;
 	case AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION:
-		printf("Verification failed\n");
-		goto success_if_unlocked;
+		if (unlocked && out_data && strstr((*out_data)->cmdline, "androidboot.veritymode=disabled")) {
+			printf("Device is unlocked and verification is disabled!\n");
+			do_avb_update_cmdline(ops, unlocked, *out_data);
+			goto success;
+		} else {
+			printf("Verification failed\n");
+			goto success_if_unlocked;
+		}
 	case AVB_SLOT_VERIFY_RESULT_ERROR_IO:
 		printf("I/O error occurred during verification\n");
 		break;
