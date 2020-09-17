@@ -27,7 +27,10 @@ enum bcb_cmd {
 
 static int bcb_dev = -1;
 static int bcb_part = -1;
+static const char *bcb_type = NULL;
+static const char *default_bcb_type = "mmc";
 static struct bootloader_message bcb __aligned(ARCH_DMA_MINALIGN) = { { 0 } };
+char devnum_str[256];
 
 static int bcb_cmd_get(char *cmd)
 {
@@ -53,6 +56,9 @@ static int bcb_is_misused(int argc, char *const argv[])
 
 	switch (cmd) {
 	case BCB_CMD_LOAD:
+		if (argc != 3 && argc != 4)
+			goto err;
+		break;
 	case BCB_CMD_FIELD_SET:
 		if (argc != 3)
 			goto err;
@@ -123,8 +129,9 @@ static int __bcb_load(int devnum, const char *partp)
 	char *endp;
 	int part, ret;
 
-	desc = blk_get_devnum_by_uclass_id(UCLASS_MMC, devnum);
-	if (!desc) {
+	snprintf(devnum_str, sizeof(devnum_str), "%d", devnum);
+	ret = blk_get_device_by_str(bcb_type ? bcb_type : default_bcb_type, devnum_str, &desc);
+	if (ret < 0 || !desc) {
 		ret = -ENODEV;
 		goto err_read_fail;
 	}
@@ -175,6 +182,7 @@ err_too_small:
 err:
 	bcb_dev = -1;
 	bcb_part = -1;
+	bcb_type = NULL;
 
 	return CMD_RET_FAILURE;
 }
@@ -189,6 +197,8 @@ static int do_bcb_load(struct cmd_tbl *cmdtp, int flag, int argc,
 		printf("Error: Device id '%s' not a number\n", argv[1]);
 		return CMD_RET_FAILURE;
 	}
+
+	bcb_type = argv[3];
 
 	return __bcb_load(devnum, argv[2]);
 }
@@ -298,8 +308,9 @@ static int __bcb_store(void)
 	u64 cnt;
 	int ret;
 
-	desc = blk_get_devnum_by_uclass_id(UCLASS_MMC, bcb_dev);
-	if (!desc) {
+	snprintf(devnum_str, sizeof(devnum_str), "%d", bcb_dev);
+	ret = blk_get_device_by_str(bcb_type ? bcb_type : default_bcb_type, devnum_str, &desc);
+	if (ret < 0 || !desc) {
 		ret = -ENODEV;
 		goto err;
 	}
@@ -385,7 +396,7 @@ static int do_bcb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 U_BOOT_CMD(
 	bcb, CONFIG_SYS_MAXARGS, 1, do_bcb,
 	"Load/set/clear/test/dump/store Android BCB fields",
-	"load  <dev> <part>       - load  BCB from mmc <dev>:<part>\n"
+	"load  <dev> <part> [<interface>]      - load  BCB from <dev>:<part>[<interface>]\n"
 	"bcb set   <field> <val>      - set   BCB <field> to <val>\n"
 	"bcb clear [<field>]          - clear BCB <field> or all fields\n"
 	"bcb test  <field> <op> <val> - test  BCB <field> against <val>\n"
@@ -393,8 +404,9 @@ U_BOOT_CMD(
 	"bcb store                    - store BCB back to mmc\n"
 	"\n"
 	"Legend:\n"
-	"<dev>   - MMC device index containing the BCB partition\n"
-	"<part>  - MMC partition index or name containing the BCB\n"
+	"<dev>   - device index containing the BCB partition\n"
+	"<part>  - partition index or name containing the BCB\n"
+	"<interface>  - interface name of the block device containing the BCB\n"
 	"<field> - one of {command,status,recovery,stage,reserved}\n"
 	"<op>    - the binary operator used in 'bcb test':\n"
 	"          '=' returns true if <val> matches the string stored in <field>\n"
