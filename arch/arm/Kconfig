@@ -2049,6 +2049,10 @@ config TARGET_XENGUEST_ARM64
 	bool "Xen guest ARM64"
 	select XENGUEST_ARM64_COMMON
 
+config TARGET_XENGUEST_ANDROID_ARM64
+	bool "Xen guest ARM64 for Android"
+	select XENGUEST_ARM64_COMMON
+
 config ARCH_GXP
 	bool "Support HPE GXP SoCs"
 	select DM
@@ -2309,6 +2313,7 @@ source "board/vscom/baltos/Kconfig"
 source "board/phytium/durian/Kconfig"
 source "board/phytium/pomelo/Kconfig"
 source "board/xen/xenguest_arm64/Kconfig"
+source "board/xen/xenguest_android_arm64/Kconfig"
 
 source "arch/arm/Kconfig.debug"
 
