@@ -366,20 +366,21 @@ int do_zboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 }
 
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
-int android_bootloader_boot_kernel(const struct andr_boot_info_t *boot_info)
+int android_bootloader_boot_kernel(unsigned long image_address)
 {
 	ulong kernel_address;
 	ulong ramdisk_address, ramdisk_len;
 	char kernel_addr_str[12], ramdisk_addr_str[12], ramdisk_len_str[12];
 	char *zboot_args[] = {
 		"zboot", kernel_addr_str, "0", ramdisk_addr_str, ramdisk_len_str, NULL };
+	void* buf = map_sysmem(image_address, 0);
 
-	if (android_image_get_kernel(boot_info, images.verify, NULL, NULL))
+	if (android_image_get_kernel(buf, images.verify, NULL, NULL))
 		return -1;
-	if (android_image_get_ramdisk(boot_info, &ramdisk_address, &ramdisk_len))
+	if (android_image_get_ramdisk(buf, &ramdisk_address, &ramdisk_len))
 		return -1;
 
-	kernel_address = android_image_get_kload(boot_info);
+	kernel_address = android_image_get_kload(buf);
 	sprintf(kernel_addr_str, "0x%lx", kernel_address);
 	sprintf(ramdisk_addr_str, "0x%lx", ramdisk_address);
 	sprintf(ramdisk_len_str, "0x%lx", ramdisk_len);
