@@ -220,7 +220,14 @@ struct boot_params *load_zimage(char *image, unsigned long kernel_size,
 		       SETUP_MAX_SIZE - setup_size);
 	}
 
-	if (big_image == false && (kernel_size) > ZIMAGE_MAX_SIZE) {
+	if (big_image) {
+		if (kernel_size > BZIMAGE_MAX_SIZE) {
+			printf("Error: bzImage kernel too big! "
+				"(size: %ld, max: %d)\n",
+				kernel_size, BZIMAGE_MAX_SIZE);
+			return 0;
+		}
+	} else if ((kernel_size) > ZIMAGE_MAX_SIZE) {
 		printf("Error: zImage kernel too big! (size: %ld, max: %d)\n",
 		       kernel_size, ZIMAGE_MAX_SIZE);
 		return 0;
