@@ -51,7 +51,7 @@ static int ab_control_default(struct bootloader_control *abc)
 	if (!abc)
 		return -EFAULT;
 
-	memcpy(abc->slot_suffix, "_a\0\0", 4);
+	memcpy(abc->slot_suffix, "a\0\0\0", 4);
 	abc->magic = BOOT_CTRL_MAGIC;
 	abc->version = BOOT_CTRL_VERSION;
 	abc->nb_slot = NUM_SLOTS;
@@ -281,8 +281,7 @@ int ab_select_slot(struct blk_desc *dev_desc, disk_partition_t *part_info)
 		 * or the device tree.
 		 */
 		memset(slot_suffix, 0, sizeof(slot_suffix));
-		slot_suffix[0] = '_';
-		slot_suffix[1] = BOOT_SLOT_NAME(slot);
+		slot_suffix[0] = BOOT_SLOT_NAME(slot);
 		if (memcmp(abc->slot_suffix, slot_suffix,
 			   sizeof(slot_suffix))) {
 			memcpy(abc->slot_suffix, slot_suffix,
