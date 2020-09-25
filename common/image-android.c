@@ -180,14 +180,13 @@ int android_image_get_ramdisk(const struct andr_img_hdr *hdr,
 }
 
 long android_image_load(struct blk_desc *dev_desc,
-			const disk_partition_t *boot_img_info,
-			const disk_partition_t *device_info,
+			const disk_partition_t *part_info,
 			unsigned long load_address,
 			unsigned long max_size) {
 	void *buf;
 	long blk_cnt, blk_read = 0;
 
-	if (max_size < boot_img_info->blksz)
+	if (max_size < part_info->blksz)
 		return -1;
 
 	/* We don't know the size of the Android image before reading the header
@@ -196,7 +195,7 @@ long android_image_load(struct blk_desc *dev_desc,
 	buf = map_sysmem(load_address, 0 /* size */);
 
 	/* Read the Android header first and then read the rest. */
-	if (blk_dread(dev_desc, boot_img_info->start, 1, buf) != 1)
+	if (blk_dread(dev_desc, part_info->start, 1, buf) != 1)
 		blk_read = -1;
 
 	if (!blk_read && android_image_check_header(buf) != 0) {
@@ -205,8 +204,8 @@ long android_image_load(struct blk_desc *dev_desc,
 	}
 	if (!blk_read) {
 		blk_cnt = (android_image_get_end(buf) - (ulong)buf +
-			   boot_img_info->blksz - 1) / boot_img_info->blksz;
-		if (blk_cnt * boot_img_info->blksz > max_size) {
+			   part_info->blksz - 1) / part_info->blksz;
+		if (blk_cnt * part_info->blksz > max_size) {
 			debug("Android Image too big (%lu bytes, max %lu)\n",
 			      android_image_get_end(buf) - (ulong)buf,
 			      max_size);
@@ -214,7 +213,7 @@ long android_image_load(struct blk_desc *dev_desc,
 		} else {
 			debug("Loading Android Image (%lu blocks) to 0x%lx... ",
 			      blk_cnt, load_address);
-			blk_read = blk_dread(dev_desc, boot_img_info->start,
+			blk_read = blk_dread(dev_desc, part_info->start,
 					     blk_cnt, buf);
 		}
 	}
