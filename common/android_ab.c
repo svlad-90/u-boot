@@ -179,8 +179,7 @@ static int ab_compare_slots(const struct slot_metadata *a,
 	return 0;
 }
 
-int ab_select_slot(struct blk_desc *dev_desc, const disk_partition_t *part_info,
-				   bool normal_boot)
+int ab_select_slot(struct blk_desc *dev_desc, const disk_partition_t *part_info)
 {
 	struct bootloader_control *abc = NULL;
 	u32 crc32_le;
@@ -267,11 +266,7 @@ int ab_select_slot(struct blk_desc *dev_desc, const disk_partition_t *part_info,
 		}
 	}
 
-	/* Note that we only count the boot attempt as a valid try when performing
-	 * normal boots to Android. Booting to recovery or fastboot does not count
-	 * as a normal boot.
-	 */
-	if (slot >= 0 && !abc->slot_info[slot].successful_boot && normal_boot) {
+	if (slot >= 0 && !abc->slot_info[slot].successful_boot) {
 		log_err("ANDROID: Attempting slot %c, tries remaining %d\n",
 			BOOT_SLOT_NAME(slot),
 			abc->slot_info[slot].tries_remaining);
