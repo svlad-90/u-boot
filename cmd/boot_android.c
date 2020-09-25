@@ -18,9 +18,8 @@ static int do_boot_android(cmd_tbl_t *cmdtp, int flag, int argc,
 	disk_partition_t part_info;
 	const char *misc_part_iface;
 	const char *misc_part_desc;
-	const char *slot = NULL;
 
-	if (argc < 3)
+	if (argc < 4)
 		return CMD_RET_USAGE;
 	if (argc > 5)
 		return CMD_RET_USAGE;
@@ -36,8 +35,6 @@ static int do_boot_android(cmd_tbl_t *cmdtp, int flag, int argc,
 		else
 			load_address = CONFIG_SYS_LOAD_ADDR;
 	}
-	if (argc >= 4)
-		slot = argv[3];
 
 	/* Lookup the "misc" partition from argv[1] and argv[2] */
 	misc_part_iface = argv[1];
@@ -48,7 +45,7 @@ static int do_boot_android(cmd_tbl_t *cmdtp, int flag, int argc,
 						 &dev_desc, &part_info) < 0)
 		return CMD_RET_FAILURE;
 
-	ret = android_bootloader_boot_flow(dev_desc, &part_info, slot,
+	ret = android_bootloader_boot_flow(dev_desc, &part_info, argv[3],
 					   load_address);
 	if (ret < 0) {
 		printf("Android boot failed, error %d.\n", ret);
@@ -60,7 +57,7 @@ static int do_boot_android(cmd_tbl_t *cmdtp, int flag, int argc,
 U_BOOT_CMD(
 	boot_android, 5, 0, do_boot_android,
 	"Execute the Android Bootloader flow.",
-	"<interface> <dev[:part|;part_name]> [<slot>] [<kernel_addr>]\n"
+	"<interface> <dev[:part|;part_name]> <slot> [<kernel_addr>]\n"
 	"    - Load the Boot Control Block (BCB) from the partition 'part' on\n"
 	"      device type 'interface' instance 'dev' to determine the boot\n"
 	"      mode, and load and execute the appropriate kernel.\n"
