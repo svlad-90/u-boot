@@ -5,10 +5,12 @@
  */
 
 #include <common.h>
+#include <blk.h>
 #include <command.h>
 #include <env.h>
 #include <errno.h>
 #include <ide.h>
+#include <log.h>
 #include <malloc.h>
 #include <part.h>
 #include <ubifs_uboot.h>
@@ -147,6 +149,7 @@ void dev_print (struct blk_desc *dev_desc)
 	case IF_TYPE_MMC:
 	case IF_TYPE_USB:
 	case IF_TYPE_NVME:
+	case IF_TYPE_PVBLOCK:
 		printf ("Vendor: %s Rev: %s Prod: %s\n",
 			dev_desc->vendor,
 			dev_desc->revision,
@@ -286,6 +289,9 @@ static void print_part_header(const char *type, struct blk_desc *dev_desc)
 	case IF_TYPE_NVME:
 		puts ("NVMe");
 		break;
+	case IF_TYPE_PVBLOCK:
+		puts("PV BLOCK");
+		break;
 	case IF_TYPE_VIRTIO:
 		puts("VirtIO");
 		break;
@@ -318,7 +324,7 @@ void part_print(struct blk_desc *dev_desc)
 #endif /* CONFIG_HAVE_BLOCK_DEVICE */
 
 int part_get_info(struct blk_desc *dev_desc, int part,
-		       disk_partition_t *info)
+		       struct disk_partition *info)
 {
 #ifdef CONFIG_HAVE_BLOCK_DEVICE
 	struct part_driver *drv;
@@ -351,7 +357,8 @@ int part_get_info(struct blk_desc *dev_desc, int part,
 	return -1;
 }
 
-int part_get_info_whole_disk(struct blk_desc *dev_desc, disk_partition_t *info)
+int part_get_info_whole_disk(struct blk_desc *dev_desc,
+			     struct disk_partition *info)
 {
 	info->start = 0;
 	info->size = dev_desc->lba;
@@ -431,7 +438,7 @@ cleanup:
 #define PART_AUTO -1
 int blk_get_device_part_str(const char *ifname, const char *dev_part_str,
 			     struct blk_desc **dev_desc,
-			     disk_partition_t *info, int allow_whole_dev)
+			     struct disk_partition *info, int allow_whole_dev)
 {
 	int ret = -1;
 	const char *part_str;
@@ -441,7 +448,7 @@ int blk_get_device_part_str(const char *ifname, const char *dev_part_str,
 	char *ep;
 	int p;
 	int part;
-	disk_partition_t tmpinfo;
+	struct disk_partition tmpinfo;
 
 #ifdef CONFIG_SANDBOX
 	/*
@@ -646,7 +653,7 @@ cleanup:
 }
 
 int part_get_info_by_name_type(struct blk_desc *dev_desc, const char *name,
-			       disk_partition_t *info, int part_type)
+			       struct disk_partition *info, int part_type)
 {
 	struct part_driver *part_drv;
 	int ret;
@@ -671,7 +678,7 @@ int part_get_info_by_name_type(struct blk_desc *dev_desc, const char *name,
 }
 
 int part_get_info_by_name(struct blk_desc *dev_desc, const char *name,
-			  disk_partition_t *info)
+			  struct disk_partition *info)
 {
 	return part_get_info_by_name_type(dev_desc, name, info, PART_TYPE_ALL);
 }
@@ -693,7 +700,7 @@ int part_get_info_by_name(struct blk_desc *dev_desc, const char *name,
 static int part_get_info_by_dev_and_name(const char *dev_iface,
 					 const char *dev_part_str,
 					 struct blk_desc **dev_desc,
-					 disk_partition_t *part_info)
+					 struct disk_partition *part_info)
 {
 	char *ep;
 	const char *part_str;
@@ -725,7 +732,7 @@ static int part_get_info_by_dev_and_name(const char *dev_iface,
 int part_get_info_by_dev_and_name_or_num(const char *dev_iface,
 					 const char *dev_part_str,
 					 struct blk_desc **dev_desc,
-					 disk_partition_t *part_info)
+					 struct disk_partition *part_info)
 {
 	/* Split the part_name if passed as "$dev_num#part_name". */
 	if (!part_get_info_by_dev_and_name(dev_iface, dev_part_str,

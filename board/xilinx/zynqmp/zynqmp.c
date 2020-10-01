@@ -5,9 +5,13 @@
  */
 
 #include <common.h>
+#include <command.h>
 #include <cpu_func.h>
+#include <debug_uart.h>
 #include <env.h>
 #include <init.h>
+#include <log.h>
+#include <net.h>
 #include <sata.h>
 #include <ahci.h>
 #include <scsi.h>
@@ -17,7 +21,9 @@
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/psu_init_gpl.h>
+#include <asm/cache.h>
 #include <asm/io.h>
+#include <asm/ptrace.h>
 #include <dm/device.h>
 #include <dm/uclass.h>
 #include <usb.h>
@@ -25,7 +31,10 @@
 #include <zynqmppl.h>
 #include <zynqmp_firmware.h>
 #include <g_dnl.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 #include <linux/sizes.h>
+#include "../common/board.h"
 
 #include "pm_cfg_obj.h"
 
@@ -188,67 +197,6 @@ static const struct {
 };
 #endif
 
-int chip_id(unsigned char id)
-{
-	struct pt_regs regs;
-	int val = -EINVAL;
-
-	if (current_el() != 3) {
-		regs.regs[0] = ZYNQMP_SIP_SVC_CSU_DMA_CHIPID;
-		regs.regs[1] = 0;
-		regs.regs[2] = 0;
-		regs.regs[3] = 0;
-
-		smc_call(&regs);
-
-		/*
-		 * SMC returns:
-		 * regs[0][31:0]  = status of the operation
-		 * regs[0][63:32] = CSU.IDCODE register
-		 * regs[1][31:0]  = CSU.version register
-		 * regs[1][63:32] = CSU.IDCODE2 register
-		 */
-		switch (id) {
-		case IDCODE:
-			regs.regs[0] = upper_32_bits(regs.regs[0]);
-			regs.regs[0] &= ZYNQMP_CSU_IDCODE_DEVICE_CODE_MASK |
-					ZYNQMP_CSU_IDCODE_SVD_MASK;
-			regs.regs[0] >>= ZYNQMP_CSU_IDCODE_SVD_SHIFT;
-			val = regs.regs[0];
-			break;
-		case VERSION:
-			regs.regs[1] = lower_32_bits(regs.regs[1]);
-			regs.regs[1] &= ZYNQMP_CSU_SILICON_VER_MASK;
-			val = regs.regs[1];
-			break;
-		case IDCODE2:
-			regs.regs[1] = lower_32_bits(regs.regs[1]);
-			regs.regs[1] >>= ZYNQMP_CSU_VERSION_EMPTY_SHIFT;
-			val = regs.regs[1];
-			break;
-		default:
-			printf("%s, Invalid Req:0x%x\n", __func__, id);
-		}
-	} else {
-		switch (id) {
-		case IDCODE:
-			val = readl(ZYNQMP_CSU_IDCODE_ADDR);
-			val &= ZYNQMP_CSU_IDCODE_DEVICE_CODE_MASK |
-			       ZYNQMP_CSU_IDCODE_SVD_MASK;
-			val >>= ZYNQMP_CSU_IDCODE_SVD_SHIFT;
-			break;
-		case VERSION:
-			val = readl(ZYNQMP_CSU_VER_ADDR);
-			val &= ZYNQMP_CSU_SILICON_VER_MASK;
-			break;
-		default:
-			printf("%s, Invalid Req:0x%x\n", __func__, id);
-		}
-	}
-
-	return val;
-}
-
 #define ZYNQMP_VERSION_SIZE		9
 #define ZYNQMP_PL_STATUS_BIT		9
 #define ZYNQMP_IPDIS_VCU_BIT		8
@@ -265,9 +213,28 @@ static char *zynqmp_get_silicon_idcode_name(void)
 	u32 i, id, ver, j;
 	char *buf;
 	static char name[ZYNQMP_VERSION_SIZE];
+	u32 ret_payload[PAYLOAD_ARG_CNT];
 
-	id = chip_id(IDCODE);
-	ver = chip_id(IDCODE2);
+	xilinx_pm_request(PM_GET_CHIPID, 0, 0, 0, 0, ret_payload);
+
+	/*
+	 * Firmware returns:
+	 * payload[0][31:0]  = status of the operation
+	 * payload[1]] = IDCODE
+	 * payload[2][19:0]  = Version
+	 * payload[2][28:20] = EXTENDED_IDCODE
+	 * payload[2][29] = PL_INIT
+	 */
+
+	/* Get IDCODE field */
+	id = ret_payload[1];
+	id &= ZYNQMP_CSU_IDCODE_DEVICE_CODE_MASK | ZYNQMP_CSU_IDCODE_SVD_MASK;
+	id >>=	ZYNQMP_CSU_IDCODE_SVD_SHIFT;
+
+	/* Shift silicon version info */
+	ver = ret_payload[2] >> ZYNQMP_CSU_VERSION_EMPTY_SHIFT;
+
+	debug("%s, ID: 0x%0X, Ver: 0x%0X\r\n", __func__, id, ver);
 
 	for (i = 0; i < ARRAY_SIZE(zynqmp_devices); i++) {
 		if (zynqmp_devices[i].id == id) {
@@ -319,22 +286,49 @@ static char *zynqmp_get_silicon_idcode_name(void)
 
 int board_early_init_f(void)
 {
-	int ret = 0;
-
 #if defined(CONFIG_ZYNQMP_PSU_INIT_ENABLED)
+	int ret;
+
 	ret = psu_init();
+	if (ret)
+		return ret;
+
+	/* Delay is required for clocks to be propagated */
+	udelay(1000000);
 #endif
 
-	return ret;
+#ifdef CONFIG_DEBUG_UART
+	/* Uart debug for sure */
+	debug_uart_init();
+	puts("Debug uart enabled\n"); /* or printch() */
+#endif
+
+	return 0;
 }
+
+static int multi_boot(void)
+{
+	u32 multiboot;
+
+	multiboot = readl(&csu_base->multi_boot);
+
+	printf("Multiboot:\t%d\n", multiboot);
+
+	return 0;
+}
+
+#define PS_SYSMON_ANALOG_BUS_VAL	0x3210
+#define PS_SYSMON_ANALOG_BUS_REG	0xFFA50914
 
 int board_init(void)
 {
+#if defined(CONFIG_ZYNQMP_FIRMWARE)
 	struct udevice *dev;
 
 	uclass_get_device_by_name(UCLASS_FIRMWARE, "zynqmp-power", &dev);
 	if (!dev)
 		panic("PMU Firmware device not found - Enable it");
+#endif
 
 #if defined(CONFIG_SPL_BUILD)
 	/* Check *at build time* if the filename is an non-empty string */
@@ -345,16 +339,20 @@ int board_init(void)
 
 	printf("EL Level:\tEL%d\n", current_el());
 
+	/* Bug in ROM sets wrong value in this register */
+	writel(PS_SYSMON_ANALOG_BUS_VAL, PS_SYSMON_ANALOG_BUS_REG);
+
 #if defined(CONFIG_FPGA) && defined(CONFIG_FPGA_ZYNQMPPL) && \
     !defined(CONFIG_SPL_BUILD) || (defined(CONFIG_SPL_FPGA_SUPPORT) && \
     defined(CONFIG_SPL_BUILD))
-	if (current_el() != 3) {
-		zynqmppl.name = zynqmp_get_silicon_idcode_name();
-		printf("Chip ID:\t%s\n", zynqmppl.name);
-		fpga_init();
-		fpga_add(fpga_xilinx, &zynqmppl);
-	}
+	zynqmppl.name = zynqmp_get_silicon_idcode_name();
+	printf("Chip ID:\t%s\n", zynqmppl.name);
+	fpga_init();
+	fpga_add(fpga_xilinx, &zynqmppl);
 #endif
+
+	if (current_el() == 3)
+		multi_boot();
 
 	return 0;
 }
@@ -385,7 +383,7 @@ int board_early_init_r(void)
 }
 
 unsigned long do_go_exec(ulong (*entry)(int, char * const []), int argc,
-			 char * const argv[])
+			 char *const argv[])
 {
 	int ret = 0;
 
@@ -487,7 +485,7 @@ static int reset_reason(void)
 
 	env_set("reset_reason", reason);
 
-	ret = zynqmp_mmio_write(~0, ~0, (ulong)&crlapb_base->reset_reason);
+	ret = zynqmp_mmio_write((ulong)&crlapb_base->reset_reason, ~0, ~0);
 	if (ret)
 		return -EINVAL;
 
@@ -499,23 +497,30 @@ static int set_fdtfile(void)
 	char *compatible, *fdtfile;
 	const char *suffix = ".dtb";
 	const char *vendor = "xilinx/";
+	int fdt_compat_len;
 
 	if (env_get("fdtfile"))
 		return 0;
 
-	compatible = (char *)fdt_getprop(gd->fdt_blob, 0, "compatible", NULL);
-	if (compatible) {
+	compatible = (char *)fdt_getprop(gd->fdt_blob, 0, "compatible",
+					 &fdt_compat_len);
+	if (compatible && fdt_compat_len) {
+		char *name;
+
 		debug("Compatible: %s\n", compatible);
 
-		/* Discard vendor prefix */
-		strsep(&compatible, ",");
+		name = strchr(compatible, ',');
+		if (!name)
+			return -EINVAL;
 
-		fdtfile = calloc(1, strlen(vendor) + strlen(compatible) +
+		name++;
+
+		fdtfile = calloc(1, strlen(vendor) + strlen(name) +
 				 strlen(suffix) + 1);
 		if (!fdtfile)
 			return -ENOMEM;
 
-		sprintf(fdtfile, "%s%s%s", vendor, compatible, suffix);
+		sprintf(fdtfile, "%s%s%s", vendor, name, suffix);
 
 		env_set("fdtfile", fdtfile);
 		free(fdtfile);
@@ -524,9 +529,26 @@ static int set_fdtfile(void)
 	return 0;
 }
 
+static u8 zynqmp_get_bootmode(void)
+{
+	u8 bootmode;
+	u32 reg = 0;
+	int ret;
+
+	ret = zynqmp_mmio_read((ulong)&crlapb_base->boot_mode, &reg);
+	if (ret)
+		return -EINVAL;
+
+	if (reg >> BOOT_MODE_ALT_SHIFT)
+		reg >>= BOOT_MODE_ALT_SHIFT;
+
+	bootmode = reg & BOOT_MODES_MASK;
+
+	return bootmode;
+}
+
 int board_late_init(void)
 {
-	u32 reg = 0;
 	u8 bootmode;
 	struct udevice *dev;
 	int bootseq = -1;
@@ -536,7 +558,6 @@ int board_late_init(void)
 	char *new_targets;
 	char *env_targets;
 	int ret;
-	ulong initrd_hi;
 
 #if defined(CONFIG_USB_ETHER) && !defined(CONFIG_USB_GADGET_DOWNLOAD)
 	usb_ether_init();
@@ -547,18 +568,14 @@ int board_late_init(void)
 		return 0;
 	}
 
+	if (!CONFIG_IS_ENABLED(ENV_VARS_UBOOT_RUNTIME_CONFIG))
+		return 0;
+
 	ret = set_fdtfile();
 	if (ret)
 		return ret;
 
-	ret = zynqmp_mmio_read((ulong)&crlapb_base->boot_mode, &reg);
-	if (ret)
-		return -EINVAL;
-
-	if (reg >> BOOT_MODE_ALT_SHIFT)
-		reg >>= BOOT_MODE_ALT_SHIFT;
-
-	bootmode = reg & BOOT_MODES_MASK;
+	bootmode = zynqmp_get_bootmode();
 
 	puts("Bootmode: ");
 	switch (bootmode) {
@@ -663,15 +680,9 @@ int board_late_init(void)
 
 	env_set("boot_targets", new_targets);
 
-	initrd_hi = gd->start_addr_sp - CONFIG_STACK_SIZE;
-	initrd_hi = round_down(initrd_hi, SZ_16M);
-	env_set_addr("initrd_high", (void *)initrd_hi);
-
-	env_set_hex("script_offset_f", CONFIG_BOOT_SCRIPT_OFFSET);
-
 	reset_reason();
 
-	return 0;
+	return board_late_init_xilinx();
 }
 #endif
 

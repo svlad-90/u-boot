@@ -8,6 +8,8 @@
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <linux/bitfield.h>
+#include <linux/bitops.h>
+#include <linux/bug.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
 #include <linux/sizes.h>
@@ -258,7 +260,7 @@ static int sdhci_cdns_probe(struct udevice *dev)
 	fdt_addr_t base;
 	int ret;
 
-	base = devfdt_get_addr(dev);
+	base = dev_read_addr(dev);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 

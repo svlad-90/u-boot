@@ -13,8 +13,12 @@
 #include <cpu_func.h>
 #include <dm.h>
 #include <errno.h>
+#include <log.h>
 #include <miiphy.h>
 #include <malloc.h>
+#include <asm/cache.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 #include <linux/mii.h>
 #include <wait_bit.h>
 #include <asm/io.h>
@@ -647,7 +651,7 @@ int ravb_ofdata_to_platdata(struct udevice *dev)
 	const fdt32_t *cell;
 	int ret = 0;
 
-	pdata->iobase = devfdt_get_addr(dev);
+	pdata->iobase = dev_read_addr(dev);
 	pdata->phy_interface = -1;
 	phy_mode = fdt_getprop(gd->fdt_blob, dev_of_offset(dev), "phy-mode",
 			       NULL);

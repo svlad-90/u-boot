@@ -6,6 +6,7 @@
 #ifndef _SYSTEM_MANAGER_SOC64_H_
 #define _SYSTEM_MANAGER_SOC64_H_
 
+#include <linux/bitops.h>
 void sysmgr_pinmux_init(void);
 void populate_sysmgr_fpgaintf_module(void);
 void populate_sysmgr_pinmux(void);
@@ -87,8 +88,12 @@ void sysmgr_pinmux_table_delay(const u32 **table, unsigned int *table_len);
 #define SYSMGR_ECC_OCRAM_EN	BIT(0)
 #define SYSMGR_ECC_OCRAM_SERR	BIT(3)
 #define SYSMGR_ECC_OCRAM_DERR	BIT(4)
-#define SYSMGR_FPGAINTF_USEFPGA	0x1
+#define SYSMGR_FPGACONFIG_FPGA_COMPLETE		BIT(0)
+#define SYSMGR_FPGACONFIG_EARLY_USERMODE	BIT(1)
+#define SYSMGR_FPGACONFIG_READY_MASK	(SYSMGR_FPGACONFIG_FPGA_COMPLETE | \
+					 SYSMGR_FPGACONFIG_EARLY_USERMODE)
 
+#define SYSMGR_FPGAINTF_USEFPGA	0x1
 #define SYSMGR_FPGAINTF_NAND	BIT(4)
 #define SYSMGR_FPGAINTF_SDMMC	BIT(8)
 #define SYSMGR_FPGAINTF_SPIM0	BIT(16)

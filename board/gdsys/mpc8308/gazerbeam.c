@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <board.h>
+#include <command.h>
 #include <dm.h>
 #include <env.h>
 #include <fdt_support.h>
@@ -170,7 +171,7 @@ int last_stage_init(void)
 }
 
 #if defined(CONFIG_OF_BOARD_SETUP)
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	ft_cpu_setup(blob, bd);
 	fsl_fdt_fixup_dr_usb(blob, bd);

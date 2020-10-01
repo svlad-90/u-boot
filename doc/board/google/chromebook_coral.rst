@@ -179,7 +179,7 @@ Partial memory map
     ffffffff       Top of ROM (and last byte of 32-bit address space)
     ffff8000       TPL loaded here (from IFWI)
     ff000000       Bottom of ROM
-     fefc000       Top of CAR region
+    fefc0000       Top of CAR region
     fef96000       Stack for FSP-M
     fef40000 59000 FSP-M
     fef11000       SPL loaded here
@@ -188,6 +188,7 @@ Partial memory map
     fef00000  1000 CONFIG_BOOTSTAGE_STASH_ADDR
     fef00000       Base of CAR region
 
+       30000       AP_DEFAULT_BASE (used to start up additional CPUs)
        f0000       CONFIG_ROM_TABLE_ADDR
       120000       BSS (defined in u-boot-spl.lds)
       200000       FSP-S (which is run after U-Boot is relocated)

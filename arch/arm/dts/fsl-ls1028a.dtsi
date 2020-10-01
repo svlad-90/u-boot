@@ -44,6 +44,12 @@
 					 IRQ_TYPE_LEVEL_LOW)>;
 	};
 
+	gic_lpi_base: syscon@0x80000000 {
+		compatible = "gic-lpi-base";
+		reg = <0x0 0x80000000 0x0 0x100000>;
+		max-gic-redistributors = <2>;
+	};
+
 	timer {
 		compatible = "arm,armv8-timer";
 		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(2) |
@@ -237,6 +243,66 @@
 		interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "i2c";
 		clocks = <&clockgen 4 0>;
+		status = "disabled";
+	};
+
+	lpuart0: serial@2260000 {
+		compatible = "fsl,ls1021a-lpuart";
+		reg = <0x0 0x2260000 0x0 0x1000>;
+		interrupts = <0 232 0x4>;
+		clocks = <&sysclk>;
+		clock-names = "ipg";
+		little-endian;
+		status = "disabled";
+	};
+
+	lpuart1: serial@2270000 {
+		compatible = "fsl,ls1021a-lpuart";
+		reg = <0x0 0x2270000 0x0 0x1000>;
+		interrupts = <0 233 0x4>;
+		clocks = <&sysclk>;
+		clock-names = "ipg";
+		little-endian;
+		status = "disabled";
+	};
+
+	lpuart2: serial@2280000 {
+		compatible = "fsl,ls1021a-lpuart";
+		reg = <0x0 0x2280000 0x0 0x1000>;
+		interrupts = <0 234 0x4>;
+		clocks = <&sysclk>;
+		clock-names = "ipg";
+		little-endian;
+		status = "disabled";
+	};
+
+	lpuart3: serial@2290000 {
+		compatible = "fsl,ls1021a-lpuart";
+		reg = <0x0 0x2290000 0x0 0x1000>;
+		interrupts = <0 235 0x4>;
+		clocks = <&sysclk>;
+		clock-names = "ipg";
+		little-endian;
+		status = "disabled";
+	};
+
+	lpuart4: serial@22a0000 {
+		compatible = "fsl,ls1021a-lpuart";
+		reg = <0x0 0x22a0000 0x0 0x1000>;
+		interrupts = <0 236 0x4>;
+		clocks = <&sysclk>;
+		clock-names = "ipg";
+		little-endian;
+		status = "disabled";
+	};
+
+	lpuart5: serial@22b0000 {
+		compatible = "fsl,ls1021a-lpuart";
+		reg = <0x0 0x22b0000 0x0 0x1000>;
+		interrupts = <0 237 0x4>;
+		clocks = <&sysclk>;
+		clock-names = "ipg";
+		little-endian;
 		status = "disabled";
 	};
 

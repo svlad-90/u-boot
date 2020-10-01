@@ -64,9 +64,6 @@ unsigned long get_board_sys_clk(unsigned long dummy);
 
 #define CONFIG_ENABLE_36BIT_PHYS
 
-#define CONFIG_ADDR_MAP
-#define CONFIG_SYS_NUM_ADDR_MAP		64	/* number of TLB1 entries */
-
 #define CONFIG_POST CONFIG_SYS_POST_MEM_REGIONS	/* POST memory regions test */
 
 /*
@@ -318,8 +315,6 @@ int get_scl(void);
 #define CONFIG_SYS_QE_FMAN_FW_LENGTH	0x10000
 #define CONFIG_SYS_FDT_PAD		(0x3000 + CONFIG_SYS_QE_FMAN_FW_LENGTH)
 
-#define CONFIG_PHYLIB_10G
-
 #define CONFIG_PCI_INDIRECT_BRIDGE
 
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup */
@@ -367,7 +362,6 @@ int get_scl(void);
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_OVERWRITE
 #ifndef CONFIG_KM_DEF_ENV		/* if not set by keymile-common.h */
 #define CONFIG_KM_DEF_ENV "km-common=empty\0"
 #endif

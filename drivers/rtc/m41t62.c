@@ -19,6 +19,7 @@
 #include <common.h>
 #include <command.h>
 #include <dm.h>
+#include <log.h>
 #include <rtc.h>
 #include <i2c.h>
 
@@ -173,6 +174,7 @@ static const struct rtc_ops m41t62_rtc_ops = {
 static const struct udevice_id m41t62_rtc_ids[] = {
 	{ .compatible = "st,m41t62" },
 	{ .compatible = "st,m41t82" },
+	{ .compatible = "st,m41st87" },
 	{ .compatible = "microcrystal,rv4162" },
 	{ }
 };

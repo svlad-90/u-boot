@@ -22,12 +22,16 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <log.h>
 #include <asm/byteorder.h>
 #include <usb.h>
 #include <malloc.h>
 #include <watchdog.h>
 #include <asm/cache.h>
 #include <asm/unaligned.h>
+#include <linux/bitops.h>
+#include <linux/bug.h>
+#include <linux/delay.h>
 #include <linux/errno.h>
 #include <usb/xhci.h>
 
@@ -185,6 +189,37 @@ static int xhci_start(struct xhci_hcor *hcor)
 				XHCI_MAX_HALT_USEC);
 	return ret;
 }
+
+#if CONFIG_IS_ENABLED(DM_USB)
+/**
+ * Resets XHCI Hardware
+ *
+ * @param ctrl	pointer to host controller
+ * @return 0 if OK, or a negative error code.
+ */
+static int xhci_reset_hw(struct xhci_ctrl *ctrl)
+{
+	int ret;
+
+	ret = reset_get_by_index(ctrl->dev, 0, &ctrl->reset);
+	if (ret && ret != -ENOENT && ret != -ENOTSUPP) {
+		dev_err(ctrl->dev, "failed to get reset\n");
+		return ret;
+	}
+
+	if (reset_valid(&ctrl->reset)) {
+		ret = reset_assert(&ctrl->reset);
+		if (ret)
+			return ret;
+
+		ret = reset_deassert(&ctrl->reset);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+#endif
 
 /**
  * Resets the XHCI Controller
@@ -596,8 +631,7 @@ static int xhci_set_configuration(struct usb_device *udev)
 			cpu_to_le32(MAX_BURST(max_burst) |
 			ERROR_COUNT(err_count));
 
-		trb_64 = (uintptr_t)
-				virt_dev->eps[ep_index].ring->enqueue;
+		trb_64 = virt_to_phys(virt_dev->eps[ep_index].ring->enqueue);
 		ep_ctx[ep_index]->deq = cpu_to_le64(trb_64 |
 				virt_dev->eps[ep_index].ring->cycle_state);
 
@@ -610,6 +644,16 @@ static int xhci_set_configuration(struct usb_device *udev)
 		ep_ctx[ep_index]->tx_info =
 			cpu_to_le32(EP_MAX_ESIT_PAYLOAD_LO(max_esit_payload) |
 			EP_AVG_TRB_LENGTH(avg_trb_len));
+
+		/*
+		 * The MediaTek xHCI defines some extra SW parameters which
+		 * are put into reserved DWs in Slot and Endpoint Contexts
+		 * for synchronous endpoints.
+		 */
+		if (IS_ENABLED(CONFIG_USB_XHCI_MTK)) {
+			ep_ctx[ep_index]->reserved[0] =
+				cpu_to_le32(EP_BPKTS(1) | EP_BBM(1));
+		}
 	}
 
 	return xhci_configure_endpoints(udev, false);
@@ -1493,6 +1537,10 @@ int xhci_register(struct udevice *dev, struct xhci_hccr *hccr,
 	      ctrl, hccr, hcor);
 
 	ctrl->dev = dev;
+
+	ret = xhci_reset_hw(ctrl);
+	if (ret)
+		goto err;
 
 	/*
 	 * XHCI needs to issue a Address device command to setup

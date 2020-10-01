@@ -4,15 +4,10 @@
  */
 
 #include <common.h>
+#include <env.h>
+#include <init.h>
 
 DECLARE_GLOBAL_DATA_PTR;
-
-int dram_init(void)
-{
-	gd->ram_size = PHYS_SDRAM_SIZE;
-
-	return 0;
-}
 
 int board_init(void)
 {

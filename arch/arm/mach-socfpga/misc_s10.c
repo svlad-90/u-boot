@@ -9,6 +9,8 @@
 #include <env.h>
 #include <errno.h>
 #include <fdtdec.h>
+#include <init.h>
+#include <log.h>
 #include <miiphy.h>
 #include <netdev.h>
 #include <asm/io.h>
@@ -66,7 +68,7 @@ static u32 socfpga_phymode_setup(u32 gmac_index, const char *phymode)
 		return -EINVAL;
 
 	clrsetbits_le32(socfpga_get_sysmgr_addr() + SYSMGR_SOC64_EMAC0 +
-			gmac_index,
+			(gmac_index * sizeof(u32)),
 			SYSMGR_EMACGRP_CTRL_PHYSEL_MASK, modereg);
 
 	return 0;
@@ -149,17 +151,19 @@ int arch_early_init_r(void)
 	return 0;
 }
 
+/* Return 1 if FPGA is ready otherwise return 0 */
+int is_fpga_config_ready(void)
+{
+	return (readl(socfpga_get_sysmgr_addr() + SYSMGR_SOC64_FPGA_CONFIG) &
+		SYSMGR_FPGACONFIG_READY_MASK) == SYSMGR_FPGACONFIG_READY_MASK;
+}
+
 void do_bridge_reset(int enable, unsigned int mask)
 {
 	/* Check FPGA status before bridge enable */
-	if (enable) {
-		int ret = mbox_get_fpga_config_status(MBOX_RECONFIG_STATUS);
-
-		if (ret && ret != MBOX_CFGSTAT_STATE_CONFIG)
-			ret = mbox_get_fpga_config_status(MBOX_CONFIG_STATUS);
-
-		if (ret)
-			return;
+	if (!is_fpga_config_ready()) {
+		puts("FPGA not ready. Bridge reset aborted!\n");
+		return;
 	}
 
 	socfpga_bridges_reset(enable);

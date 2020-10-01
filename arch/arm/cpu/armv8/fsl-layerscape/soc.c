@@ -6,17 +6,22 @@
 
 #include <common.h>
 #include <clock_legacy.h>
+#include <cpu_func.h>
 #include <env.h>
 #include <fsl_immap.h>
 #include <fsl_ifc.h>
 #include <init.h>
+#include <linux/sizes.h>
+#include <log.h>
 #include <asm/arch/fsl_serdes.h>
 #include <asm/arch/soc.h>
+#include <asm/cache.h>
 #include <asm/io.h>
 #include <asm/global_data.h>
 #include <asm/arch-fsl-layerscape/config.h>
 #include <asm/arch-fsl-layerscape/ns_access.h>
 #include <asm/arch-fsl-layerscape/fsl_icid.h>
+#include <asm/gic-v3.h>
 #ifdef CONFIG_LAYERSCAPE_NS_ACCESS
 #include <fsl_csu.h>
 #endif
@@ -30,7 +35,39 @@
 #include <fsl_immap.h>
 #ifdef CONFIG_TFABOOT
 #include <env_internal.h>
+#endif
+#include <dm.h>
+#include <linux/err.h>
+#if defined(CONFIG_TFABOOT) || defined(CONFIG_GIC_V3_ITS)
 DECLARE_GLOBAL_DATA_PTR;
+#endif
+
+#ifdef CONFIG_GIC_V3_ITS
+int ls_gic_rd_tables_init(void *blob)
+{
+	struct fdt_memory lpi_base;
+	fdt_addr_t addr;
+	fdt_size_t size;
+	int offset, ret;
+
+	offset = fdt_path_offset(gd->fdt_blob, "/syscon@0x80000000");
+	addr = fdtdec_get_addr_size_auto_noparent(gd->fdt_blob, offset, "reg",
+						  0, &size, false);
+
+	lpi_base.start = addr;
+	lpi_base.end = addr + size - 1;
+	ret = fdtdec_add_reserved_memory(blob, "lpi_rd_table", &lpi_base, NULL);
+	if (ret) {
+		debug("%s: failed to add reserved memory\n", __func__);
+		return ret;
+	}
+
+	ret = gic_lpi_tables_init();
+	if (ret)
+		debug("%s: failed to init gic-lpi-tables\n", __func__);
+
+	return ret;
+}
 #endif
 
 bool soc_has_dp_ddr(void)
@@ -399,20 +436,6 @@ int get_core_volt_from_fuse(void)
 }
 
 #elif defined(CONFIG_FSL_LSCH2)
-
-static void erratum_a009929(void)
-{
-#ifdef CONFIG_SYS_FSL_ERRATUM_A009929
-	struct ccsr_gur *gur = (void *)CONFIG_SYS_FSL_GUTS_ADDR;
-	u32 __iomem *dcsr_cop_ccp = (void *)CONFIG_SYS_DCSR_COP_CCP_ADDR;
-	u32 rstrqmr1 = gur_in32(&gur->rstrqmr1);
-
-	rstrqmr1 |= 0x00000400;
-	gur_out32(&gur->rstrqmr1, rstrqmr1);
-	writel(0x01000000, dcsr_cop_ccp);
-#endif
-}
-
 /*
  * This erratum requires setting a value to eddrtqcr1 to optimal
  * the DDR performance. The eddrtqcr1 register is in SCFG space
@@ -678,7 +701,6 @@ void fsl_lsch2_early_init_f(void)
 #endif
 	/* Erratum */
 	erratum_a008850_early(); /* part 1 of 2 */
-	erratum_a009929();
 	erratum_a009660();
 	erratum_a010539();
 	erratum_a009008();
@@ -892,6 +914,38 @@ __weak int fsl_board_late_init(void)
 	return 0;
 }
 
+#define DWC3_GSBUSCFG0			0xc100
+#define DWC3_GSBUSCFG0_CACHETYPE_SHIFT	16
+#define DWC3_GSBUSCFG0_CACHETYPE(n)        (((n) & 0xffff)            \
+	<< DWC3_GSBUSCFG0_CACHETYPE_SHIFT)
+
+void enable_dwc3_snooping(void)
+{
+	int ret;
+	u32 val;
+	struct udevice *bus;
+	struct uclass *uc;
+	fdt_addr_t dwc3_base;
+
+	ret = uclass_get(UCLASS_USB, &uc);
+	if (ret)
+		return;
+
+	uclass_foreach_dev(bus, uc) {
+		if (!strcmp(bus->driver->of_match->compatible, "fsl,layerscape-dwc3")) {
+			dwc3_base = devfdt_get_addr(bus);
+			if (dwc3_base == FDT_ADDR_T_NONE) {
+				dev_err(bus, "dwc3 regs missing\n");
+				continue;
+			}
+			val = in_le32(dwc3_base + DWC3_GSBUSCFG0);
+			val &= ~DWC3_GSBUSCFG0_CACHETYPE(~0);
+			val |= DWC3_GSBUSCFG0_CACHETYPE(0x2222);
+			writel(val, dwc3_base + DWC3_GSBUSCFG0);
+		}
+	}
+}
+
 int board_late_init(void)
 {
 #ifdef CONFIG_CHAIN_OF_TRUST
@@ -928,6 +982,9 @@ int board_late_init(void)
 #ifdef CONFIG_FSPI_AHB_EN_4BYTE
 	fspi_ahb_init();
 #endif
+
+	if (IS_ENABLED(CONFIG_DM))
+		enable_dwc3_snooping();
 
 	return fsl_board_late_init();
 }

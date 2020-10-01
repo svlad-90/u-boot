@@ -1,6 +1,7 @@
 /*
  * Internal Definitions
  */
+#include <linux/stringify.h>
 #define BOOTFLASH_START	0xF0000000
 
 /*
@@ -111,7 +112,6 @@
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_OVERWRITE
 #ifndef CONFIG_KM_DEF_ENV		/* if not set by keymile-common.h */
 #define CONFIG_KM_DEF_ENV "km-common=empty\0"
 #endif

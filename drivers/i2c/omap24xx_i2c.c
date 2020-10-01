@@ -41,6 +41,8 @@
 #include <common.h>
 #include <dm.h>
 #include <i2c.h>
+#include <log.h>
+#include <linux/delay.h>
 
 #include <asm/io.h>
 #include <asm/omap_i2c.h>
@@ -1065,7 +1067,7 @@ static int omap_i2c_ofdata_to_platdata(struct udevice *bus)
 {
 	struct omap_i2c_platdata *plat = dev_get_platdata(bus);
 
-	plat->base = devfdt_get_addr(bus);
+	plat->base = dev_read_addr(bus);
 	plat->speed = dev_read_u32_default(bus, "clock-frequency",
 					   I2C_SPEED_STANDARD_RATE);
 	plat->ip_rev = dev_get_driver_data(bus);

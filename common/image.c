@@ -8,9 +8,13 @@
 
 #ifndef USE_HOSTCC
 #include <common.h>
+#include <bootstage.h>
 #include <cpu_func.h>
 #include <env.h>
+#include <lmb.h>
+#include <log.h>
 #include <malloc.h>
+#include <asm/cache.h>
 #include <u-boot/crc.h>
 #include <watchdog.h>
 
@@ -42,9 +46,11 @@
 #include <lzma/LzmaTypes.h>
 #include <lzma/LzmaDec.h>
 #include <lzma/LzmaTools.h>
+#include <linux/zstd.h>
 
 #ifdef CONFIG_CMD_BDI
-extern int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+extern int do_bdinfo(struct cmd_tbl *cmdtp, int flag, int argc,
+		     char *const argv[]);
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -193,6 +199,7 @@ static const table_entry_t uimage_comp[] = {
 	{	IH_COMP_LZMA,	"lzma",		"lzma compressed",	},
 	{	IH_COMP_LZO,	"lzo",		"lzo compressed",	},
 	{	IH_COMP_LZ4,	"lz4",		"lz4 compressed",	},
+	{	IH_COMP_ZSTD,	"zstd",		"zstd compressed",	},
 	{	-1,		"",		"",			},
 };
 
@@ -200,6 +207,14 @@ struct table_info {
 	const char *desc;
 	int count;
 	const table_entry_t *table;
+};
+
+static const struct comp_magic_map image_comp[] = {
+	{	IH_COMP_BZIP2,	"bzip2",	{0x42, 0x5a},},
+	{	IH_COMP_GZIP,	"gzip",		{0x1f, 0x8b},},
+	{	IH_COMP_LZMA,	"lzma",		{0x5d, 0x00},},
+	{	IH_COMP_LZO,	"lzo",		{0x89, 0x4c},},
+	{	IH_COMP_NONE,	"none",		{},	},
 };
 
 static const struct table_info table_info[IH_COUNT] = {
@@ -407,6 +422,21 @@ static void print_decomp_msg(int comp_type, int type, bool is_xip)
 		printf("   Uncompressing %s\n", name);
 }
 
+int image_decomp_type(const unsigned char *buf, ulong len)
+{
+	const struct comp_magic_map *cmagic = image_comp;
+
+	if (len < 2)
+		return -EINVAL;
+
+	for (; cmagic->comp_id > 0; cmagic++) {
+		if (!memcmp(buf, cmagic->magic, 2))
+			break;
+	}
+
+	return cmagic->comp_id;
+}
+
 int image_decomp(int comp, ulong load, ulong image_start, int type,
 		 void *load_buf, void *image_buf, ulong image_len,
 		 uint unc_len, ulong *load_end)
@@ -480,6 +510,56 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 		break;
 	}
 #endif /* CONFIG_LZ4 */
+#ifdef CONFIG_ZSTD
+	case IH_COMP_ZSTD: {
+		size_t size = unc_len;
+		ZSTD_DStream *dstream;
+		ZSTD_inBuffer in_buf;
+		ZSTD_outBuffer out_buf;
+		void *workspace;
+		size_t wsize;
+
+		wsize = ZSTD_DStreamWorkspaceBound(image_len);
+		workspace = malloc(wsize);
+		if (!workspace) {
+			debug("%s: cannot allocate workspace of size %zu\n", __func__,
+			      wsize);
+			return -1;
+		}
+
+		dstream = ZSTD_initDStream(image_len, workspace, wsize);
+		if (!dstream) {
+			printf("%s: ZSTD_initDStream failed\n", __func__);
+			return ZSTD_getErrorCode(ret);
+		}
+
+		in_buf.src = image_buf;
+		in_buf.pos = 0;
+		in_buf.size = image_len;
+
+		out_buf.dst = load_buf;
+		out_buf.pos = 0;
+		out_buf.size = size;
+
+		while (1) {
+			size_t ret;
+
+			ret = ZSTD_decompressStream(dstream, &out_buf, &in_buf);
+			if (ZSTD_isError(ret)) {
+				printf("%s: ZSTD_decompressStream error %d\n", __func__,
+				       ZSTD_getErrorCode(ret));
+				return ZSTD_getErrorCode(ret);
+			}
+
+			if (in_buf.pos >= image_len || !ret)
+				break;
+		}
+
+		image_len = out_buf.pos;
+
+		break;
+	}
+#endif /* CONFIG_ZSTD */
 	default:
 		printf("Unimplemented compression type %d\n", comp);
 		return -ENOSYS;
@@ -613,6 +693,9 @@ phys_size_t env_get_bootm_size(void)
 	start = gd->bd->bi_memstart;
 	size = gd->bd->bi_memsize;
 #endif
+
+	if (start + size > gd->ram_top)
+		size = gd->ram_top - start;
 
 	s = env_get("bootm_low");
 	if (s)
@@ -1049,8 +1132,8 @@ int genimg_has_config(bootm_headers_t *images)
  *     1, if ramdisk image is found but corrupted, or invalid
  *     rd_start and rd_end are set to 0 if no ramdisk exists
  */
-int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
-		uint8_t arch, ulong *rd_start, ulong *rd_end)
+int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
+		     uint8_t arch, ulong *rd_start, ulong *rd_end)
 {
 	ulong rd_addr, rd_load;
 	ulong rd_data, rd_len;
@@ -1345,7 +1428,7 @@ int boot_get_setup(bootm_headers_t *images, uint8_t arch,
 
 #if IMAGE_ENABLE_FIT
 #if defined(CONFIG_FPGA)
-int boot_get_fpga(int argc, char * const argv[], bootm_headers_t *images,
+int boot_get_fpga(int argc, char *const argv[], bootm_headers_t *images,
 		  uint8_t arch, const ulong *ld_start, ulong * const ld_len)
 {
 	ulong tmp_img_addr, img_data, img_len;
@@ -1446,8 +1529,8 @@ static void fit_loadable_process(uint8_t img_type,
 			fit_loadable_handler->handler(img_data, img_len);
 }
 
-int boot_get_loadable(int argc, char * const argv[], bootm_headers_t *images,
-		uint8_t arch, const ulong *ld_start, ulong * const ld_len)
+int boot_get_loadable(int argc, char *const argv[], bootm_headers_t *images,
+		      uint8_t arch, const ulong *ld_start, ulong * const ld_len)
 {
 	/*
 	 * These variables are used to hold the current image location
@@ -1585,10 +1668,12 @@ int boot_get_cmdline(struct lmb *lmb, ulong *cmd_start, ulong *cmd_end)
  *      0 - success
  *     -1 - failure
  */
-int boot_get_kbd(struct lmb *lmb, bd_t **kbd)
+int boot_get_kbd(struct lmb *lmb, struct bd_info **kbd)
 {
-	*kbd = (bd_t *)(ulong)lmb_alloc_base(lmb, sizeof(bd_t), 0xf,
-				env_get_bootm_mapsize() + env_get_bootm_low());
+	*kbd = (struct bd_info *)(ulong)lmb_alloc_base(lmb,
+						       sizeof(struct bd_info),
+						       0xf,
+						       env_get_bootm_mapsize() + env_get_bootm_low());
 	if (*kbd == NULL)
 		return -1;
 

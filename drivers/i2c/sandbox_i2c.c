@@ -9,7 +9,9 @@
 #include <dm.h>
 #include <errno.h>
 #include <i2c.h>
+#include <log.h>
 #include <asm/test.h>
+#include <dm/acpi.h>
 #include <dm/lists.h>
 #include <dm/device-internal.h>
 

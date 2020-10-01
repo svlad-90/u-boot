@@ -20,8 +20,6 @@
 #define SDRAM_BANK_SIZE			(256 << 20)	/* 256 MB */
 
 /* memtest works on */
-#define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_SDRAM_BASE + 0x6000000)
 #define CONFIG_SYS_LOAD_ADDR		(CONFIG_SYS_SDRAM_BASE + 0x3E00000)
 
 #define CONFIG_MACH_TYPE		MACH_TYPE_ORIGEN
@@ -79,7 +77,6 @@
 /* MIU (Memory Interleaving Unit) */
 #define CONFIG_MIU_2BIT_21_7_INTERLEAVED
 
-#define CONFIG_SYS_MMC_ENV_DEV		0
 #define RESERVE_BLOCK_SIZE		(512)
 #define BL1_SIZE			(16 << 10) /*16 K reserved for BL1*/
 

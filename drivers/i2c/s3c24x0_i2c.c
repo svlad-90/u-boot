@@ -9,6 +9,7 @@
 #include <dm.h>
 #include <fdtdec.h>
 #if (defined CONFIG_EXYNOS4 || defined CONFIG_EXYNOS5)
+#include <log.h>
 #include <asm/arch/clk.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/pinmux.h>
@@ -309,7 +310,7 @@ static int s3c_i2c_ofdata_to_platdata(struct udevice *dev)
 
 	node = dev_of_offset(dev);
 
-	i2c_bus->regs = (struct s3c24x0_i2c *)devfdt_get_addr(dev);
+	i2c_bus->regs = dev_read_addr_ptr(dev);
 
 	i2c_bus->id = pinmux_decode_periph_id(blob, node);
 

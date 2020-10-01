@@ -18,6 +18,7 @@
 #include <asm/arch-fsl-layerscape/config.h>
 #include <asm/arch-fsl-layerscape/immap_lsch2.h>
 #include <asm/arch/fsl_serdes.h>
+#include <linux/delay.h>
 #include <net/pfe_eth/pfe_eth.h>
 #include <dm/platform_data/pfe_dm_eth.h>
 #include <i2c.h>
@@ -112,7 +113,7 @@ int pfe_eth_board_init(struct udevice *dev)
 			/* MAC2 */
 			pfe_set_phy_address_mode(priv->gemac_port,
 						 CONFIG_PFE_EMAC2_PHY_ADDR,
-						 PHY_INTERFACE_MODE_RGMII_TXID);
+						 PHY_INTERFACE_MODE_RGMII_ID);
 		}
 		break;
 	case 0x2208:

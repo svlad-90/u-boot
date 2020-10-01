@@ -10,6 +10,7 @@
 #include <div64.h>
 #include <fdtdec.h>
 #include <hang.h>
+#include <log.h>
 #include <ram.h>
 #include <reset.h>
 #include "sdram_soc64.h"
@@ -29,7 +30,7 @@ int sdram_mmr_init_full(struct udevice *dev)
 	u32 i;
 	int ret;
 	phys_size_t hw_size;
-	bd_t bd = {0};
+	struct bd_info bd = {0};
 
 	/* Ensure HMC clock is running */
 	if (poll_hmc_clock_status()) {

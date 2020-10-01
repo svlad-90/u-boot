@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <init.h>
+#include <net.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <asm/arch/sromc.h>
@@ -68,7 +69,7 @@ int checkboard(void)
 }
 #endif
 
-int board_eth_init(bd_t *bis)
+int board_eth_init(struct bd_info *bis)
 {
 	int rc = 0;
 #ifdef CONFIG_SMC911X

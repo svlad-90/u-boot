@@ -6,23 +6,14 @@
 #define LOG_CATEGORY UCLASS_ACPI_PMC
 
 #include <common.h>
-#include <acpi_s3.h>
 #include <dm.h>
 #include <log.h>
+#include <acpi/acpi_s3.h>
 #ifdef CONFIG_X86
 #include <asm/intel_pinctrl.h>
 #endif
 #include <asm/io.h>
 #include <power/acpi_pmc.h>
-
-enum {
-	PM1_STS		= 0x00,
-	PM1_EN		= 0x02,
-	PM1_CNT		= 0x04,
-
-	GPE0_STS	= 0x20,
-	GPE0_EN		= 0x30,
-};
 
 struct tco_regs {
 	u32 tco_rld;

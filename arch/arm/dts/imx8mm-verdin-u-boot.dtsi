@@ -3,6 +3,14 @@
  * Copyright 2020 Toradex
  */
 
+/ {
+	wdt-reboot {
+		compatible = "wdt-reboot";
+		wdt = <&wdog1>;
+		u-boot,dm-spl;
+	};
+};
+
 &aips1 {
 	u-boot,dm-spl;
 	u-boot,dm-pre-reloc;
@@ -69,6 +77,10 @@
 	u-boot,dm-spl;
 };
 
+&pinctrl_usdhc1 {
+	u-boot,dm-spl;
+};
+
 &pinctrl_usdhc2 {
 	u-boot,dm-spl;
 };
@@ -99,5 +111,9 @@
 };
 
 &usdhc3 {
+	u-boot,dm-spl;
+};
+
+&wdog1 {
 	u-boot,dm-spl;
 };

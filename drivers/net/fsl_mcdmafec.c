@@ -18,6 +18,7 @@
 #include <config.h>
 #include <net.h>
 #include <miiphy.h>
+#include <linux/delay.h>
 #include <linux/mii.h>
 #include <asm/immap.h>
 #include <asm/fsl_mcdmafec.h>
@@ -160,7 +161,7 @@ static void dbg_fec_regs(struct eth_device *dev)
 
 static void set_fec_duplex_speed(volatile fecdma_t *fecp, int dup_spd)
 {
-	bd_t *bd = gd->bd;
+	struct bd_info *bd = gd->bd;
 
 	if ((dup_spd >> 16) == FULL) {
 		/* Set maximum frame length */
@@ -569,7 +570,7 @@ static int mcdmafec_ofdata_to_platdata(struct udevice *dev)
 	struct eth_pdata *pdata = dev_get_platdata(dev);
 	const u32 *val;
 
-	pdata->iobase = (phys_addr_t)devfdt_get_addr(dev);
+	pdata->iobase = dev_read_addr(dev);
 	/* Default to 10Mbit/s */
 	pdata->max_speed = 10;
 

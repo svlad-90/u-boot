@@ -7,6 +7,7 @@
 #include <dm.h>
 #include <errno.h>
 #include <i2c.h>
+#include <log.h>
 #include <malloc.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
@@ -14,6 +15,7 @@
 #if CONFIG_IS_ENABLED(DM_GPIO)
 #include <asm/gpio.h>
 #endif
+#include <linux/delay.h>
 
 #define I2C_MAX_OFFSET_LEN	4
 
@@ -456,7 +458,7 @@ int i2c_set_chip_offset_len(struct udevice *dev, uint offset_len)
 	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
 
 	if (offset_len > I2C_MAX_OFFSET_LEN)
-		return -EINVAL;
+		return log_ret(-EINVAL);
 	chip->offset_len = offset_len;
 
 	return 0;
@@ -501,35 +503,53 @@ static int i2c_gpio_get_pin(struct gpio_desc *pin)
 	return dm_gpio_get_value(pin);
 }
 
-static int i2c_deblock_gpio_loop(struct gpio_desc *sda_pin,
-				 struct gpio_desc *scl_pin)
+int i2c_deblock_gpio_loop(struct gpio_desc *sda_pin,
+			  struct gpio_desc *scl_pin,
+			  unsigned int scl_count,
+			  unsigned int start_count,
+			  unsigned int delay)
 {
-	int counter = 9;
-	int ret = 0;
+	int i, ret = -EREMOTEIO;
 
 	i2c_gpio_set_pin(sda_pin, 1);
 	i2c_gpio_set_pin(scl_pin, 1);
-	udelay(5);
+	udelay(delay);
 
 	/*  Toggle SCL until slave release SDA */
-	while (counter-- >= 0) {
+	for (; scl_count; --scl_count) {
 		i2c_gpio_set_pin(scl_pin, 1);
-		udelay(5);
+		udelay(delay);
 		i2c_gpio_set_pin(scl_pin, 0);
-		udelay(5);
-		if (i2c_gpio_get_pin(sda_pin))
+		udelay(delay);
+		if (i2c_gpio_get_pin(sda_pin)) {
+			ret = 0;
 			break;
+		}
+	}
+
+	if (!ret && start_count) {
+		for (i = 0; i < start_count; i++) {
+			/* Send start condition */
+			udelay(delay);
+			i2c_gpio_set_pin(sda_pin, 1);
+			udelay(delay);
+			i2c_gpio_set_pin(scl_pin, 1);
+			udelay(delay);
+			i2c_gpio_set_pin(sda_pin, 0);
+			udelay(delay);
+			i2c_gpio_set_pin(scl_pin, 0);
+		}
 	}
 
 	/* Then, send I2C stop */
 	i2c_gpio_set_pin(sda_pin, 0);
-	udelay(5);
+	udelay(delay);
 
 	i2c_gpio_set_pin(scl_pin, 1);
-	udelay(5);
+	udelay(delay);
 
 	i2c_gpio_set_pin(sda_pin, 1);
-	udelay(5);
+	udelay(delay);
 
 	if (!i2c_gpio_get_pin(sda_pin) || !i2c_gpio_get_pin(scl_pin))
 		ret = -EREMOTEIO;
@@ -561,7 +581,7 @@ static int i2c_deblock_gpio(struct udevice *bus)
 		goto out_no_pinctrl;
 	}
 
-	ret0 = i2c_deblock_gpio_loop(&gpios[PIN_SDA], &gpios[PIN_SCL]);
+	ret0 = i2c_deblock_gpio_loop(&gpios[PIN_SDA], &gpios[PIN_SCL], 9, 0, 5);
 
 	ret = pinctrl_select_state(bus, "default");
 	if (ret) {
@@ -605,7 +625,7 @@ int i2c_chip_ofdata_to_platdata(struct udevice *dev, struct dm_i2c_chip *chip)
 	if (addr == -1) {
 		debug("%s: I2C Node '%s' has no 'reg' property %s\n", __func__,
 		      dev_read_name(dev), dev->name);
-		return -EINVAL;
+		return log_ret(-EINVAL);
 	}
 	chip->chip_addr = addr;
 

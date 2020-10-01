@@ -9,12 +9,14 @@
 #include <errno.h>
 #include <dm.h>
 #include <fdtdec.h>
+#include <log.h>
 #include <malloc.h>
 #include <dm/device-internal.h>
 #include <dm/root.h>
 #include <dm/util.h>
 #include <dm/test.h>
 #include <dm/uclass-internal.h>
+#include <test/test.h>
 #include <test/ut.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -157,7 +159,7 @@ static int dm_test_autobind_uclass_pdata_alloc(struct unit_test_state *uts)
 	for (uclass_find_first_device(UCLASS_TEST, &dev);
 	     dev;
 	     uclass_find_next_device(&dev)) {
-		ut_assert(dev);
+		ut_assertnonnull(dev);
 
 		uc_pdata = dev_get_uclass_platdata(dev);
 		ut_assert(uc_pdata);
@@ -165,7 +167,7 @@ static int dm_test_autobind_uclass_pdata_alloc(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_autobind_uclass_pdata_alloc, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_autobind_uclass_pdata_alloc, UT_TESTF_SCAN_PDATA);
 
 /* Test that binding with uclass platdata setting occurs correctly */
 static int dm_test_autobind_uclass_pdata_valid(struct unit_test_state *uts)
@@ -180,7 +182,7 @@ static int dm_test_autobind_uclass_pdata_valid(struct unit_test_state *uts)
 	for (uclass_find_first_device(UCLASS_TEST, &dev);
 	     dev;
 	     uclass_find_next_device(&dev)) {
-		ut_assert(dev);
+		ut_assertnonnull(dev);
 
 		uc_pdata = dev_get_uclass_platdata(dev);
 		ut_assert(uc_pdata);
@@ -191,7 +193,7 @@ static int dm_test_autobind_uclass_pdata_valid(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_autobind_uclass_pdata_valid, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_autobind_uclass_pdata_valid, UT_TESTF_SCAN_PDATA);
 
 /* Test that autoprobe finds all the expected devices */
 static int dm_test_autoprobe(struct unit_test_state *uts)
@@ -259,7 +261,7 @@ static int dm_test_autoprobe(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_autoprobe, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_autoprobe, UT_TESTF_SCAN_PDATA);
 
 /* Check that we see the correct platdata in each device */
 static int dm_test_platdata(struct unit_test_state *uts)
@@ -277,7 +279,7 @@ static int dm_test_platdata(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_platdata, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_platdata, UT_TESTF_SCAN_PDATA);
 
 /* Test that we can bind, probe, remove, unbind a driver */
 static int dm_test_lifecycle(struct unit_test_state *uts)
@@ -333,7 +335,7 @@ static int dm_test_lifecycle(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_lifecycle, DM_TESTF_SCAN_PDATA | DM_TESTF_PROBE_TEST);
+DM_TEST(dm_test_lifecycle, UT_TESTF_SCAN_PDATA | UT_TESTF_PROBE_TEST);
 
 /* Test that we can bind/unbind and the lists update correctly */
 static int dm_test_ordering(struct unit_test_state *uts)
@@ -389,7 +391,7 @@ static int dm_test_ordering(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_ordering, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_ordering, UT_TESTF_SCAN_PDATA);
 
 /* Check that we can perform operations on a device (do a ping) */
 int dm_check_operations(struct unit_test_state *uts, struct udevice *dev,
@@ -447,7 +449,7 @@ static int dm_test_operations(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_operations, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_operations, UT_TESTF_SCAN_PDATA);
 
 /* Remove all drivers and check that things work */
 static int dm_test_remove(struct unit_test_state *uts)
@@ -469,7 +471,7 @@ static int dm_test_remove(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_remove, DM_TESTF_SCAN_PDATA | DM_TESTF_PROBE_TEST);
+DM_TEST(dm_test_remove, UT_TESTF_SCAN_PDATA | UT_TESTF_PROBE_TEST);
 
 /* Remove and recreate everything, check for memory leaks */
 static int dm_test_leak(struct unit_test_state *uts)
@@ -746,15 +748,15 @@ static int dm_test_uclass_devices_find(struct unit_test_state *uts)
 	     dev;
 	     ret = uclass_find_next_device(&dev)) {
 		ut_assert(!ret);
-		ut_assert(dev);
+		ut_assertnonnull(dev);
 	}
 
 	ut_assertok(uclass_find_first_device(UCLASS_TEST_DUMMY, &dev));
-	ut_assert(!dev);
+	ut_assertnull(dev);
 
 	return 0;
 }
-DM_TEST(dm_test_uclass_devices_find, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_uclass_devices_find, UT_TESTF_SCAN_PDATA);
 
 static int dm_test_uclass_devices_find_by_name(struct unit_test_state *uts)
 {
@@ -777,7 +779,7 @@ static int dm_test_uclass_devices_find_by_name(struct unit_test_state *uts)
 	     testdev;
 	     ret = uclass_find_next_device(&testdev)) {
 		ut_assertok(ret);
-		ut_assert(testdev);
+		ut_assertnonnull(testdev);
 
 		findret = uclass_find_device_by_name(UCLASS_TEST_FDT,
 						     testdev->name,
@@ -791,7 +793,7 @@ static int dm_test_uclass_devices_find_by_name(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_uclass_devices_find_by_name, DM_TESTF_SCAN_FDT);
+DM_TEST(dm_test_uclass_devices_find_by_name, UT_TESTF_SCAN_FDT);
 
 static int dm_test_uclass_devices_get(struct unit_test_state *uts)
 {
@@ -808,7 +810,7 @@ static int dm_test_uclass_devices_get(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_uclass_devices_get, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_uclass_devices_get, UT_TESTF_SCAN_PDATA);
 
 static int dm_test_uclass_devices_get_by_name(struct unit_test_state *uts)
 {
@@ -852,7 +854,7 @@ static int dm_test_uclass_devices_get_by_name(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_uclass_devices_get_by_name, DM_TESTF_SCAN_FDT);
+DM_TEST(dm_test_uclass_devices_get_by_name, UT_TESTF_SCAN_FDT);
 
 static int dm_test_device_get_uclass_id(struct unit_test_state *uts)
 {
@@ -863,7 +865,7 @@ static int dm_test_device_get_uclass_id(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_device_get_uclass_id, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_device_get_uclass_id, UT_TESTF_SCAN_PDATA);
 
 static int dm_test_uclass_names(struct unit_test_state *uts)
 {
@@ -872,7 +874,7 @@ static int dm_test_uclass_names(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_uclass_names, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_uclass_names, UT_TESTF_SCAN_PDATA);
 
 static int dm_test_inactive_child(struct unit_test_state *uts)
 {
@@ -903,4 +905,4 @@ static int dm_test_inactive_child(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_inactive_child, DM_TESTF_SCAN_PDATA);
+DM_TEST(dm_test_inactive_child, UT_TESTF_SCAN_PDATA);

@@ -11,6 +11,7 @@
 #include <common.h>
 #include <fdt_support.h>
 #include <init.h>
+#include <linux/delay.h>
 #include <linux/libfdt.h>
 #include <pci.h>
 #include <mpc83xx.h>
@@ -195,7 +196,7 @@ void pci_init_board(void)
 #endif
 
 #if defined(CONFIG_OF_BOARD_SETUP)
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	ft_cpu_setup(blob, bd);
 #ifdef CONFIG_PCI

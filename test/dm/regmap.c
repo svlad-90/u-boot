@@ -5,12 +5,14 @@
 
 #include <common.h>
 #include <dm.h>
+#include <log.h>
 #include <mapmem.h>
 #include <regmap.h>
 #include <syscon.h>
 #include <asm/test.h>
 #include <dm/test.h>
 #include <linux/err.h>
+#include <test/test.h>
 #include <test/ut.h>
 
 /* Base test of register maps */
@@ -65,7 +67,7 @@ static int dm_test_regmap_base(struct unit_test_state *uts)
 
 	return 0;
 }
-DM_TEST(dm_test_regmap_base, DM_TESTF_SCAN_PDATA | DM_TESTF_SCAN_FDT);
+DM_TEST(dm_test_regmap_base, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
 
 /* Test we can access a regmap through syscon */
 static int dm_test_regmap_syscon(struct unit_test_state *uts)
@@ -91,7 +93,7 @@ static int dm_test_regmap_syscon(struct unit_test_state *uts)
 	return 0;
 }
 
-DM_TEST(dm_test_regmap_syscon, DM_TESTF_SCAN_PDATA | DM_TESTF_SCAN_FDT);
+DM_TEST(dm_test_regmap_syscon, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
 
 /* Read/Write/Modify test */
 static int dm_test_regmap_rw(struct unit_test_state *uts)
@@ -125,7 +127,7 @@ static int dm_test_regmap_rw(struct unit_test_state *uts)
 	return 0;
 }
 
-DM_TEST(dm_test_regmap_rw, DM_TESTF_SCAN_PDATA | DM_TESTF_SCAN_FDT);
+DM_TEST(dm_test_regmap_rw, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
 
 /* Get/Set test */
 static int dm_test_regmap_getset(struct unit_test_state *uts)
@@ -156,7 +158,7 @@ static int dm_test_regmap_getset(struct unit_test_state *uts)
 	return 0;
 }
 
-DM_TEST(dm_test_regmap_getset, DM_TESTF_SCAN_PDATA | DM_TESTF_SCAN_FDT);
+DM_TEST(dm_test_regmap_getset, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);
 
 /* Read polling test */
 static int dm_test_regmap_poll(struct unit_test_state *uts)
@@ -184,4 +186,4 @@ static int dm_test_regmap_poll(struct unit_test_state *uts)
 	return 0;
 }
 
-DM_TEST(dm_test_regmap_poll, DM_TESTF_SCAN_PDATA | DM_TESTF_SCAN_FDT);
+DM_TEST(dm_test_regmap_poll, UT_TESTF_SCAN_PDATA | UT_TESTF_SCAN_FDT);

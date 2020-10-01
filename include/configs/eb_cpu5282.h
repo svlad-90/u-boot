@@ -27,7 +27,6 @@
 
 #define CONFIG_BOOT_RETRY_TIME	-1
 #define CONFIG_RESET_TO_RETRY
-#define CONFIG_SPLASH_SCREEN
 
 #define CONFIG_HW_WATCHDOG
 
@@ -43,10 +42,6 @@
  */
 #define CONFIG_BOOTP_BOOTFILESIZE
 
-/*
- * Command line configuration.
- */
-
 #define CONFIG_MCFTMR
 
 #define	CONFIG_SYS_CBSIZE	1024	/* Console I/O Buffer Size	*/
@@ -54,8 +49,6 @@
 
 #define CONFIG_SYS_LOAD_ADDR		0x20000
 
-#define CONFIG_SYS_MEMTEST_START	0x100000
-#define CONFIG_SYS_MEMTEST_END		0x400000
 /*#define CONFIG_SYS_DRAM_TEST		1 */
 #undef CONFIG_SYS_DRAM_TEST
 

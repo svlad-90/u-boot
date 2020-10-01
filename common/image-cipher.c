@@ -10,7 +10,7 @@
 #include <common.h>
 #include <malloc.h>
 DECLARE_GLOBAL_DATA_PTR;
-#endif /* !USE_HOSTCC*/
+#endif /* !USE_HOSdTCC*/
 #include <image.h>
 #include <uboot_aes.h>
 #include <u-boot/aes.h>
@@ -88,7 +88,7 @@ static int fit_image_setup_decrypt(struct image_cipher_info *info,
 		return -1;
 	}
 
-	info->keyname = fdt_getprop(fit, cipher_noffset, "key-name-hint", NULL);
+	info->keyname = fdt_getprop(fit, cipher_noffset, FIT_KEY_HINT, NULL);
 	if (!info->keyname) {
 		printf("Can't get key name\n");
 		return -1;

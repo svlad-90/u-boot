@@ -6,6 +6,7 @@
  */
 
 #include <init.h>
+#include <net.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/crm_regs.h>
 #include <asm/arch/iomux.h>
@@ -17,6 +18,7 @@
 #include <asm/io.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <env.h>
+#include <linux/delay.h>
 #include <linux/sizes.h>
 #include <common.h>
 #include <fsl_esdhc_imx.h>
@@ -139,7 +141,7 @@ static int setup_fec(void)
 	return 0;
 }
 
-int board_eth_init(bd_t *bis)
+int board_eth_init(struct bd_info *bis)
 {
 	imx_iomux_v3_setup_multiple_pads(fec1_pads, ARRAY_SIZE(fec1_pads));
 	setup_fec();

@@ -46,9 +46,6 @@
 
 /* Serial Flash */
 
-/* allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERWRITE
-
 #define CONFIG_LOADADDR	0x12000000
 
 #ifdef CONFIG_NFS_CMD
@@ -144,10 +141,6 @@
 
 /* Miscellaneous configurable options */
 
-#define CONFIG_SYS_MEMTEST_START       0x10000000
-#define CONFIG_SYS_MEMTEST_END         0x10010000
-#define CONFIG_SYS_MEMTEST_SCRATCH     0x10800000
-
 #define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
 
 /* Physical Memory Map */
@@ -172,7 +165,6 @@
 #define CONFIG_HIDE_LOGO_VERSION
 #define CONFIG_IMX_HDMI
 #define CONFIG_IMX_VIDEO_SKIP
-#define CONFIG_CMD_BMP
 
 #define CONFIG_IMX6_PWM_PER_CLK	66000000
 
@@ -180,7 +172,5 @@
 #define CONFIG_PCIE_IMX
 #define CONFIG_PCIE_IMX_PERST_GPIO	IMX_GPIO_NR(7, 12)
 #define CONFIG_PCIE_IMX_POWER_GPIO	IMX_GPIO_NR(1, 5)
-
-#define CONFIG_BCH
 
 #endif	/* __GE_BX50V3_CONFIG_H */

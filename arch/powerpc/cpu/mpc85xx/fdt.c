@@ -9,6 +9,7 @@
 #include <common.h>
 #include <clock_legacy.h>
 #include <env.h>
+#include <log.h>
 #include <time.h>
 #include <linux/libfdt.h>
 #include <fdt_support.h>
@@ -596,7 +597,7 @@ static void fdt_fixup_l2_switch(void *blob)
 #define fdt_fixup_l2_switch(x)
 #endif
 
-void ft_cpu_setup(void *blob, bd_t *bd)
+void ft_cpu_setup(void *blob, struct bd_info *bd)
 {
 	int off;
 	int val;

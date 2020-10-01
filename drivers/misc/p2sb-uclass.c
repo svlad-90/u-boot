@@ -8,6 +8,7 @@
 
 #include <common.h>
 #include <dm.h>
+#include <log.h>
 #include <malloc.h>
 #include <mapmem.h>
 #include <p2sb.h>
@@ -17,7 +18,17 @@
 
 #define PCR_COMMON_IOSF_1_0	1
 
-static void *_pcr_reg_address(struct udevice *dev, uint offset)
+int p2sb_set_hide(struct udevice *dev, bool hide)
+{
+	struct p2sb_ops *ops = p2sb_get_ops(dev);
+
+	if (!ops->set_hide)
+		return -ENOSYS;
+
+	return ops->set_hide(dev, hide);
+}
+
+void *pcr_reg_address(struct udevice *dev, uint offset)
 {
 	struct p2sb_child_platdata *pplat = dev_get_parent_platdata(dev);
 	struct udevice *p2sb = dev_get_parent(dev);
@@ -54,7 +65,7 @@ uint pcr_read32(struct udevice *dev, uint offset)
 	/* Ensure the PCR offset is correctly aligned */
 	assert(IS_ALIGNED(offset, sizeof(uint32_t)));
 
-	ptr = _pcr_reg_address(dev, offset);
+	ptr = pcr_reg_address(dev, offset);
 	val = readl(ptr);
 	unmap_sysmem(ptr);
 
@@ -66,7 +77,7 @@ uint pcr_read16(struct udevice *dev, uint offset)
 	/* Ensure the PCR offset is correctly aligned */
 	check_pcr_offset_align(offset, sizeof(uint16_t));
 
-	return readw(_pcr_reg_address(dev, offset));
+	return readw(pcr_reg_address(dev, offset));
 }
 
 uint pcr_read8(struct udevice *dev, uint offset)
@@ -74,7 +85,7 @@ uint pcr_read8(struct udevice *dev, uint offset)
 	/* Ensure the PCR offset is correctly aligned */
 	check_pcr_offset_align(offset, sizeof(uint8_t));
 
-	return readb(_pcr_reg_address(dev, offset));
+	return readb(pcr_reg_address(dev, offset));
 }
 
 /*
@@ -85,7 +96,7 @@ uint pcr_read8(struct udevice *dev, uint offset)
  */
 static void write_completion(struct udevice *dev, uint offset)
 {
-	readl(_pcr_reg_address(dev, ALIGN_DOWN(offset, sizeof(uint32_t))));
+	readl(pcr_reg_address(dev, ALIGN_DOWN(offset, sizeof(uint32_t))));
 }
 
 void pcr_write32(struct udevice *dev, uint offset, uint indata)
@@ -93,7 +104,7 @@ void pcr_write32(struct udevice *dev, uint offset, uint indata)
 	/* Ensure the PCR offset is correctly aligned */
 	assert(IS_ALIGNED(offset, sizeof(indata)));
 
-	writel(indata, _pcr_reg_address(dev, offset));
+	writel(indata, pcr_reg_address(dev, offset));
 	/* Ensure the writes complete */
 	write_completion(dev, offset);
 }
@@ -103,7 +114,7 @@ void pcr_write16(struct udevice *dev, uint offset, uint indata)
 	/* Ensure the PCR offset is correctly aligned */
 	check_pcr_offset_align(offset, sizeof(uint16_t));
 
-	writew(indata, _pcr_reg_address(dev, offset));
+	writew(indata, pcr_reg_address(dev, offset));
 	/* Ensure the writes complete */
 	write_completion(dev, offset);
 }
@@ -113,7 +124,7 @@ void pcr_write8(struct udevice *dev, uint offset, uint indata)
 	/* Ensure the PCR offset is correctly aligned */
 	check_pcr_offset_align(offset, sizeof(uint8_t));
 
-	writeb(indata, _pcr_reg_address(dev, offset));
+	writeb(indata, pcr_reg_address(dev, offset));
 	/* Ensure the writes complete */
 	write_completion(dev, offset);
 }

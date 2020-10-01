@@ -36,6 +36,7 @@ config TARGET_MT7629
 	bool "MediaTek MT7629 SoC"
 	select CPU_V7A
 	select SPL
+	select BINMAN
 	help
 	  The MediaTek MT7629 is a ARM-based SoC with a dual-core Cortex-A7
 	  including DDR3, crypto engine, 3x3 11n/ac Wi-Fi, Gigabit Ethernet,
@@ -46,10 +47,10 @@ config TARGET_MT8512
         select ARM64
 	select MT8512
         help
-          The MediaTek MT8512 is a ARM64-based SoC with a quad-core Cortex-A53.
+          The MediaTek MT8512 is a ARM64-based SoC with a dual-core Cortex-A53.
           including UART, SPI, USB2.0 and OTG, SD and MMC cards, NAND, PWM,
-          Ethernet, IR TX/RX, I2C, I2S, S/PDIF, and built-in Wi-Fi / Bluetooth combo
-          chip and several DDR3 and DDR4 options.
+          IR RX, I2C, I2S, S/PDIF, and built-in Wi-Fi / Bluetooth digital
+          and several LPDDR3 and LPDDR4 options.
 
 config TARGET_MT8516
 	bool "MediaTek MT8516 SoC"

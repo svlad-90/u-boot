@@ -11,6 +11,8 @@
 #include <pci.h>
 #include <asm/io.h>
 #include <dm/device_compat.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 
 #define RP_TX_REG0			0x2000
 #define RP_TX_CNTRL			0x2004
@@ -64,9 +66,6 @@
 
 #define IS_ROOT_PORT(pcie, bdf)				\
 		((PCI_BUS(bdf) == pcie->first_busno) ? true : false)
-
-#define PCI_EXP_LNKSTA		18	/* Link Status */
-#define PCI_EXP_LNKSTA_DLLLA	0x2000	/* Data Link Layer Link Active */
 
 /**
  * struct intel_fpga_pcie - Intel FPGA PCIe controller state

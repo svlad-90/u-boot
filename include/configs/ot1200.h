@@ -13,7 +13,6 @@
 #define CONFIG_SYS_MALLOC_LEN           (10 * 1024 * 1024)
 
 /* UART Configs */
-#define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE           UART1_BASE
 
 /* SF Configs */
@@ -66,7 +65,6 @@
 #define CONFIG_FEC_XCV_TYPE             MII100
 #define CONFIG_ETHPRIME                 "FEC"
 #define CONFIG_FEC_MXC_PHYADDR          0x5
-#define CONFIG_PHY_SMSC
 
 #ifndef CONFIG_SPL
 #define CONFIG_ENV_EEPROM_IS_ON_I2C

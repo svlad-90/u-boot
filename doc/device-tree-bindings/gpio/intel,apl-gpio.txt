@@ -23,7 +23,7 @@ Example:
 {
 	p2sb: p2sb@d,0 {
 		reg = <0x02006810 0 0 0 0>;
-		compatible = "intel,apl-p2sb";
+		compatible = "intel,p2sb";
 		early-regs = <IOMAP_P2SB_BAR 0x100000>;
 
 		north {
@@ -47,7 +47,7 @@ Example:
 			reg = <0x50>;
 			compatible = "google,cr50";
 			u-boot,i2c-offset-len = <0>;
-			ready-gpio = <&gpio_n GPIO_28 GPIO_ACTIVE_LOW>;
+			ready-gpios = <&gpio_n GPIO_28 GPIO_ACTIVE_LOW>;
 		};
 	};
 

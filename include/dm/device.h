@@ -68,24 +68,33 @@ struct driver_info;
 #define DM_FLAG_PLATDATA_VALID		(1 << 12)
 
 /*
+ * Device is removed without switching off its power domain. This might
+ * be required, i. e. for serial console (debug) output when booting OS.
+ */
+#define DM_FLAG_REMOVE_WITH_PD_ON	(1 << 13)
+
+/*
  * One or multiple of these flags are passed to device_remove() so that
  * a selective device removal as specified by the remove-stage and the
  * driver flags can be done.
  */
 enum {
 	/* Normal remove, remove all devices */
-	DM_REMOVE_NORMAL     = 1 << 0,
+	DM_REMOVE_NORMAL	= 1 << 0,
 
 	/* Remove devices with active DMA */
-	DM_REMOVE_ACTIVE_DMA = DM_FLAG_ACTIVE_DMA,
+	DM_REMOVE_ACTIVE_DMA	= DM_FLAG_ACTIVE_DMA,
 
 	/* Remove devices which need some final OS preparation steps */
-	DM_REMOVE_OS_PREPARE = DM_FLAG_OS_PREPARE,
+	DM_REMOVE_OS_PREPARE	= DM_FLAG_OS_PREPARE,
 
 	/* Add more use cases here */
 
 	/* Remove devices with any active flag */
-	DM_REMOVE_ACTIVE_ALL = DM_REMOVE_ACTIVE_DMA | DM_REMOVE_OS_PREPARE,
+	DM_REMOVE_ACTIVE_ALL	= DM_REMOVE_ACTIVE_DMA | DM_REMOVE_OS_PREPARE,
+
+	/* Don't power down any attached power domains */
+	DM_REMOVE_NO_PD		= 1 << 1,
 };
 
 /**
@@ -239,6 +248,8 @@ struct udevice_id {
  * pointers defined by the driver, to implement driver functions required by
  * the uclass.
  * @flags: driver flags - see DM_FLAGS_...
+ * @acpi_ops: Advanced Configuration and Power Interface (ACPI) operations,
+ * allowing the device to add things to the ACPI tables passed to Linux
  */
 struct driver {
 	char *name;
@@ -258,6 +269,9 @@ struct driver {
 	int per_child_platdata_auto_alloc_size;
 	const void *ops;	/* driver-specific operations */
 	uint32_t flags;
+#if CONFIG_IS_ENABLED(ACPIGEN)
+	struct acpi_ops *acpi_ops;
+#endif
 };
 
 /* Declare a new U-Boot driver */
@@ -267,6 +281,13 @@ struct driver {
 /* Get a pointer to a given driver */
 #define DM_GET_DRIVER(__name)						\
 	ll_entry_get(struct driver, __name, driver)
+
+/**
+ * Declare a macro to state a alias for a driver name. This macro will
+ * produce no code but its information will be parsed by tools like
+ * dtoc
+ */
+#define U_BOOT_DRIVER_ALIAS(__name, __alias)
 
 /**
  * dev_get_platdata() - Get the platform data for a device
@@ -518,6 +539,21 @@ int device_find_global_by_ofnode(ofnode node, struct udevice **devp);
 int device_get_global_by_ofnode(ofnode node, struct udevice **devp);
 
 /**
+ * device_get_by_driver_info() - Get a device based on driver_info
+ *
+ * Locates a device by its struct driver_info, by using its reference which
+ * is updated during the bind process.
+ *
+ * The device is probed to activate it ready for use.
+ *
+ * @info: Struct driver_info
+ * @devp: Returns pointer to device if found, otherwise this is set to NULL
+ * @return 0 if OK, -ve on error
+ */
+int device_get_by_driver_info(const struct driver_info *info,
+			      struct udevice **devp);
+
+/**
  * device_find_first_child() - Find the first child of a device
  *
  * @parent: Parent device to search
@@ -728,7 +764,7 @@ int dev_enable_by_path(const char *path);
  */
 static inline bool device_is_on_pci_bus(const struct udevice *dev)
 {
-	return device_get_uclass_id(dev->parent) == UCLASS_PCI;
+	return dev->parent && device_get_uclass_id(dev->parent) == UCLASS_PCI;
 }
 
 /**

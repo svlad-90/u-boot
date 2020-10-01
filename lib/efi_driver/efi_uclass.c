@@ -17,7 +17,10 @@
  * controllers.
  */
 
+#include <common.h>
+#include <dm.h>
 #include <efi_driver.h>
+#include <log.h>
 #include <malloc.h>
 
 /**

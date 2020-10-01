@@ -6,13 +6,14 @@
  */
 
 #include <common.h>
-#include <acpi_s3.h>
 #include <dm.h>
 #include <ec_commands.h>
+#include <init.h>
 #include <log.h>
 #include <spi_flash.h>
 #include <spl.h>
 #include <syscon.h>
+#include <acpi/acpi_s3.h>
 #include <asm/cpu.h>
 #include <asm/cpu_common.h>
 #include <asm/cpu_x86.h>
@@ -246,12 +247,13 @@ static int arch_cpu_init_spl(void)
 	ret = pmc_init(pmc);
 	if (ret < 0)
 		return log_msg_ret("Could not init PMC", ret);
-#ifdef CONFIG_HAVE_ACPI_RESUME
-	ret = pmc_prev_sleep_state(pmc);
-	if (ret < 0)
-		return log_msg_ret("Could not get PMC sleep state", ret);
-	gd->arch.prev_sleep_state = ret;
-#endif
+	if (IS_ENABLED(CONFIG_HAVE_ACPI_RESUME)) {
+		ret = pmc_prev_sleep_state(pmc);
+		if (ret < 0)
+			return log_msg_ret("Could not get PMC sleep state",
+					   ret);
+		gd->arch.prev_sleep_state = ret;
+	}
 
 	return 0;
 }

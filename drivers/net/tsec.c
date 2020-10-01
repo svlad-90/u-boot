@@ -15,6 +15,8 @@
 #include <command.h>
 #include <tsec.h>
 #include <fsl_mdio.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 #include <linux/errno.h>
 #include <asm/processor.h>
 #include <asm/io.h>
@@ -552,7 +554,7 @@ static void startup_tsec(struct tsec_private *priv)
  * This allows U-Boot to find the first active controller.
  */
 #ifndef CONFIG_DM_ETH
-static int tsec_init(struct eth_device *dev, bd_t *bd)
+static int tsec_init(struct eth_device *dev, struct bd_info *bd)
 #else
 static int tsec_init(struct udevice *dev)
 #endif
@@ -699,7 +701,8 @@ static int init_phy(struct tsec_private *priv)
  * Initialize device structure. Returns success if PHY
  * initialization succeeded (i.e. if it recognizes the PHY)
  */
-static int tsec_initialize(bd_t *bis, struct tsec_info_struct *tsec_info)
+static int tsec_initialize(struct bd_info *bis,
+			   struct tsec_info_struct *tsec_info)
 {
 	struct tsec_private *priv;
 	struct eth_device *dev;
@@ -758,7 +761,8 @@ static int tsec_initialize(bd_t *bis, struct tsec_info_struct *tsec_info)
  *
  * Returns the number of TSEC devices that were initialized
  */
-int tsec_eth_init(bd_t *bis, struct tsec_info_struct *tsecs, int num)
+int tsec_eth_init(struct bd_info *bis, struct tsec_info_struct *tsecs,
+		  int num)
 {
 	int i;
 	int count = 0;
@@ -773,7 +777,7 @@ int tsec_eth_init(bd_t *bis, struct tsec_info_struct *tsecs, int num)
 	return count;
 }
 
-int tsec_standard_init(bd_t *bis)
+int tsec_standard_init(struct bd_info *bis)
 {
 	struct fsl_pq_mdio_info info;
 
@@ -789,6 +793,7 @@ int tsec_probe(struct udevice *dev)
 {
 	struct eth_pdata *pdata = dev_get_platdata(dev);
 	struct tsec_private *priv = dev_get_priv(dev);
+	struct tsec_mii_mng __iomem *ext_phyregs_mii;
 	struct ofnode_phandle_args phandle_args;
 	u32 tbiaddr = CONFIG_SYS_TBIPA_VALUE;
 	struct fsl_pq_mdio_info mdio_info;
@@ -798,7 +803,7 @@ int tsec_probe(struct udevice *dev)
 	int ret;
 
 	pdata->iobase = (phys_addr_t)dev_read_addr(dev);
-	priv->regs = (struct tsec *)pdata->iobase;
+	priv->regs = dev_remap_addr(dev);
 
 	if (dev_read_phandle_with_args(dev, "phy-handle", NULL, 0, 0,
 				       &phandle_args)) {
@@ -817,13 +822,34 @@ int tsec_probe(struct udevice *dev)
 	}
 
 	reg = ofnode_get_addr_index(parent, 0);
-	priv->phyregs_sgmii = (struct tsec_mii_mng *)
-			(reg + TSEC_MDIO_REGS_OFFSET);
+	if (reg == FDT_ADDR_T_NONE) {
+		printf("No 'reg' property of MII for external PHY\n");
+		return -ENOENT;
+	}
+
+	ext_phyregs_mii = map_physmem(reg + TSEC_MDIO_REGS_OFFSET, 0,
+				      MAP_NOCACHE);
 
 	ret = dev_read_phandle_with_args(dev, "tbi-handle", NULL, 0, 0,
 					 &phandle_args);
-	if (ret == 0)
+	if (ret == 0) {
 		ofnode_read_u32(phandle_args.node, "reg", &tbiaddr);
+
+		parent = ofnode_get_parent(phandle_args.node);
+		if (!ofnode_valid(parent)) {
+			printf("No parent node for TBI PHY?\n");
+			return -ENOENT;
+		}
+
+		reg = ofnode_get_addr_index(parent, 0);
+		if (reg == FDT_ADDR_T_NONE) {
+			printf("No 'reg' property of MII for TBI PHY\n");
+			return -ENOENT;
+		}
+
+		priv->phyregs_sgmii = map_physmem(reg + TSEC_MDIO_REGS_OFFSET,
+						  0, MAP_NOCACHE);
+	}
 
 	priv->tbiaddr = tbiaddr;
 
@@ -841,7 +867,7 @@ int tsec_probe(struct udevice *dev)
 	if (priv->interface == PHY_INTERFACE_MODE_SGMII)
 		priv->flags |= TSEC_SGMII;
 
-	mdio_info.regs = priv->phyregs_sgmii;
+	mdio_info.regs = ext_phyregs_mii;
 	mdio_info.name = (char *)dev->name;
 	ret = fsl_pq_mdio_init(NULL, &mdio_info);
 	if (ret)

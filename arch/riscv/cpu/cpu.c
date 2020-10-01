@@ -6,9 +6,11 @@
 #include <common.h>
 #include <cpu.h>
 #include <dm.h>
+#include <init.h>
 #include <log.h>
 #include <asm/encoding.h>
 #include <dm/uclass-internal.h>
+#include <linux/bitops.h>
 
 /*
  * The variables here must be stored in the data section since they are used
@@ -89,12 +91,27 @@ int arch_cpu_init_dm(void)
 		 * Enable perf counters for cycle, time,
 		 * and instret counters only
 		 */
+#ifdef CONFIG_RISCV_PRIV_1_9
+		csr_write(CSR_MSCOUNTEREN, GENMASK(2, 0));
+		csr_write(CSR_MUCOUNTEREN, GENMASK(2, 0));
+#else
 		csr_write(CSR_MCOUNTEREN, GENMASK(2, 0));
+#endif
 
 		/* Disable paging */
 		if (supports_extension('s'))
+#ifdef CONFIG_RISCV_PRIV_1_9
+			csr_read_clear(CSR_MSTATUS, SR_VM);
+#else
 			csr_write(CSR_SATP, 0);
+#endif
 	}
+
+#if CONFIG_IS_ENABLED(SMP)
+	ret = riscv_init_ipi();
+	if (ret)
+		return ret;
+#endif
 
 	return 0;
 }

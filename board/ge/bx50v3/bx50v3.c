@@ -5,12 +5,14 @@
  * Copyright 2012 Freescale Semiconductor, Inc.
  */
 
+#include <image.h>
 #include <init.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
 #include <env.h>
+#include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/libfdt.h>
 #include <asm/gpio.h>
@@ -549,7 +551,7 @@ int checkboard(void)
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	char *rtc_status = env_get("rtc_status");
 

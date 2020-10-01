@@ -16,6 +16,7 @@
 #ifndef HOST_XHCI_H_
 #define HOST_XHCI_H_
 
+#include <reset.h>
 #include <asm/types.h>
 #include <asm/cache.h>
 #include <asm/io.h>
@@ -670,6 +671,9 @@ struct xhci_ep_ctx {
 /* deq bitmasks */
 #define EP_CTX_CYCLE_MASK		(1 << 0)
 
+/* reserved[0] bitmasks, MediaTek xHCI used */
+#define EP_BPKTS(p)	(((p) & 0x7f) << 0)
+#define EP_BBM(p)	(((p) & 0x1) << 11)
 
 /**
  * struct xhci_input_control_context
@@ -1111,28 +1115,20 @@ static inline void xhci_writel(uint32_t volatile *regs, const unsigned int val)
  */
 static inline u64 xhci_readq(__le64 volatile *regs)
 {
-#if BITS_PER_LONG == 64
-	return readq(regs);
-#else
 	__u32 *ptr = (__u32 *)regs;
 	u64 val_lo = readl(ptr);
 	u64 val_hi = readl(ptr + 1);
 	return val_lo + (val_hi << 32);
-#endif
 }
 
 static inline void xhci_writeq(__le64 volatile *regs, const u64 val)
 {
-#if BITS_PER_LONG == 64
-	writeq(val, regs);
-#else
 	__u32 *ptr = (__u32 *)regs;
 	u32 val_lo = lower_32_bits(val);
 	/* FIXME */
 	u32 val_hi = upper_32_bits(val);
 	writel(val_lo, ptr);
 	writel(val_hi, ptr + 1);
-#endif
 }
 
 int xhci_hcd_init(int index, struct xhci_hccr **ret_hccr,
@@ -1214,6 +1210,7 @@ struct xhci_ctrl {
 #if CONFIG_IS_ENABLED(DM_USB)
 	struct udevice *dev;
 #endif
+	struct reset_ctl reset;
 	struct xhci_hccr *hccr;	/* R/O registers, not need for volatile */
 	struct xhci_hcor *hcor;
 	struct xhci_doorbell_array *dba;

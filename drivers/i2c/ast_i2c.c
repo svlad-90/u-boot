@@ -11,8 +11,10 @@
 #include <errno.h>
 #include <fdtdec.h>
 #include <i2c.h>
+#include <log.h>
 #include <asm/io.h>
 #include <asm/arch/scu_ast2500.h>
+#include <linux/delay.h>
 #include <linux/err.h>
 
 #include "ast_i2c.h"
@@ -90,9 +92,9 @@ static int ast_i2c_ofdata_to_platdata(struct udevice *dev)
 	struct ast_i2c_priv *priv = dev_get_priv(dev);
 	int ret;
 
-	priv->regs = devfdt_get_addr_ptr(dev);
-	if (IS_ERR(priv->regs))
-		return PTR_ERR(priv->regs);
+	priv->regs = dev_read_addr_ptr(dev);
+	if (!priv->regs)
+		return -EINVAL;
 
 	ret = clk_get_by_index(dev, 0, &priv->clk);
 	if (ret < 0) {

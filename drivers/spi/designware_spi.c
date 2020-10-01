@@ -10,6 +10,7 @@
  */
 
 #include <common.h>
+#include <log.h>
 #include <asm-generic/gpio.h>
 #include <clk.h>
 #include <dm.h>
@@ -19,6 +20,7 @@
 #include <fdtdec.h>
 #include <reset.h>
 #include <dm/device_compat.h>
+#include <linux/bitops.h>
 #include <linux/compat.h>
 #include <linux/iopoll.h>
 #include <asm/io.h>
@@ -155,7 +157,7 @@ static int dw_spi_ofdata_to_platdata(struct udevice *bus)
 {
 	struct dw_spi_platdata *plat = bus->platdata;
 
-	plat->regs = (struct dw_spi *)devfdt_get_addr(bus);
+	plat->regs = dev_read_addr_ptr(bus);
 
 	/* Use 500KHz as a suitable default */
 	plat->frequency = dev_read_u32_default(bus, "spi-max-frequency",

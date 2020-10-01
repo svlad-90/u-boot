@@ -10,13 +10,18 @@
 #include <common.h>
 #include <dm.h>
 #include <dt-structs.h>
+#include <log.h>
 #include <p2sb.h>
 #include <spl.h>
 #include <asm/pci.h>
+#include <linux/bitops.h>
+
+#define PCH_P2SB_E0		0xe0
+#define HIDE_BIT		BIT(0)
 
 struct p2sb_platdata {
 #if CONFIG_IS_ENABLED(OF_PLATDATA)
-	struct dtd_intel_apl_p2sb dtplat;
+	struct dtd_intel_p2sb dtplat;
 #endif
 	ulong mmio_base;
 	pci_dev_t bdf;
@@ -43,14 +48,14 @@ struct p2sb_platdata {
 #define P2SB_HPTC_ADDRESS_SELECT_3		(3 << 0)
 
 /*
- * apl_p2sb_early_init() - Enable decoding for HPET range
+ * p2sb_early_init() - Enable decoding for HPET range
  *
  * This is needed by FSP-M which uses the High Precision Event Timer.
  *
  * @dev: P2SB device
  * @return 0 if OK, -ve on error
  */
-static int apl_p2sb_early_init(struct udevice *dev)
+static int p2sb_early_init(struct udevice *dev)
 {
 	struct p2sb_platdata *plat = dev_get_platdata(dev);
 	pci_dev_t pdev = plat->bdf;
@@ -76,7 +81,7 @@ static int apl_p2sb_early_init(struct udevice *dev)
 	return 0;
 }
 
-static int apl_p2sb_spl_init(struct udevice *dev)
+static int p2sb_spl_init(struct udevice *dev)
 {
 	/* Enable decoding for HPET. Needed for FSP global pointer storage */
 	dm_pci_write_config(dev, P2SB_HPTC, P2SB_HPTC_ADDRESS_SELECT_0 |
@@ -85,53 +90,76 @@ static int apl_p2sb_spl_init(struct udevice *dev)
 	return 0;
 }
 
-int apl_p2sb_ofdata_to_platdata(struct udevice *dev)
+int p2sb_ofdata_to_platdata(struct udevice *dev)
 {
 	struct p2sb_uc_priv *upriv = dev_get_uclass_priv(dev);
 	struct p2sb_platdata *plat = dev_get_platdata(dev);
 
 #if !CONFIG_IS_ENABLED(OF_PLATDATA)
 	int ret;
+	u32 base[2];
 
+	ret = dev_read_u32_array(dev, "early-regs", base, ARRAY_SIZE(base));
+	if (ret)
+		return log_msg_ret("Missing/short early-regs", ret);
+	plat->mmio_base = base[0];
+	/* TPL sets up the initial BAR */
 	if (spl_phase() == PHASE_TPL) {
-		u32 base[2];
-
-		/* TPL sets up the initial BAR */
-		ret = dev_read_u32_array(dev, "early-regs", base,
-					 ARRAY_SIZE(base));
-		if (ret)
-			return log_msg_ret("Missing/short early-regs", ret);
-		plat->mmio_base = base[0];
 		plat->bdf = pci_get_devfn(dev);
 		if (plat->bdf < 0)
 			return log_msg_ret("Cannot get p2sb PCI address",
 					   plat->bdf);
 	}
+	upriv->mmio_base = plat->mmio_base;
 #else
 	plat->mmio_base = plat->dtplat.early_regs[0];
 	plat->bdf = pci_ofplat_get_devfn(plat->dtplat.reg[0]);
-#endif
 	upriv->mmio_base = plat->mmio_base;
-	debug("p2sb: mmio_base=%x\n", (uint)plat->mmio_base);
+#endif
 
 	return 0;
 }
 
-static int apl_p2sb_probe(struct udevice *dev)
+static int p2sb_probe(struct udevice *dev)
 {
-	if (spl_phase() == PHASE_TPL) {
-		return apl_p2sb_early_init(dev);
-	} else {
-		struct p2sb_platdata *plat = dev_get_platdata(dev);
+	if (spl_phase() == PHASE_TPL)
+		return p2sb_early_init(dev);
+	else if (spl_phase() == PHASE_SPL)
+		return p2sb_spl_init(dev);
 
-		plat->mmio_base = dev_read_addr_pci(dev);
-		/* Don't set BDF since it should not be used */
-		if (!plat->mmio_base || plat->mmio_base == FDT_ADDR_T_NONE)
-			return -EINVAL;
+	return 0;
+}
 
-		if (spl_phase() == PHASE_SPL)
-			return apl_p2sb_spl_init(dev);
-	}
+static void p2sb_set_hide_bit(struct udevice *dev, bool hide)
+{
+	dm_pci_clrset_config8(dev, PCH_P2SB_E0 + 1, HIDE_BIT,
+			      hide ? HIDE_BIT : 0);
+}
+
+static int intel_p2sb_set_hide(struct udevice *dev, bool hide)
+{
+	u16 vendor;
+
+	if (!CONFIG_IS_ENABLED(PCI))
+		return -EPERM;
+	p2sb_set_hide_bit(dev, hide);
+
+	dm_pci_read_config16(dev, PCI_VENDOR_ID, &vendor);
+	if (hide && vendor != 0xffff)
+		return log_msg_ret("hide", -EEXIST);
+	else if (!hide && vendor != PCI_VENDOR_ID_INTEL)
+		return log_msg_ret("unhide", -ENOMEDIUM);
+
+	return 0;
+}
+
+static int p2sb_remove(struct udevice *dev)
+{
+	int ret;
+
+	ret = intel_p2sb_set_hide(dev, true);
+	if (ret)
+		return log_msg_ret("hide", ret);
 
 	return 0;
 }
@@ -152,19 +180,26 @@ static int p2sb_child_post_bind(struct udevice *dev)
 	return 0;
 }
 
-static const struct udevice_id apl_p2sb_ids[] = {
-	{ .compatible = "intel,apl-p2sb" },
+struct p2sb_ops p2sb_ops = {
+	.set_hide	= intel_p2sb_set_hide,
+};
+
+static const struct udevice_id p2sb_ids[] = {
+	{ .compatible = "intel,p2sb" },
 	{ }
 };
 
-U_BOOT_DRIVER(apl_p2sb_drv) = {
-	.name		= "intel_apl_p2sb",
+U_BOOT_DRIVER(p2sb_drv) = {
+	.name		= "intel_p2sb",
 	.id		= UCLASS_P2SB,
-	.of_match	= apl_p2sb_ids,
-	.probe		= apl_p2sb_probe,
-	.ofdata_to_platdata = apl_p2sb_ofdata_to_platdata,
+	.of_match	= p2sb_ids,
+	.probe		= p2sb_probe,
+	.remove		= p2sb_remove,
+	.ops		= &p2sb_ops,
+	.ofdata_to_platdata = p2sb_ofdata_to_platdata,
 	.platdata_auto_alloc_size = sizeof(struct p2sb_platdata),
 	.per_child_platdata_auto_alloc_size =
 		sizeof(struct p2sb_child_platdata),
 	.child_post_bind = p2sb_child_post_bind,
+	.flags		= DM_FLAG_OS_PREPARE,
 };

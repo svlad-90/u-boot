@@ -6,6 +6,7 @@
 #include <common.h>
 #include <handoff.h>
 #include <init.h>
+#include <log.h>
 #include <asm/fsp/fsp_support.h>
 #include <asm/e820.h>
 #include <asm/mrccache.h>
@@ -43,6 +44,14 @@ int dram_init_banksize(void)
 	struct hob_res_desc *res_desc;
 	phys_addr_t low_end;
 	uint bank;
+
+	if (!ll_boot_init()) {
+		gd->bd->bi_dram[0].start = 0;
+		gd->bd->bi_dram[0].size = gd->ram_size;
+
+		mtrr_add_request(MTRR_TYPE_WRBACK, 0, gd->ram_size);
+		return 0;
+	}
 
 	low_end = 0;
 	for (bank = 1, hdr = gd->arch.hob_list;
@@ -108,17 +117,21 @@ unsigned int install_e820_map(unsigned int max_entries,
 	entries[num_entries].type = E820_RESERVED;
 	num_entries++;
 
-#ifdef CONFIG_HAVE_ACPI_RESUME
-	/*
-	 * Everything between U-Boot's stack and ram top needs to be
-	 * reserved in order for ACPI S3 resume to work.
-	 */
-	entries[num_entries].addr = gd->start_addr_sp - CONFIG_STACK_SIZE;
-	entries[num_entries].size = gd->ram_top - gd->start_addr_sp +
-		CONFIG_STACK_SIZE;
-	entries[num_entries].type = E820_RESERVED;
-	num_entries++;
-#endif
+	if (IS_ENABLED(CONFIG_HAVE_ACPI_RESUME)) {
+		ulong stack_size;
+
+		stack_size = CONFIG_IS_ENABLED(HAVE_ACPI_RESUME,
+					       (CONFIG_STACK_SIZE_RESUME), (0));
+		/*
+		 * Everything between U-Boot's stack and ram top needs to be
+		 * reserved in order for ACPI S3 resume to work.
+		 */
+		entries[num_entries].addr = gd->start_addr_sp - stack_size;
+		entries[num_entries].size = gd->ram_top - gd->start_addr_sp +
+			stack_size;
+		entries[num_entries].type = E820_RESERVED;
+		num_entries++;
+	}
 
 	return num_entries;
 }

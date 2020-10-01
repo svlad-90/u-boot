@@ -7,12 +7,14 @@
 
 #include <common.h>
 #include <dm.h>
+#include <log.h>
 #include <malloc.h>
 #include <spi.h>
 #include <clk.h>
 #include <wait_bit.h>
 #include <asm/io.h>
 #include <dm/device_compat.h>
+#include <linux/bitops.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -253,7 +255,7 @@ static int mvebu_spi_ofdata_to_platdata(struct udevice *bus)
 	struct mvebu_spi_platdata *plat = dev_get_platdata(bus);
 	int ret;
 
-	plat->spireg = (struct spi_reg *)devfdt_get_addr(bus);
+	plat->spireg = dev_read_addr_ptr(bus);
 
 	ret = clk_get_by_index(bus, 0, &plat->clk);
 	if (ret) {

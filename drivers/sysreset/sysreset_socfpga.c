@@ -10,6 +10,7 @@
 #include <sysreset.h>
 #include <asm/io.h>
 #include <asm/arch/reset_manager.h>
+#include <linux/bitops.h>
 
 struct socfpga_sysreset_data {
 	void __iomem *rstmgr_base;
@@ -39,7 +40,7 @@ static int socfpga_sysreset_probe(struct udevice *dev)
 {
 	struct socfpga_sysreset_data *data = dev_get_priv(dev);
 
-	data->rstmgr_base = devfdt_get_addr_ptr(dev);
+	data->rstmgr_base = dev_read_addr_ptr(dev);
 	return 0;
 }
 

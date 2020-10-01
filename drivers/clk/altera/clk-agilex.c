@@ -4,12 +4,14 @@
  */
 
 #include <common.h>
+#include <log.h>
 #include <asm/io.h>
 #include <clk-uclass.h>
 #include <dm.h>
 #include <dm/lists.h>
 #include <dm/util.h>
 #include <dt-bindings/clock/agilex-clock.h>
+#include <linux/bitops.h>
 
 #include <asm/arch/clock_manager.h>
 
@@ -551,7 +553,7 @@ static int socfpga_clk_ofdata_to_platdata(struct udevice *dev)
 	struct socfpga_clk_platdata *plat = dev_get_platdata(dev);
 	fdt_addr_t addr;
 
-	addr = devfdt_get_addr(dev);
+	addr = dev_read_addr(dev);
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 	plat->regs = (void __iomem *)addr;

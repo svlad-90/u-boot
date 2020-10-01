@@ -7,7 +7,9 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <log.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/cache.h>
 #include <asm/io.h>
 #include <clk.h>
 #include <dm.h>
@@ -17,6 +19,7 @@
 #include <ubi_uboot.h>
 #include <wait_bit.h>
 #include <dm/device_compat.h>
+#include <linux/bitops.h>
 #include <linux/err.h>
 
 #define GQSPI_GFIFO_STRT_MODE_MASK	BIT(29)
@@ -178,10 +181,10 @@ static int zynqmp_qspi_ofdata_to_platdata(struct udevice *bus)
 
 	debug("%s\n", __func__);
 
-	plat->regs = (struct zynqmp_qspi_regs *)(devfdt_get_addr(bus) +
+	plat->regs = (struct zynqmp_qspi_regs *)(dev_read_addr(bus) +
 						 GQSPI_REG_OFFSET);
 	plat->dma_regs = (struct zynqmp_qspi_dma_regs *)
-			  (devfdt_get_addr(bus) + GQSPI_DMA_REG_OFFSET);
+			  (dev_read_addr(bus) + GQSPI_DMA_REG_OFFSET);
 
 	return 0;
 }

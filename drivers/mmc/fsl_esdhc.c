@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2007, 2010-2011 Freescale Semiconductor, Inc
- * Copyright 2019 NXP Semiconductors
+ * Copyright 2019-2020 NXP
  * Andy Fleming
  *
  * Based vaguely on the pxa mmc code:
@@ -20,9 +20,12 @@
 #include <malloc.h>
 #include <fsl_esdhc.h>
 #include <fdt_support.h>
+#include <asm/cache.h>
 #include <asm/io.h>
 #include <dm.h>
 #include <dm/device_compat.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -627,16 +630,15 @@ static int esdhc_init_common(struct fsl_esdhc_priv *priv, struct mmc *mmc)
 static int esdhc_getcd_common(struct fsl_esdhc_priv *priv)
 {
 	struct fsl_esdhc *regs = priv->esdhc_regs;
-	int timeout = 1000;
 
 #ifdef CONFIG_ESDHC_DETECT_QUIRK
 	if (CONFIG_ESDHC_DETECT_QUIRK)
 		return 1;
 #endif
-	while (!(esdhc_read32(&regs->prsstat) & PRSSTAT_CINS) && --timeout)
-		udelay(1000);
+	if (esdhc_read32(&regs->prsstat) & PRSSTAT_CINS)
+		return 1;
 
-	return timeout > 0;
+	return 0;
 }
 
 static void fsl_esdhc_get_cfg_common(struct fsl_esdhc_priv *priv,
@@ -669,45 +671,6 @@ static void fsl_esdhc_get_cfg_common(struct fsl_esdhc_priv *priv,
 	cfg->b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
 }
 
-#ifdef CONFIG_FSL_ESDHC_ADAPTER_IDENT
-void mmc_adapter_card_type_ident(void)
-{
-	u8 card_id;
-	u8 value;
-
-	card_id = QIXIS_READ(present) & QIXIS_SDID_MASK;
-	gd->arch.sdhc_adapter = card_id;
-
-	switch (card_id) {
-	case QIXIS_ESDHC_ADAPTER_TYPE_EMMC45:
-		value = QIXIS_READ(brdcfg[5]);
-		value |= (QIXIS_DAT4 | QIXIS_DAT5_6_7);
-		QIXIS_WRITE(brdcfg[5], value);
-		break;
-	case QIXIS_ESDHC_ADAPTER_TYPE_SDMMC_LEGACY:
-		value = QIXIS_READ(pwr_ctl[1]);
-		value |= QIXIS_EVDD_BY_SDHC_VS;
-		QIXIS_WRITE(pwr_ctl[1], value);
-		break;
-	case QIXIS_ESDHC_ADAPTER_TYPE_EMMC44:
-		value = QIXIS_READ(brdcfg[5]);
-		value |= (QIXIS_SDCLKIN | QIXIS_SDCLKOUT);
-		QIXIS_WRITE(brdcfg[5], value);
-		break;
-	case QIXIS_ESDHC_ADAPTER_TYPE_RSV:
-		break;
-	case QIXIS_ESDHC_ADAPTER_TYPE_MMC:
-		break;
-	case QIXIS_ESDHC_ADAPTER_TYPE_SD:
-		break;
-	case QIXIS_ESDHC_NO_ADAPTER:
-		break;
-	default:
-		break;
-	}
-}
-#endif
-
 #ifdef CONFIG_OF_LIBFDT
 __weak int esdhc_status_fixup(void *blob, const char *compat)
 {
@@ -721,13 +684,38 @@ __weak int esdhc_status_fixup(void *blob, const char *compat)
 	return 0;
 }
 
-void fdt_fixup_esdhc(void *blob, bd_t *bd)
+#ifdef CONFIG_FSL_ESDHC_33V_IO_RELIABILITY_WORKAROUND
+static int fsl_esdhc_get_cd(struct udevice *dev);
+
+static void esdhc_disable_for_no_card(void *blob)
+{
+	struct udevice *dev;
+
+	for (uclass_first_device(UCLASS_MMC, &dev);
+	     dev;
+	     uclass_next_device(&dev)) {
+		char esdhc_path[50];
+
+		if (fsl_esdhc_get_cd(dev))
+			continue;
+
+		snprintf(esdhc_path, sizeof(esdhc_path), "/soc/esdhc@%lx",
+			 (unsigned long)dev_read_addr(dev));
+		do_fixup_by_path(blob, esdhc_path, "status", "disabled",
+				 sizeof("disabled"), 1);
+	}
+}
+#endif
+
+void fdt_fixup_esdhc(void *blob, struct bd_info *bd)
 {
 	const char *compat = "fsl,esdhc";
 
 	if (esdhc_status_fixup(blob, compat))
 		return;
-
+#ifdef CONFIG_FSL_ESDHC_33V_IO_RELIABILITY_WORKAROUND
+	esdhc_disable_for_no_card(blob);
+#endif
 	do_fixup_by_compat_u32(blob, compat, "clock-frequency",
 			       gd->arch.sdhc_clk, 1);
 }
@@ -770,7 +758,7 @@ static const struct mmc_ops esdhc_ops = {
 	.set_ios	= esdhc_set_ios,
 };
 
-int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
+int fsl_esdhc_initialize(struct bd_info *bis, struct fsl_esdhc_cfg *cfg)
 {
 	struct fsl_esdhc_plat *plat;
 	struct fsl_esdhc_priv *priv;
@@ -825,7 +813,7 @@ int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
 	return 0;
 }
 
-int fsl_esdhc_mmc_init(bd_t *bis)
+int fsl_esdhc_mmc_init(struct bd_info *bis)
 {
 	struct fsl_esdhc_cfg *cfg;
 
@@ -846,6 +834,7 @@ static int fsl_esdhc_probe(struct udevice *dev)
 	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
 	fdt_addr_t addr;
 	struct mmc *mmc;
+	int ret;
 
 	addr = dev_read_addr(dev);
 	if (addr == FDT_ADDR_T_NONE)
@@ -879,7 +868,15 @@ static int fsl_esdhc_probe(struct udevice *dev)
 
 	upriv->mmc = mmc;
 
-	return esdhc_init_common(priv, mmc);
+	ret = esdhc_init_common(priv, mmc);
+	if (ret)
+		return ret;
+
+#ifdef CONFIG_FSL_ESDHC_33V_IO_RELIABILITY_WORKAROUND
+	if (!fsl_esdhc_get_cd(dev))
+		esdhc_setbits32(&priv->esdhc_regs->proctl, PROCTL_VOLT_SEL);
+#endif
+	return 0;
 }
 
 static int fsl_esdhc_get_cd(struct udevice *dev)

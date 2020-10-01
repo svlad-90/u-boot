@@ -25,11 +25,13 @@ cc_defaults {
         "-DUSE_HOSTCC",
         "-Wno-missing-field-initializers",
         "-Wno-pointer-arith",
+        "-Wno-unused-function",
         "-Wno-unused-parameter",
         "-Wno-visibility",
         "-Wno-sign-compare",
         "-include linux/kconfig.h",
         "-include compiler.h",
+        "-include image.h",
     ],
 
     local_include_dirs: [
@@ -63,6 +65,7 @@ cc_binary_host {
         "lib/rc4.c",
         "lib/sha1.c",
         "lib/sha256.c",
+        "lib/sha512.c",
         "tools/aisimage.c",
         "tools/atmelimage.c",
         "tools/default_image.c",

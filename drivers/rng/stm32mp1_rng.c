@@ -3,11 +3,16 @@
  * Copyright (c) 2019, Linaro Limited
  */
 
+#define LOG_CATEGORY UCLASS_RNG
+
 #include <common.h>
 #include <clk.h>
 #include <dm.h>
+#include <log.h>
 #include <reset.h>
 #include <rng.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 
 #include <asm/io.h>
 #include <linux/iopoll.h>
@@ -33,7 +38,7 @@ struct stm32_rng_platdata {
 
 static int stm32_rng_read(struct udevice *dev, void *data, size_t len)
 {
-	int retval = 0, i;
+	int retval, i;
 	u32 sr, count, reg;
 	size_t increment;
 	struct stm32_rng_platdata *pdata = dev_get_platdata(dev);
@@ -50,7 +55,7 @@ static int stm32_rng_read(struct udevice *dev, void *data, size_t len)
 			for (i = 0; i < 12; i++)
 				readl(pdata->base + RNG_DR);
 			if (readl(pdata->base + RNG_SR) & RNG_SR_SEIS) {
-				printf("RNG Noise");
+				log_err("RNG Noise");
 				return -EIO;
 			}
 			/* start again */

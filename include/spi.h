@@ -10,10 +10,11 @@
 #define _SPI_H_
 
 #include <common.h>
+#include <linux/bitops.h>
 
 /* SPI mode flags */
-#define SPI_CPHA	BIT(0)			/* clock phase */
-#define SPI_CPOL	BIT(1)			/* clock polarity */
+#define SPI_CPHA	BIT(0)	/* clock phase (1 = SPI_CLOCK_PHASE_SECOND) */
+#define SPI_CPOL	BIT(1)	/* clock polarity (1 = SPI_POLARITY_HIGH) */
 #define SPI_MODE_0	(0|0)			/* (original MicroWire) */
 #define SPI_MODE_1	(0|SPI_CPHA)
 #define SPI_MODE_2	(SPI_CPOL|0)
@@ -38,7 +39,6 @@
 
 #define SPI_DEFAULT_WORDLEN	8
 
-#ifdef CONFIG_DM_SPI
 /* TODO(sjg@chromium.org): Remove this and use max_hz from struct spi_slave */
 struct dm_spi_bus {
 	uint max_hz;
@@ -64,7 +64,38 @@ struct dm_spi_slave_platdata {
 	uint mode;
 };
 
-#endif /* CONFIG_DM_SPI */
+/**
+ * enum spi_clock_phase - indicates  the clock phase to use for SPI (CPHA)
+ *
+ * @SPI_CLOCK_PHASE_FIRST: Data sampled on the first phase
+ * @SPI_CLOCK_PHASE_SECOND: Data sampled on the second phase
+ */
+enum spi_clock_phase {
+	SPI_CLOCK_PHASE_FIRST,
+	SPI_CLOCK_PHASE_SECOND,
+};
+
+/**
+ * enum spi_wire_mode - indicates the number of wires used for SPI
+ *
+ * @SPI_4_WIRE_MODE: Normal bidirectional mode with MOSI and MISO
+ * @SPI_3_WIRE_MODE: Unidirectional version with a single data line SISO
+ */
+enum spi_wire_mode {
+	SPI_4_WIRE_MODE,
+	SPI_3_WIRE_MODE,
+};
+
+/**
+ * enum spi_polarity - indicates the polarity of the SPI bus (CPOL)
+ *
+ * @SPI_POLARITY_LOW: Clock is low in idle state
+ * @SPI_POLARITY_HIGH: Clock is high in idle state
+ */
+enum spi_polarity {
+	SPI_POLARITY_LOW,
+	SPI_POLARITY_HIGH,
+};
 
 /**
  * struct spi_slave - Representation of a SPI slave
@@ -97,7 +128,7 @@ struct dm_spi_slave_platdata {
  * @flags:		Indication of SPI flags.
  */
 struct spi_slave {
-#ifdef CONFIG_DM_SPI
+#if CONFIG_IS_ENABLED(DM_SPI)
 	struct udevice *dev;	/* struct spi_slave is dev->parentdata */
 	uint max_hz;
 	uint speed;
@@ -115,8 +146,6 @@ struct spi_slave {
 #define SPI_XFER_BEGIN		BIT(0)	/* Assert CS before transfer */
 #define SPI_XFER_END		BIT(1)	/* Deassert CS after transfer */
 #define SPI_XFER_ONCE		(SPI_XFER_BEGIN | SPI_XFER_END)
-#define SPI_XFER_MMAP		BIT(2)	/* Memory Mapped start */
-#define SPI_XFER_MMAP_END	BIT(3)	/* Memory Mapped End */
 };
 
 /**
@@ -283,7 +312,12 @@ void spi_flash_copy_mmap(void *data, void *offset, size_t len);
  */
 int spi_cs_is_valid(unsigned int bus, unsigned int cs);
 
-#ifndef CONFIG_DM_SPI
+/*
+ * These names are used in several drivers and these declarations will be
+ * removed soon as part of the SPI DM migration. Drop them if driver model is
+ * enabled for SPI.
+ */
+#if !CONFIG_IS_ENABLED(DM_SPI)
 /**
  * Activate a SPI chipselect.
  * This function is provided by the board code when using a driver
@@ -301,6 +335,7 @@ void spi_cs_activate(struct spi_slave *slave);
  * select to the device identified by "slave".
  */
 void spi_cs_deactivate(struct spi_slave *slave);
+#endif
 
 /**
  * Set transfer speed.
@@ -309,7 +344,6 @@ void spi_cs_deactivate(struct spi_slave *slave);
  * @hz:		The transfer speed
  */
 void spi_set_speed(struct spi_slave *slave, uint hz);
-#endif
 
 /**
  * Write 8 bits, then read 8 bits.
@@ -332,8 +366,6 @@ static inline int spi_w8r8(struct spi_slave *slave, unsigned char byte)
 	ret = spi_xfer(slave, 16, dout, din, SPI_XFER_BEGIN | SPI_XFER_END);
 	return ret < 0 ? ret : din[1];
 }
-
-#ifdef CONFIG_DM_SPI
 
 /**
  * struct spi_cs_info - Information about a bus chip select
@@ -683,6 +715,5 @@ int dm_spi_get_mmap(struct udevice *dev, ulong *map_basep, uint *map_sizep,
 /* Access the operations for a SPI device */
 #define spi_get_ops(dev)	((struct dm_spi_ops *)(dev)->driver->ops)
 #define spi_emul_get_ops(dev)	((struct dm_spi_emul_ops *)(dev)->driver->ops)
-#endif /* CONFIG_DM_SPI */
 
 #endif	/* _SPI_H_ */

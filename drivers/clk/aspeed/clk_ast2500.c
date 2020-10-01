@@ -6,10 +6,12 @@
 #include <common.h>
 #include <clk-uclass.h>
 #include <dm.h>
+#include <log.h>
 #include <asm/io.h>
 #include <asm/arch/scu_ast2500.h>
 #include <dm/lists.h>
 #include <dt-bindings/clock/ast2500-scu.h>
+#include <linux/delay.h>
 #include <linux/err.h>
 
 /*
@@ -495,9 +497,9 @@ static int ast2500_clk_ofdata_to_platdata(struct udevice *dev)
 {
 	struct ast2500_clk_priv *priv = dev_get_priv(dev);
 
-	priv->scu = devfdt_get_addr_ptr(dev);
-	if (IS_ERR(priv->scu))
-		return PTR_ERR(priv->scu);
+	priv->scu = dev_read_addr_ptr(dev);
+	if (!priv->scu)
+		return -EINVAL;
 
 	return 0;
 }

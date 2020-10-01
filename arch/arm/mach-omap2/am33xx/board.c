@@ -12,6 +12,7 @@
 #include <debug_uart.h>
 #include <errno.h>
 #include <init.h>
+#include <net.h>
 #include <ns16550.h>
 #include <spl.h>
 #include <asm/arch/cpu.h>
@@ -31,6 +32,7 @@
 #include <i2c.h>
 #include <miiphy.h>
 #include <cpsw.h>
+#include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/compiler.h>
 #include <linux/usb/ch9.h>
@@ -158,7 +160,7 @@ const struct gpio_bank *const omap_gpio_bank = gpio_bank_am33xx;
 #endif
 
 #if defined(CONFIG_MMC_OMAP_HS)
-int cpu_mmc_init(bd_t *bis)
+int cpu_mmc_init(struct bd_info *bis)
 {
 	int ret;
 

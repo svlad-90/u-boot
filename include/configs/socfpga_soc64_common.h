@@ -9,6 +9,7 @@
 
 #include <asm/arch/base_addr_s10.h>
 #include <asm/arch/handoff_s10.h>
+#include <linux/stringify.h>
 
 /*
  * U-Boot general configurations
@@ -48,7 +49,6 @@
 /*
  * U-Boot environment configurations
  */
-#define CONFIG_SYS_MMC_ENV_DEV		0	/* device 0 */
 
 /*
  * QSPI support
@@ -78,7 +78,6 @@ unsigned int cm_get_qspi_controller_clk_hz(void);
  * CONFIG_BOOTARGS goes into the environment value "bootargs".
  * Do note the value will override also the chosen node in FDT blob.
  */
-#define CONFIG_BOOTARGS "earlycon"
 #define CONFIG_BOOTCOMMAND "run fatscript; run mmcload;run linux_qspi_enable;" \
 			   "run mmcboot"
 
@@ -117,8 +116,6 @@ unsigned int cm_get_qspi_controller_clk_hz(void);
 #define PHYS_SDRAM_1			0x0
 #define PHYS_SDRAM_1_SIZE		(1 * 1024 * 1024 * 1024)
 #define CONFIG_SYS_SDRAM_BASE		0
-#define CONFIG_SYS_MEMTEST_START	0
-#define CONFIG_SYS_MEMTEST_END		PHYS_SDRAM_1_SIZE - 0x200000
 
 /*
  * Serial / UART configurations
@@ -196,7 +193,6 @@ unsigned int cm_get_l4_sys_free_clk_hz(void);
 					- CONFIG_SYS_SPL_MALLOC_SIZE)
 
 /* SPL SDMMC boot support */
-#define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
 #define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME		"u-boot.img"
 
 #endif	/* __CONFIG_SOCFPGA_SOC64_COMMON_H__ */

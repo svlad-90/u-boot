@@ -4,6 +4,7 @@
  */
 
 #include <common.h>
+#include <log.h>
 #include <asm/arch/clock_manager.h>
 #include <asm/arch/system_manager.h>
 #include <clk.h>
@@ -108,7 +109,7 @@ static int socfpga_dwmmc_ofdata_to_platdata(struct udevice *dev)
 	}
 
 	host->name = dev->name;
-	host->ioaddr = (void *)devfdt_get_addr(dev);
+	host->ioaddr = dev_read_addr_ptr(dev);
 	host->buswidth = fdtdec_get_int(gd->fdt_blob, dev_of_offset(dev),
 					"bus-width", 4);
 	host->clksel = socfpga_dwmci_clksel;

@@ -4,6 +4,8 @@
  */
 
 #include <common.h>
+#include <env.h>
+#include <init.h>
 #include <miiphy.h>
 #include <netdev.h>
 
@@ -12,13 +14,6 @@
 #include <asm/io.h>
 
 DECLARE_GLOBAL_DATA_PTR;
-
-int dram_init(void)
-{
-	gd->ram_size = PHYS_SDRAM_SIZE;
-
-	return 0;
-}
 
 #if IS_ENABLED(CONFIG_FEC_MXC)
 static int setup_fec(void)

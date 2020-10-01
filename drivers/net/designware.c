@@ -13,13 +13,17 @@
 #include <cpu_func.h>
 #include <dm.h>
 #include <errno.h>
+#include <log.h>
 #include <miiphy.h>
 #include <malloc.h>
+#include <net.h>
 #include <pci.h>
 #include <reset.h>
+#include <asm/cache.h>
 #include <dm/device_compat.h>
 #include <dm/devres.h>
 #include <linux/compiler.h>
+#include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/kernel.h>
 #include <asm/io.h>
@@ -508,7 +512,7 @@ static int dw_phy_init(struct dw_eth_dev *priv, void *dev)
 }
 
 #ifndef CONFIG_DM_ETH
-static int dw_eth_init(struct eth_device *dev, bd_t *bis)
+static int dw_eth_init(struct eth_device *dev, struct bd_info *bis)
 {
 	int ret;
 

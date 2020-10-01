@@ -12,6 +12,7 @@
 #include <post.h>
 #include <linux/compiler.h>
 #include <errno.h>
+#include <linux/delay.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -169,7 +170,7 @@ void serial_register(struct serial_device *dev)
  * serial port to the serial core. That serial port is then used as a
  * default output.
  */
-void serial_initialize(void)
+int serial_initialize(void)
 {
 	atmel_serial_initialize();
 	mcf_serial_initialize();
@@ -182,6 +183,8 @@ void serial_initialize(void)
 	mtk_serial_initialize();
 
 	serial_assign(default_serial_console()->name);
+
+	return 0;
 }
 
 static int serial_stub_start(struct stdio_dev *sdev)

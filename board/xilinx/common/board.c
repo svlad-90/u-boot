@@ -5,15 +5,18 @@
  */
 
 #include <common.h>
+#include <env.h>
+#include <log.h>
 #include <asm/sections.h>
 #include <dm/uclass.h>
 #include <i2c.h>
+#include <linux/sizes.h>
+#include "board.h"
 
+#if defined(CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET)
 int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
 {
 	int ret = -EINVAL;
-
-#if defined(CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET)
 	struct udevice *dev;
 	ofnode eeprom;
 
@@ -33,20 +36,24 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
 		debug("%s: I2C EEPROM MAC address read failed\n", __func__);
 	else
 		debug("%s: I2C EEPROM MAC %pM\n", __func__, ethaddr);
-#endif
 
 	return ret;
 }
+#endif
 
 #if defined(CONFIG_OF_BOARD) || defined(CONFIG_OF_SEPARATE)
 void *board_fdt_blob_setup(void)
 {
-	static void *fdt_blob = (void *)CONFIG_XILINX_OF_BOARD_DTB_ADDR;
+	static void *fdt_blob;
+
+#if !defined(CONFIG_VERSAL_NO_DDR) && !defined(CONFIG_ZYNQMP_NO_DDR)
+	fdt_blob = (void *)CONFIG_XILINX_OF_BOARD_DTB_ADDR;
 
 	if (fdt_magic(fdt_blob) == FDT_MAGIC)
 		return fdt_blob;
 
 	debug("DTB is not passed via %p\n", fdt_blob);
+#endif
 
 #ifdef CONFIG_SPL_BUILD
 	/* FDT is at end of BSS unless it is in a different memory region */
@@ -67,3 +74,22 @@ void *board_fdt_blob_setup(void)
 	return NULL;
 }
 #endif
+
+int board_late_init_xilinx(void)
+{
+	u32 ret = 0;
+	phys_size_t bootm_size = gd->ram_size;
+
+	if (CONFIG_IS_ENABLED(ARCH_ZYNQ))
+		bootm_size = min(bootm_size, (phys_size_t)(SZ_512M + SZ_256M));
+
+	ret |= env_set_hex("script_offset_f", CONFIG_BOOT_SCRIPT_OFFSET);
+
+	ret |= env_set_addr("bootm_low", (void *)gd->ram_base);
+	ret |= env_set_addr("bootm_size", (void *)bootm_size);
+
+	if (ret)
+		printf("%s: Saving run time variables FAILED\n", __func__);
+
+	return 0;
+}

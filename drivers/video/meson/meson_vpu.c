@@ -11,6 +11,8 @@
 #include <dm.h>
 #include <efi_loader.h>
 #include <fdt_support.h>
+#include <log.h>
+#include <part.h>
 #include <linux/sizes.h>
 #include <asm/arch/mem.h>
 #include <dm/device-internal.h>
@@ -195,8 +197,8 @@ void meson_vpu_rsv_fb(void *fdt)
 		return;
 
 #if defined(CONFIG_EFI_LOADER)
-	efi_add_memory_map(meson_fb.base, meson_fb.fb_size >> EFI_PAGE_SHIFT,
-			   EFI_RESERVED_MEMORY_TYPE, false);
+	efi_add_memory_map(meson_fb.base, meson_fb.fb_size,
+			   EFI_RESERVED_MEMORY_TYPE);
 #endif
 #if defined(CONFIG_VIDEO_DT_SIMPLEFB)
 	meson_vpu_setup_simplefb(fdt);
@@ -210,5 +212,5 @@ U_BOOT_DRIVER(meson_vpu) = {
 	.probe = meson_vpu_probe,
 	.bind = meson_vpu_bind,
 	.priv_auto_alloc_size = sizeof(struct meson_vpu_priv),
-	.flags  = DM_FLAG_PRE_RELOC,
+	.flags  = DM_FLAG_PRE_RELOC | DM_FLAG_REMOVE_WITH_PD_ON,
 };

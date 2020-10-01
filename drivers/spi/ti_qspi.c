@@ -7,6 +7,8 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <log.h>
+#include <asm/cache.h>
 #include <asm/io.h>
 #include <asm/arch/omap.h>
 #include <malloc.h>
@@ -17,6 +19,7 @@
 #include <asm/omap_gpio.h>
 #include <asm/omap_common.h>
 #include <asm/ti-common/ti-edma3.h>
+#include <linux/bitops.h>
 #include <linux/err.h>
 #include <linux/kernel.h>
 #include <regmap.h>
@@ -458,7 +461,7 @@ static int ti_qspi_ofdata_to_platdata(struct udevice *bus)
 	fdt_addr_t mmap_size;
 
 	priv->ctrl_mod_mmap = map_syscon_chipselects(bus);
-	priv->base = map_physmem(devfdt_get_addr(bus),
+	priv->base = map_physmem(dev_read_addr(bus),
 				 sizeof(struct ti_qspi_regs), MAP_NOCACHE);
 	mmap_addr = devfdt_get_addr_size_index(bus, 1, &mmap_size);
 	priv->memory_map = map_physmem(mmap_addr, mmap_size, MAP_NOCACHE);

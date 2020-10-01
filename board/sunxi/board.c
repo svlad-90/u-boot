@@ -14,7 +14,9 @@
 #include <dm.h>
 #include <env.h>
 #include <hang.h>
+#include <image.h>
 #include <init.h>
+#include <log.h>
 #include <mmc.h>
 #include <axp_pmic.h>
 #include <generic-phy.h>
@@ -26,6 +28,7 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/mmc.h>
 #include <asm/arch/spl.h>
+#include <linux/delay.h>
 #include <u-boot/crc.h>
 #ifndef CONFIG_ARM64
 #include <asm/armv7.h>
@@ -570,7 +573,7 @@ static void mmc_pinmux_setup(int sdc)
 	}
 }
 
-int board_mmc_init(bd_t *bis)
+int board_mmc_init(struct bd_info *bis)
 {
 	__maybe_unused struct mmc *mmc0, *mmc1;
 
@@ -867,7 +870,7 @@ int misc_init_r(void)
 	return 0;
 }
 
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	int __maybe_unused r;
 

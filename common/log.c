@@ -45,7 +45,11 @@ const char *log_get_cat_name(enum log_category_t cat)
 	if (cat >= LOGC_NONE)
 		return log_cat_name[cat - LOGC_NONE];
 
+#if CONFIG_IS_ENABLED(DM)
 	name = uclass_get_name((enum uclass_id)cat);
+#else
+	name = NULL;
+#endif
 
 	return name ? name : "<missing>";
 }
@@ -233,7 +237,7 @@ int log_add_filter(const char *drv_name, enum log_category_t cat_list[],
 	ldev = log_device_find_by_name(drv_name);
 	if (!ldev)
 		return -ENOENT;
-	filt = (struct log_filter *)calloc(1, sizeof(*filt));
+	filt = calloc(1, sizeof(*filt));
 	if (!filt)
 		return -ENOMEM;
 
@@ -317,7 +321,7 @@ int log_init(void)
 	gd->flags |= GD_FLG_LOG_READY;
 	if (!gd->default_log_level)
 		gd->default_log_level = CONFIG_LOG_DEFAULT_LEVEL;
-	gd->log_fmt = LOGF_DEFAULT;
+	gd->log_fmt = log_get_default_format();
 
 	return 0;
 }

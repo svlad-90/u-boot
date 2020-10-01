@@ -21,12 +21,14 @@
 #include <common.h>
 #include <clk.h>
 #include <dm.h>
+#include <log.h>
 #include <spi.h>
 #include <errno.h>
 #include <fdt_support.h>
 #include <reset.h>
 #include <wait_bit.h>
 #include <dm/device_compat.h>
+#include <linux/bitops.h>
 
 #include <asm/bitops.h>
 #include <asm/gpio.h>
@@ -517,7 +519,7 @@ static int sun4i_spi_ofdata_to_platdata(struct udevice *bus)
 	struct sun4i_spi_platdata *plat = dev_get_platdata(bus);
 	int node = dev_of_offset(bus);
 
-	plat->base = devfdt_get_addr(bus);
+	plat->base = dev_read_addr(bus);
 	plat->variant = (struct sun4i_spi_variant *)dev_get_driver_data(bus);
 	plat->max_hz = fdtdec_get_int(gd->fdt_blob, node,
 				      "spi-max-frequency",

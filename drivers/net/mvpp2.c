@@ -16,6 +16,7 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <asm/cache.h>
 #include <dm/device-internal.h>
 #include <dm/device_compat.h>
 #include <dm/devres.h>
@@ -25,6 +26,9 @@
 #include <config.h>
 #include <malloc.h>
 #include <asm/io.h>
+#include <linux/bitops.h>
+#include <linux/bug.h>
+#include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <phy.h>
@@ -33,6 +37,7 @@
 #include <asm/arch/cpu.h>
 #include <asm/arch/soc.h>
 #include <linux/compat.h>
+#include <linux/libfdt.h>
 #include <linux/mbus.h>
 #include <asm-generic/gpio.h>
 #include <fdt_support.h>
@@ -1258,6 +1263,7 @@ struct buffer_location {
  * can be enabled at once
  */
 static struct buffer_location buffer_loc;
+static int buffer_loc_init;
 
 /*
  * Page table entries are set to 1MB, or multiples of 1MB
@@ -5242,39 +5248,43 @@ static int mvpp2_base_probe(struct udevice *dev)
 	 * be active. Make this area DMA-safe by disabling the D-cache
 	 */
 
-	/* Align buffer area for descs and rx_buffers to 1MiB */
-	bd_space = memalign(1 << MMU_SECTION_SHIFT, BD_SPACE);
-	mmu_set_region_dcache_behaviour((unsigned long)bd_space,
-					BD_SPACE, DCACHE_OFF);
+	if (!buffer_loc_init) {
+		/* Align buffer area for descs and rx_buffers to 1MiB */
+		bd_space = memalign(1 << MMU_SECTION_SHIFT, BD_SPACE);
+		mmu_set_region_dcache_behaviour((unsigned long)bd_space,
+						BD_SPACE, DCACHE_OFF);
 
-	buffer_loc.aggr_tx_descs = (struct mvpp2_tx_desc *)bd_space;
-	size += MVPP2_AGGR_TXQ_SIZE * MVPP2_DESC_ALIGNED_SIZE;
+		buffer_loc.aggr_tx_descs = (struct mvpp2_tx_desc *)bd_space;
+		size += MVPP2_AGGR_TXQ_SIZE * MVPP2_DESC_ALIGNED_SIZE;
 
-	buffer_loc.tx_descs =
-		(struct mvpp2_tx_desc *)((unsigned long)bd_space + size);
-	size += MVPP2_MAX_TXD * MVPP2_DESC_ALIGNED_SIZE;
+		buffer_loc.tx_descs =
+			(struct mvpp2_tx_desc *)((unsigned long)bd_space + size);
+		size += MVPP2_MAX_TXD * MVPP2_DESC_ALIGNED_SIZE;
 
-	buffer_loc.rx_descs =
-		(struct mvpp2_rx_desc *)((unsigned long)bd_space + size);
-	size += MVPP2_MAX_RXD * MVPP2_DESC_ALIGNED_SIZE;
+		buffer_loc.rx_descs =
+			(struct mvpp2_rx_desc *)((unsigned long)bd_space + size);
+		size += MVPP2_MAX_RXD * MVPP2_DESC_ALIGNED_SIZE;
 
-	for (i = 0; i < MVPP2_BM_POOLS_NUM; i++) {
-		buffer_loc.bm_pool[i] =
-			(unsigned long *)((unsigned long)bd_space + size);
-		if (priv->hw_version == MVPP21)
-			size += MVPP2_BM_POOL_SIZE_MAX * 2 * sizeof(u32);
-		else
-			size += MVPP2_BM_POOL_SIZE_MAX * 2 * sizeof(u64);
+		for (i = 0; i < MVPP2_BM_POOLS_NUM; i++) {
+			buffer_loc.bm_pool[i] =
+				(unsigned long *)((unsigned long)bd_space + size);
+			if (priv->hw_version == MVPP21)
+				size += MVPP2_BM_POOL_SIZE_MAX * 2 * sizeof(u32);
+			else
+				size += MVPP2_BM_POOL_SIZE_MAX * 2 * sizeof(u64);
+		}
+
+		for (i = 0; i < MVPP2_BM_LONG_BUF_NUM; i++) {
+			buffer_loc.rx_buffer[i] =
+				(unsigned long *)((unsigned long)bd_space + size);
+			size += RX_BUFFER_SIZE;
+		}
+
+		/* Clear the complete area so that all descriptors are cleared */
+		memset(bd_space, 0, size);
+
+		buffer_loc_init = 1;
 	}
-
-	for (i = 0; i < MVPP2_BM_LONG_BUF_NUM; i++) {
-		buffer_loc.rx_buffer[i] =
-			(unsigned long *)((unsigned long)bd_space + size);
-		size += RX_BUFFER_SIZE;
-	}
-
-	/* Clear the complete area so that all descriptors are cleared */
-	memset(bd_space, 0, size);
 
 	/* Save base addresses for later use */
 	priv->base = (void *)devfdt_get_addr_index(dev, 0);

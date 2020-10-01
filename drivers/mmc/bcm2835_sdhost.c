@@ -37,7 +37,10 @@
 #include <asm/arch/mbox.h>
 #include <asm/unaligned.h>
 #include <dm/device_compat.h>
+#include <linux/bitops.h>
+#include <linux/bug.h>
 #include <linux/compat.h>
+#include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
 #include <linux/sizes.h>
@@ -763,7 +766,7 @@ static int bcm2835_probe(struct udevice *dev)
 	upriv->mmc = &plat->mmc;
 	plat->cfg.name = dev->name;
 
-	host->phys_addr = devfdt_get_addr(dev);
+	host->phys_addr = dev_read_addr(dev);
 	if (host->phys_addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 

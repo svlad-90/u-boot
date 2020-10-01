@@ -10,6 +10,7 @@
  */
 
 #include <common.h>
+#include <log.h>
 #include <dm/device_compat.h>
 #include <linux/err.h>
 #include <linux/errno.h>
@@ -376,7 +377,7 @@ static const struct flash_info *spi_nor_read_id(struct spi_nor *nor)
 	}
 	dev_dbg(nor->dev, "unrecognized JEDEC id bytes: %02x, %02x, %02x\n",
 		id[0], id[1], id[2]);
-	return ERR_PTR(-ENODEV);
+	return ERR_PTR(-EMEDIUMTYPE);
 }
 
 static int spi_nor_read(struct mtd_info *mtd, loff_t from, size_t len,
@@ -732,7 +733,7 @@ int spi_nor_scan(struct spi_nor *nor)
 
 	info = spi_nor_read_id(nor);
 	if (IS_ERR_OR_NULL(info))
-		return -ENOENT;
+		return PTR_ERR(info);
 	/* Parse the Serial Flash Discoverable Parameters table. */
 	ret = spi_nor_init_params(nor, info, &params);
 	if (ret)
@@ -796,10 +797,4 @@ int spi_nor_scan(struct spi_nor *nor)
 		return ret;
 
 	return 0;
-}
-
-/* U-Boot specific functions, need to extend MTD to support these */
-int spi_flash_cmd_get_sw_write_prot(struct spi_nor *nor)
-{
-	return -ENOTSUPP;
 }

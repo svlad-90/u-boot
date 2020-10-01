@@ -9,8 +9,10 @@
 #include <common.h>
 #include <errno.h>
 #include <fdtdec.h>
+#include <log.h>
 #include <malloc.h>
 #include <linux/libfdt.h>
+#include <dm/acpi.h>
 #include <dm/device.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
@@ -25,7 +27,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static const struct driver_info root_info = {
+static struct driver_info root_info = {
 	.name		= "root_driver",
 };
 
@@ -203,15 +205,6 @@ static int dm_scan_fdt_live(struct udevice *parent,
 	int ret = 0, err;
 
 	for (np = node_parent->child; np; np = np->sibling) {
-		/* "chosen" node isn't a device itself but may contain some: */
-		if (!strcmp(np->name, "chosen")) {
-			pr_debug("parsing subnodes of \"chosen\"\n");
-
-			err = dm_scan_fdt_live(parent, np, pre_reloc_only);
-			if (err && !ret)
-				ret = err;
-			continue;
-		}
 
 		if (!of_device_is_available(np)) {
 			pr_debug("   - ignoring disabled device\n");
@@ -255,21 +248,6 @@ static int dm_scan_fdt_node(struct udevice *parent, const void *blob,
 	     offset > 0;
 	     offset = fdt_next_subnode(blob, offset)) {
 		const char *node_name = fdt_get_name(blob, offset, NULL);
-
-		/*
-		 * The "chosen" and "firmware" nodes aren't devices
-		 * themselves but may contain some:
-		 */
-		if (!strcmp(node_name, "chosen") ||
-		    !strcmp(node_name, "firmware")) {
-			pr_debug("parsing subnodes of \"%s\"\n", node_name);
-
-			err = dm_scan_fdt_node(parent, blob, offset,
-					       pre_reloc_only);
-			if (err && !ret)
-				ret = err;
-			continue;
-		}
 
 		if (!fdtdec_get_is_enabled(blob, offset)) {
 			pr_debug("   - ignoring disabled device\n");
@@ -315,7 +293,8 @@ int dm_scan_fdt(const void *blob, bool pre_reloc_only)
 	return dm_scan_fdt_node(gd->dm_root, blob, 0, pre_reloc_only);
 }
 
-static int dm_scan_fdt_ofnode_path(const char *path, bool pre_reloc_only)
+static int dm_scan_fdt_ofnode_path(const void *blob, const char *path,
+				   bool pre_reloc_only)
 {
 	ofnode node;
 
@@ -327,13 +306,18 @@ static int dm_scan_fdt_ofnode_path(const char *path, bool pre_reloc_only)
 	if (of_live_active())
 		return dm_scan_fdt_live(gd->dm_root, node.np, pre_reloc_only);
 #endif
-	return dm_scan_fdt_node(gd->dm_root, gd->fdt_blob, node.of_offset,
+	return dm_scan_fdt_node(gd->dm_root, blob, node.of_offset,
 				pre_reloc_only);
 }
 
 int dm_extended_scan_fdt(const void *blob, bool pre_reloc_only)
 {
-	int ret;
+	int ret, i;
+	const char * const nodes[] = {
+		"/chosen",
+		"/clocks",
+		"/firmware"
+	};
 
 	ret = dm_scan_fdt(blob, pre_reloc_only);
 	if (ret) {
@@ -341,15 +325,15 @@ int dm_extended_scan_fdt(const void *blob, bool pre_reloc_only)
 		return ret;
 	}
 
-	ret = dm_scan_fdt_ofnode_path("/clocks", pre_reloc_only);
-	if (ret) {
-		debug("scan for /clocks failed: %d\n", ret);
-		return ret;
+	/* Some nodes aren't devices themselves but may contain some */
+	for (i = 0; i < ARRAY_SIZE(nodes); i++) {
+		ret = dm_scan_fdt_ofnode_path(blob, nodes[i], pre_reloc_only);
+		if (ret) {
+			debug("dm_scan_fdt() scan for %s failed: %d\n",
+			      nodes[i], ret);
+			return ret;
+		}
 	}
-
-	ret = dm_scan_fdt_ofnode_path("/firmware", pre_reloc_only);
-	if (ret)
-		debug("scan for /firmware failed: %d\n", ret);
 
 	return ret;
 }
@@ -363,6 +347,10 @@ __weak int dm_scan_other(bool pre_reloc_only)
 int dm_init_and_scan(bool pre_reloc_only)
 {
 	int ret;
+
+#if CONFIG_IS_ENABLED(OF_PLATDATA)
+	dm_populate_phandle_data();
+#endif
 
 	ret = dm_init(IS_ENABLED(CONFIG_OF_LIVE));
 	if (ret) {
@@ -390,10 +378,22 @@ int dm_init_and_scan(bool pre_reloc_only)
 	return 0;
 }
 
+#ifdef CONFIG_ACPIGEN
+static int root_acpi_get_name(const struct udevice *dev, char *out_name)
+{
+	return acpi_copy_name(out_name, "\\_SB");
+}
+
+struct acpi_ops root_acpi_ops = {
+	.get_name	= root_acpi_get_name,
+};
+#endif
+
 /* This is the root driver - all drivers are children of this */
 U_BOOT_DRIVER(root_driver) = {
 	.name	= "root_driver",
 	.id	= UCLASS_ROOT,
+	ACPI_OPS_PTR(&root_acpi_ops)
 };
 
 /* This is the root uclass */

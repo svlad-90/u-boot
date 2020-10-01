@@ -8,29 +8,38 @@
 #include <dm.h>
 #include <cpu.h>
 
-int cpu_sandbox_get_desc(struct udevice *dev, char *buf, int size)
+int cpu_sandbox_get_desc(const struct udevice *dev, char *buf, int size)
 {
 	snprintf(buf, size, "LEG Inc. SuperMegaUltraTurbo CPU No. 1");
 
 	return 0;
 }
 
-int cpu_sandbox_get_info(struct udevice *dev, struct cpu_info *info)
+int cpu_sandbox_get_info(const struct udevice *dev, struct cpu_info *info)
 {
 	info->cpu_freq = 42 * 42 * 42 * 42 * 42;
 	info->features = 0x42424242;
+	info->address_width = IS_ENABLED(CONFIG_PHYS_64BIT) ? 64 : 32;
 
 	return 0;
 }
 
-int cpu_sandbox_get_count(struct udevice *dev)
+int cpu_sandbox_get_count(const struct udevice *dev)
 {
 	return 42;
 }
 
-int cpu_sandbox_get_vendor(struct udevice *dev, char *buf, int size)
+int cpu_sandbox_get_vendor(const struct udevice *dev, char *buf, int size)
 {
 	snprintf(buf, size, "Languid Example Garbage Inc.");
+
+	return 0;
+}
+
+int cpu_sandbox_is_current(struct udevice *dev)
+{
+	if (!strcmp(dev->name, "cpu-test1"))
+		return 1;
 
 	return 0;
 }
@@ -40,6 +49,7 @@ static const struct cpu_ops cpu_sandbox_ops = {
 	.get_info = cpu_sandbox_get_info,
 	.get_count = cpu_sandbox_get_count,
 	.get_vendor = cpu_sandbox_get_vendor,
+	.is_current = cpu_sandbox_is_current,
 };
 
 int cpu_sandbox_probe(struct udevice *dev)

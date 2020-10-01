@@ -7,6 +7,7 @@
 #include <common.h>
 #include <clk-uclass.h>
 #include <dm.h>
+#include <log.h>
 #include <dm/lists.h>
 #include <dm/util.h>
 #include "pmc.h"
@@ -24,11 +25,13 @@ static const struct udevice_id at91_pmc_match[] = {
 	{}
 };
 
-U_BOOT_DRIVER(at91_pmc) = {
-	.name = "at91-pmc",
+U_BOOT_DRIVER(atmel_at91rm9200_pmc) = {
+	.name = "atmel_at91rm9200_pmc",
 	.id = UCLASS_SIMPLE_BUS,
 	.of_match = at91_pmc_match,
 };
+
+U_BOOT_DRIVER_ALIAS(atmel_at91rm9200_pmc, atmel_at91sam9260_pmc)
 
 /*---------------------------------------------------------*/
 
@@ -38,7 +41,7 @@ int at91_pmc_core_probe(struct udevice *dev)
 
 	dev = dev_get_parent(dev);
 
-	plat->reg_base = (struct at91_pmc *)devfdt_get_addr_ptr(dev);
+	plat->reg_base = dev_read_addr_ptr(dev);
 
 	return 0;
 }
@@ -61,7 +64,7 @@ int at91_clk_sub_device_bind(struct udevice *dev, const char *drv_name)
 	     offset > 0;
 	     offset = fdt_next_subnode(fdt, offset)) {
 		if (pre_reloc_only &&
-		    !dm_ofnode_pre_reloc(offset_to_ofnode(offset)))
+		    !ofnode_pre_reloc(offset_to_ofnode(offset)))
 			continue;
 		/*
 		 * If this node has "compatible" property, this is not
@@ -113,7 +116,7 @@ int at91_clk_probe(struct udevice *dev)
 	dev_periph_container = dev_get_parent(dev);
 	dev_pmc = dev_get_parent(dev_periph_container);
 
-	plat->reg_base = (struct at91_pmc *)devfdt_get_addr_ptr(dev_pmc);
+	plat->reg_base = dev_read_addr_ptr(dev_pmc);
 
 	return 0;
 }

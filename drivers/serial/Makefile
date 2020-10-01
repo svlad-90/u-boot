@@ -39,7 +39,7 @@ obj-$(CONFIG_COREBOOT_SERIAL) += serial_coreboot.o
 obj-$(CONFIG_CORTINA_UART) += serial_cortina.o
 obj-$(CONFIG_EFI_APP) += serial_efi.o
 obj-$(CONFIG_LPC32XX_HSUART) += lpc32xx_hsuart.o
-obj-$(CONFIG_MCFUART) += mcfuart.o
+obj-$(CONFIG_MCFUART) += serial_mcf.o
 obj-$(CONFIG_SYS_NS16550) += ns16550.o
 obj-$(CONFIG_S5P) += serial_s5p.o
 obj-$(CONFIG_MXC_UART) += serial_mxc.o
@@ -70,6 +70,7 @@ obj-$(CONFIG_OWL_SERIAL) += serial_owl.o
 obj-$(CONFIG_OMAP_SERIAL) += serial_omap.o
 obj-$(CONFIG_MTK_SERIAL) += serial_mtk.o
 obj-$(CONFIG_SIFIVE_SERIAL) += serial_sifive.o
+obj-$(CONFIG_XEN_SERIAL) += serial_xen.o
 
 ifndef CONFIG_SPL_BUILD
 obj-$(CONFIG_USB_TTY) += usbtty.o
