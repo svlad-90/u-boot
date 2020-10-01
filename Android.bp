@@ -52,6 +52,7 @@ cc_binary_host {
 
     srcs: [
         "common/bootm.c",
+        "common/fdt_region.c",
         "common/hash.c",
         "common/image.c",
         "common/image-fit.c",
@@ -59,7 +60,6 @@ cc_binary_host {
         "lib/crc32.c",
         "lib/fdtdec.c",
         "lib/fdtdec_common.c",
-        "lib/libfdt/fdt_region.c",
         "lib/libfdt/fdt_ro.c",
         "lib/md5.c",
         "lib/rc4.c",

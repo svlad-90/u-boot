@@ -35,7 +35,7 @@ struct fast_spi_regs {
 	u32 ptinx;
 	u32 ptdata;
 };
-check_member(fast_spi_regs, ptdata, 0xd0);
+// check_member(fast_spi_regs, ptdata, 0xd0);
 
 /* Bit definitions for BFPREG (0x00) register */
 #define SPIBAR_BFPREG_PRB_MASK		0x7fff

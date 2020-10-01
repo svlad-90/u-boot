@@ -8,9 +8,6 @@ DEFCONFIG=cf-x86_defconfig
 
 MAKE_GOALS="
 SWIG_LIB=${PWD}/external/swig/Lib
-u-boot.dtb
-u-boot.rom
-System.map
 "
 
 FILES="u-boot.rom
