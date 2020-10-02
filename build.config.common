@@ -3,7 +3,7 @@ SKIP_CP_KERNEL_HDR=1
 KERNEL_DIR=u-boot
 
 CLANG_PREBUILT_BIN=prebuilts-master/clang/host/linux-x86/clang-r383902/bin
-CC="clang -no-integrated-as"
+CC=clang
 HOSTCC=clang
 NM=llvm-nm
 

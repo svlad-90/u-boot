@@ -1,10 +1,10 @@
 . ${ROOT_DIR}/u-boot/build.config.common
 
 ARCH=arm
-LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin
-CC="${CC} --target=arm-linux-gnueabi --prefix=${PWD}/${LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN} --gcc-toolchain=${PWD}/${LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN}/.."
+CLANG_TRIPLE=arm-linux-gnueabi-
 CROSS_COMPILE=arm-linux-androidkernel-
 DEFCONFIG=am57xx_evm_defconfig
+LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin
 
 FILES="
 MLO
