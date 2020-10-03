@@ -1,14 +1,9 @@
 . ${ROOT_DIR}/u-boot/build.config.common
 
-ARCH=x86_64
-CLANG_TRIPLE=x86_64-linux-gnu-
-CROSS_COMPILE=x86_64-linux-androidkernel-
-DEFCONFIG=cf-x86_defconfig
-LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9/bin
+ARCH=arm
+DEFCONFIG=am57xx_evm_defconfig
 
-MAKE_GOALS="
-SWIG_LIB=${PWD}/external/swig/Lib
-"
+MAKE_GOALS="tools-only"
 
 FILES="tools/mkimage
 tools/mkenvimage
