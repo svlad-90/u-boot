@@ -42,7 +42,7 @@ static int ab_control_default(struct bootloader_control *abc)
 	int i;
 	const struct slot_metadata metadata = {
 		.priority = 15,
-		.tries_remaining = 7,
+		.tries_remaining = 3,
 		.successful_boot = 0,
 		.verity_corrupted = 0,
 		.reserved = 0
