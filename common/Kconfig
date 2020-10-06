@@ -949,6 +949,15 @@ config ANDROID_BOOTLOADER
 	  recovery mode or bootloader mode) and, if enabled, the slot to boot
 	  from in devices with multiple boot slots (A/B devices).
 
+config ANDROID_USES_RECOVERY_AS_BOOT
+	bool "Support for Android Recovery Flow on Android 10+ devices"
+	default n
+	depends on ANDROID_BOOTLOADER
+	help
+	  If enabled, adds support to boot an Android device into the recovery
+	  ramdisk located in the boot image. This flow requires an Android
+	  Bootloader
+
 menu "Start-up hooks"
 
 config ARCH_EARLY_INIT_R

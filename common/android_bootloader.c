@@ -319,9 +319,11 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 #endif
 		break;
 	case ANDROID_BOOT_MODE_RECOVERY:
-#ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
+#if defined(CONFIG_ANDROID_SYSTEM_AS_ROOT) || defined(CONFIG_ANDROID_USES_RECOVERY_AS_BOOT)
 		/* In recovery mode we still boot the kernel from "boot" but
 		 * don't skip the initramfs so it boots to recovery.
+		 * If on Android device using Recovery As Boot, there is no
+		 * recovery  partition.
 		 */
 #else
 		boot_partition = ANDROID_PARTITION_RECOVERY;
