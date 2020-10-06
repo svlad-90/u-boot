@@ -24,6 +24,8 @@
 #define ANDROID_ARG_SLOT_SUFFIX "androidboot.slot_suffix="
 #define ANDROID_ARG_ROOT "root="
 
+#define ANDROID_NORMAL_BOOT "androidboot.force_normal_boot=1"
+
 static int android_bootloader_message_load(
 	struct blk_desc *dev_desc,
 	const struct disk_partition *part_info,
@@ -219,7 +221,8 @@ static char *strjoin(const char **chunks, char separator)
  * @return a newly allocated string
  */
 static char *android_assemble_cmdline(const char *slot_suffix,
-				      const char *extra_args)
+				      const char *extra_args,
+				      const bool normal_boot)
 {
 	const char *cmdline_chunks[16];
 	const char **current_chunk = cmdline_chunks;
@@ -259,8 +262,18 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 		*(current_chunk++) = allocated_rootdev;
 	}
 
-	if (extra_args)
+	if (extra_args) {
 		*(current_chunk++) = extra_args;
+	}
+
+	/* The force_normal_boot param must be passed to android's init sequence
+	 * to avoid booting into recovery mode.
+	 * Refer to link below under "Early Init Boot Sequence"
+	 * https://source.android.com/devices/architecture/kernel/mounting-partitions-early
+	 */
+	if (normal_boot) {
+		*(current_chunk++) = ANDROID_NORMAL_BOOT;
+	}
 
 	*(current_chunk++) = NULL;
 	cmdline = strjoin(cmdline_chunks, ' ');
@@ -293,6 +306,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	 */
 	mode = android_bootloader_load_and_clear_mode(dev_desc, misc_part_info);
 	printf("ANDROID: reboot reason: \"%s\"\n", android_boot_mode_str(mode));
+	bool normal_boot = (mode == ANDROID_BOOT_MODE_NORMAL);
 
 	switch (mode) {
 	case ANDROID_BOOT_MODE_NORMAL:
@@ -332,7 +346,6 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		slot_suffix[2] = '\0';
 	} else {
 #ifdef CONFIG_ANDROID_AB
-		bool normal_boot = (mode == ANDROID_BOOT_MODE_NORMAL);
 		int slot_num = ab_select_slot(dev_desc, misc_part_info, normal_boot);
 		if (slot_num < 0) {
 			log_err("Could not determine Android boot slot.\n");
@@ -394,7 +407,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	env_set("android_slotsufix", slot_suffix);
 
 	/* Assemble the command line */
-	command_line = android_assemble_cmdline(slot_suffix, mode_cmdline);
+	command_line = android_assemble_cmdline(slot_suffix, mode_cmdline, normal_boot);
 	env_set("bootargs", command_line);
 
 	debug("ANDROID: bootargs: \"%s\"\n", command_line);
