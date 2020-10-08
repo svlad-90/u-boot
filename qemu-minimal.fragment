@@ -1,0 +1,115 @@
+# Disable many drivers that we don't need for "minimal" QEMU support
+# CONFIG_AHCI is not set
+# CONFIG_AHCI_PCI is not set
+# CONFIG_BOOTARGS is not set
+# CONFIG_BOOTM_NETBSD is not set
+# CONFIG_BOOTM_PLAN9 is not set
+# CONFIG_BOOTM_RTEMS is not set
+# CONFIG_BOOTM_VXWORKS is not set
+# CONFIG_BOOTSTAGE is not set
+# CONFIG_BOOTSTAGE_REPORT is not set
+# CONFIG_CFI_FLASH is not set
+# CONFIG_CMD_BDI is not set
+# CONFIG_CMD_BLOCK_CACHE is not set
+# CONFIG_CMD_BOOTEFI_SELFTEST is not set
+# CONFIG_CMD_CONSOLE is not set
+# CONFIG_CMD_CPU is not set
+# CONFIG_CMD_DFU is not set
+# CONFIG_CMD_DM is not set
+# CONFIG_CMD_ELF is not set
+# CONFIG_CMD_EXT4_WRITE is not set
+# CONFIG_CMD_FDT is not set
+# CONFIG_CMD_GETTIME is not set
+# CONFIG_CMD_GO is not set
+# CONFIG_CMD_IDE is not set
+# CONFIG_CMD_IMI is not set
+# CONFIG_CMD_IO is not set
+# CONFIG_CMD_IRQ is not set
+# CONFIG_CMD_LOADB is not set
+# CONFIG_CMD_LOADS is not set
+# CONFIG_CMD_LZMADEC is not set
+# CONFIG_CMD_MEMORY is not set
+# CONFIG_CMD_MTD is not set
+# CONFIG_CMD_MTDPARTS is not set
+# CONFIG_CMD_NFS is not set
+# CONFIG_CMD_NVEDIT_EFI is not set
+# CONFIG_CMD_PCI is not set
+# CONFIG_CMD_QFW is not set
+# CONFIG_CMD_SPI is not set
+# CONFIG_CMD_TIME is not set
+# CONFIG_CMD_UNLZ4 is not set
+# CONFIG_CMD_UNZIP is not set
+# CONFIG_CMD_USB is not set
+# CONFIG_CMD_XIMG is not set
+# CONFIG_CONSOLE_SCROLL_LINES is not set
+# CONFIG_DFU_TFTP is not set
+# CONFIG_DFU_RAM is not set
+# CONFIG_DFU_MTD is not set
+# CONFIG_DISTRO_DEFAULTS is not set
+# CONFIG_DM_GPIO is not set
+# CONFIG_DM_KEYBOARD is not set
+# CONFIG_DM_MMC is not set
+# CONFIG_DM_MTD is not set
+# CONFIG_DM_SCSI is not set
+# CONFIG_DM_USB is not set
+# CONFIG_DM_VIDEO is not set
+# CONFIG_E1000 is not set
+# CONFIG_EFI_LOADER is not set
+# CONFIG_ENV_ADDR it not set
+# CONFIG_ENV_IS_IN_FLASH is not set
+# CONFIG_ENV_OVERWRITE is not set
+# CONFIG_ENV_SECT_SIZE is not set
+# CONFIG_FIT is not set
+# CONFIG_FIT_SIGNATURE is not set
+# CONFIG_FIT_VERBOSE is not set
+# CONFIG_FIT_BEST_MATCH is not set
+# CONFIG_FLASH_CFI_DRIVER is not set
+# CONFIG_FLASH_CFI_MTD is not set
+# CONFIG_FRAMEBUFFER_SET_VESA_MODE is not set
+# CONFIG_FRAMEBUFFER_VESA_MODE is not set
+# CONFIG_FRAMEBUFFER_VESA_MODE_USER is not set
+# CONFIG_INPUT is not set
+# CONFIG_LEGACY_IMAGE_FORMAT is not set
+# CONFIG_MAC_PARTITION is not set
+# CONFIG_MTD is not set
+# CONFIG_MTD_NOR_FLASH is not set
+# CONFIG_MMC is not set
+# CONFIG_NETDEVICES is not set
+# CONFIG_NVME is not set
+# CONFIG_PCI_INIT_R is not set
+# CONFIG_RANDOM_UUID is not set
+# CONFIG_SCSI_AHCI is not set
+# CONFIG_SCSI is not set
+# CONFIG_SHOW_BOOT_PROGRESS is not set
+# CONFIG_SPI is not set
+# CONFIG_SYS_FLASH_CFI is not set
+# CONFIG_SYS_FLASH_USE_BUFFER_WRITE is not set
+# CONFIG_SYS_MALLOC_F_LEN is not set
+# CONFIG_SYS_RELOC_GD_ENV_ADDR is not set
+# CONFIG_SYS_WHITE_ON_BLACK is not set
+# CONFIG_USB is not set
+# CONFIG_USB_EHCI_HCD is not set
+# CONFIG_USB_EHCI_PCI is not set
+# CONFIG_USB_KEYBOARD is not set
+# CONFIG_USE_BOOTARGS is not set
+# CONFIG_USE_PREBOOT is not set
+# CONFIG_VIDEO_VESA is not set
+
+# Switch on DEVRES to enable some additional drivers downstream. Implied by
+# various options above that were switched off.
+CONFIG_DEVRES=y
+
+# Switch on DM_RNG to enable virtio-rng downstream.
+CONFIG_DM_RNG=y
+
+# Bring back proper shell support (implied by CONFIG_DISTRO_DEFAULTS which
+# was disabled above).
+CONFIG_HUSH_PARSER=y
+
+# Align some of the console/display messages between x86 and arm64
+# CONFIG_DISPLAY_CPUINFO is not set
+CONFIG_DISPLAY_BOARDINFO_LATE=y
+CONFIG_SYS_CONSOLE_INFO_QUIET=y
+
+# Disable STATIC_RELA as it is broken with clang/llvm on arm64
+# CONFIG_STATIC_RELA is not set

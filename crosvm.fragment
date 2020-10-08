@@ -1,0 +1,9 @@
+# crosvm's virtio-net implementation gets "stuck" when initialization is
+# attempted by u-boot -- probably a combination of bugs in crosvm and u-boot.
+# Disable this feature to restore networking.
+# CONFIG_VIRTIO_NET is not set
+
+# crosvm's PCI implementation does not support updating config space in
+# various ways. This tells U-Boot to inherit -- but not touch -- the existing
+# PCI config space.
+CONFIG_PCI_ENUM_ONLY=y

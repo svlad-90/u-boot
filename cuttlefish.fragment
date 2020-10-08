@@ -1,0 +1,30 @@
+# Cuttlefish defines the maximum size of the environment partition
+CONFIG_ENV_SIZE=0x1000
+
+# Enable Android-specific features and commands needed to boot
+CONFIG_ANDROID_AB=y
+CONFIG_ANDROID_BOOT_IMAGE=y
+CONFIG_ANDROID_BOOTLOADER=y
+CONFIG_ANDROID_USES_RECOVERY_AS_BOOT=y
+CONFIG_CMD_AB_SELECT=y
+CONFIG_CMD_BOOT_ANDROID=y
+CONFIG_CMD_GPT=y
+CONFIG_CMD_PART=y
+CONFIG_CMD_READ=y
+CONFIG_CMD_SETEXPR=y
+CONFIG_ENV_IS_IN_RAW_DISK=y
+CONFIG_ENV_RAW_DISK_DEVICE_AND_PART="0:1"
+CONFIG_ENV_RAW_DISK_INTERFACE="virtio"
+CONFIG_PARTITION_TYPE_GUID=y
+
+# Experimental commands for network boot
+CONFIG_CMD_DHCP=y
+CONFIG_CMD_PING=y
+
+# x86 specific option to enable support for bzImages
+CONFIG_CMD_BOOTZ=y
+
+# arm64 specific options to enable support for compressed Images
+# CONFIG_LZMA is not set
+CONFIG_GZIP=y
+CONFIG_LZ4=y
