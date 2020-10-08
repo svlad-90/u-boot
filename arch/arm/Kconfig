@@ -75,7 +75,7 @@ config GIC_V3_ITS
 	  configuration table can not be re-programmed, unless GICV3 reset.
 
 config STATIC_RELA
-	bool
+	bool "Static RELA"
 	default y if ARM64 && !POSITION_INDEPENDENT
 
 config DMA_ADDR_T_64BIT
