@@ -24,6 +24,7 @@
 
 /* Environment options */
 
+#ifdef CONFIG_DISTRO_DEFAULTS
 #define BOOT_TARGET_DEVICES(func) \
 	func(USB, usb, 0) \
 	func(SCSI, scsi, 0) \
@@ -31,6 +32,9 @@
 	func(DHCP, dhcp, na)
 
 #include <config_distro_bootcmd.h>
+#else
+#define BOOTENV
+#endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_high=0xffffffff\0" \
