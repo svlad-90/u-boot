@@ -76,7 +76,6 @@
 # CONFIG_MMC is not set
 # CONFIG_NETDEVICES is not set
 # CONFIG_NVME is not set
-# CONFIG_PCI_INIT_R is not set
 # CONFIG_RANDOM_UUID is not set
 # CONFIG_SCSI_AHCI is not set
 # CONFIG_SCSI is not set
