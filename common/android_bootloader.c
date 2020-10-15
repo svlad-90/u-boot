@@ -166,20 +166,56 @@ static int android_bootloader_boot_bootloader(void)
 	return -1;
 }
 
+static char hex_to_char(uint8_t nibble) {
+	if (nibble < 10) {
+		return '0' + nibble;
+	} else {
+		return 'a' + nibble - 10;
+	}
+}
+// Helper function to convert 32bit int to a hex string
+static void hex_to_str(char* str, ulong input) {
+	str[0] = '0'; str[1] = 'x';
+	size_t str_idx = 2;
+	uint32_t byte_extracted;
+	uint8_t nibble;
+	// Assume that this is on a little endian system.
+	for(int byte_idx = 3; byte_idx >= 0; byte_idx--) {
+		byte_extracted = ((0xFF << (byte_idx*8)) & input) >> (byte_idx*8);
+		nibble = byte_extracted & 0xF0;
+		nibble = nibble >> 4;
+		nibble = nibble & 0xF;
+		str[str_idx] = hex_to_char(nibble);
+		str_idx++;
+		nibble = byte_extracted & 0xF;
+		str[str_idx] = hex_to_char(nibble);
+		str_idx++;
+	}
+	str[str_idx] = 0;
+}
 __weak int android_bootloader_boot_kernel(const struct andr_boot_info* boot_info)
 {
-	char kernel_addr_str[12];
-	char *fdt_addr = env_get("fdtaddr");
-	char *bootm_args[] = {
-		"bootm", kernel_addr_str, kernel_addr_str, fdt_addr, NULL };
+	ulong kernel_addr, kernel_size, ramdisk_addr, ramdisk_size;
+	char *ramdisk_size_str, *fdt_addr = env_get("fdtaddr");
+	char kernel_addr_str[12], ramdisk_addr_size_str[22];
+	char *booti_args[] = {
+		"booti", kernel_addr_str, ramdisk_addr_size_str, fdt_addr, NULL };
 
-	/* FIXME: Broken
-	sprintf(kernel_addr_str, "0x%lx", andr_img_get_kernel_kload(boot_info));
-	*/
+	if (android_image_get_kernel(boot_info, images.verify, NULL, &kernel_size))
+		return -1;
+	if (android_image_get_ramdisk(boot_info, &ramdisk_addr, &ramdisk_size))
+		return -1;
 
-	printf("Booting kernel at %s with fdt at %s...\n\n\n",
-	       kernel_addr_str, fdt_addr);
-	do_bootm(NULL, 0, 4, bootm_args);
+	kernel_addr = android_image_get_kload(boot_info);
+	hex_to_str(kernel_addr_str, kernel_addr);
+	hex_to_str(ramdisk_addr_size_str, ramdisk_addr);
+	ramdisk_size_str = &ramdisk_addr_size_str[strlen(ramdisk_addr_size_str)];
+	*ramdisk_size_str = ':';
+	hex_to_str(ramdisk_size_str + 1, ramdisk_size);
+
+	printf("Booting kernel at %s with fdt at %s ramdisk %s...\n\n\n",
+	       kernel_addr_str, fdt_addr, ramdisk_addr_size_str);
+	do_booti(NULL, 0, 4, booti_args);
 
 	return -1;
 }

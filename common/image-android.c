@@ -37,6 +37,7 @@
 int android_image_get_kernel(const struct andr_boot_info *boot_info, int verify,
 			     ulong *os_data, ulong *os_len)
 {
+	*os_len = boot_info->kernel_size;
 	return 0;
 }
 
