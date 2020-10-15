@@ -1155,15 +1155,6 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 	*rd_start = 0;
 	*rd_end = 0;
 
-#ifdef CONFIG_ANDROID_BOOT_IMAGE
-	/*
-	 * Look for an Android boot image.
-	 */
-	buf = map_sysmem(images->os.start, 0);
-	if (buf && genimg_get_format(buf) == IMAGE_FORMAT_ANDROID)
-		select = (argc == 0) ? env_get("loadaddr") : argv[0];
-#endif
-
 	if (argc >= 2)
 		select = argv[1];
 
@@ -1261,12 +1252,6 @@ int boot_get_ramdisk(int argc, char *const argv[], bootm_headers_t *images,
 			images->fit_hdr_rd = map_sysmem(rd_addr, 0);
 			images->fit_uname_rd = fit_uname_ramdisk;
 			images->fit_noffset_rd = rd_noffset;
-			break;
-#endif
-#ifdef CONFIG_ANDROID_BOOT_IMAGE
-		case IMAGE_FORMAT_ANDROID:
-			android_image_get_ramdisk((void *)images->os.start,
-				&rd_data, &rd_len);
 			break;
 #endif
 		default:

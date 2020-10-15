@@ -28,3 +28,6 @@ CONFIG_CMD_BOOTZ=y
 # CONFIG_LZMA is not set
 CONFIG_GZIP=y
 CONFIG_LZ4=y
+
+# Support RAW (not "ANDROID") images with bootm/booti for arm64
+CONFIG_SUPPORT_RAW_INITRD=y
