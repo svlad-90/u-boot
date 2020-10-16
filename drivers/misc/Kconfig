@@ -357,7 +357,7 @@ config WINBOND_W83627
 	  on X86 platforms.
 
 config QFW
-	bool
+	bool "Enable support for Qemu FirmWare interface"
 	help
 	  Hidden option to enable QEMU fw_cfg interface. This will be selected by
 	  either CONFIG_CMD_QFW or CONFIG_GENERATE_ACPI_TABLE.

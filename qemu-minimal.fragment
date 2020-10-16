@@ -95,6 +95,9 @@
 # CONFIG_USE_PREBOOT is not set
 # CONFIG_VIDEO_VESA is not set
 
+# Bring back CONFIG_QFW; disabling it mysteriously breaks x86_64 boot
+CONFIG_QFW=y
+
 # Switch on DEVRES to enable some additional drivers downstream. Implied by
 # various options above that were switched off.
 CONFIG_DEVRES=y
