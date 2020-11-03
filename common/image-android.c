@@ -167,7 +167,7 @@ static void _populate_boot_info(const struct boot_img_hdr_v3* boot_hdr,
 
 	boot_info->kernel_addr = (ulong)load_addr;
 	boot_info->vendor_ramdisk_addr = boot_info->kernel_addr
-		+ ALIGN(boot_info->kernel_size, vboot_hdr->page_size);
+		+ ALIGN(boot_info->kernel_size, SZ_2M);
 	boot_info->boot_ramdisk_addr = boot_info->vendor_ramdisk_addr
 		+ boot_info->vendor_ramdisk_size;
 }
