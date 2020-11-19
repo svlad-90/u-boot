@@ -45,9 +45,9 @@ static int pci_generic_ecam_conf_address(const struct udevice *bus,
 	void *addr;
 
 	addr = pcie->cfg_base;
-	addr += (PCI_BUS(bdf) - pcie->first_busno) << 20;
-	addr += PCI_DEV(bdf) << 15;
-	addr += PCI_FUNC(bdf) << 12;
+	addr += (PCI_BUS(bdf) - pcie->first_busno) << 16;
+	addr += PCI_DEV(bdf) << 11;
+	addr += PCI_FUNC(bdf) << 8;
 	addr += offset;
 	*paddress = addr;
 
@@ -157,7 +157,7 @@ static const struct dm_pci_ops pci_generic_ecam_ops = {
 };
 
 static const struct udevice_id pci_generic_ecam_ids[] = {
-	{ .compatible = "pci-host-ecam-generic" },
+	{ .compatible = "pci-host-cam-generic" },
 	{ }
 };
 
