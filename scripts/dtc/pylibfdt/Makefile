@@ -18,7 +18,7 @@ quiet_cmd_pymod = PYMOD   $@
 		CC="$(HOSTCC)" LDSHARED="$(HOSTCC) -shared " \
 		LDFLAGS="$(HOSTLDFLAGS)" \
 		VERSION="u-boot-$(UBOOTVERSION)" \
-		CPPFLAGS="$(HOSTCFLAGS) -I$(LIBFDT_srcdir)" OBJDIR=$(obj) \
+		CPPFLAGS="$(HOSTCFLAGS) -I$(LIBFDT_srcdir) -Wno-self-assign -Wno-sign-compare" OBJDIR=$(obj) \
 		SOURCES="$(PYLIBFDT_srcs)" \
 		SWIG_OPTS="-I$(LIBFDT_srcdir) -I$(LIBFDT_srcdir)/.." \
 		$(PYTHON3) $< --quiet build_ext --inplace
