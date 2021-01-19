@@ -1562,7 +1562,7 @@ int fdtdec_setup(void)
 # ifndef CONFIG_SPL_BUILD
 	/* Allow the early environment to override the fdt address */
 	gd->fdt_blob = map_sysmem
-		(0x13fdf0000, 0);
+		(0x13D0F0000, 0);
 # endif
 
 # if CONFIG_IS_ENABLED(MULTI_DTB_FIT)
