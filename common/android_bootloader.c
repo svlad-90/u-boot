@@ -199,7 +199,7 @@ __weak int android_bootloader_boot_kernel(const struct andr_boot_info* boot_info
 	char *ramdisk_size_str, *fdt_addr = env_get("fdtaddr");
 	char kernel_addr_str[12], ramdisk_addr_size_str[22];
 	char *boot_args[] = {
-		NULL, kernel_addr_str, ramdisk_addr_size_str, "0x13c2a5ba0", NULL };
+		NULL, kernel_addr_str, ramdisk_addr_size_str, fdt_addr, NULL };
 
 	if (android_image_get_kernel(boot_info, images.verify, NULL, &kernel_size))
 		return -1;
