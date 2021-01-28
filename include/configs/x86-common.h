@@ -99,6 +99,12 @@
 #define DISTRO_BOOTENV
 #endif
 
+#if defined(CONFIG_DEFAULT_FDT_FILE)
+#define FDTFILE "fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0"
+#else
+#define FDTFILE
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS			\
 	DISTRO_BOOTENV					\
 	CONFIG_STD_DEVICES_SETTINGS			\
@@ -106,9 +112,11 @@
 	"netdev=eth0\0"					\
 	"consoledev=ttyS0\0"				\
 	CONFIG_OTHBOOTARGS				\
+	FDTFILE						\
 	"scriptaddr=0x7000000\0"			\
 	"kernel_addr_r=0x1000000\0"			\
 	"ramdisk_addr_r=0x4000000\0"			\
+	"fdt_addr_r=0x8000000\0"			\
 	"ramdiskfile=initramfs.gz\0"
 
 
