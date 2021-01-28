@@ -29,11 +29,36 @@
 /* Environment options */
 
 #ifdef CONFIG_DISTRO_DEFAULTS
+
+#ifdef CONFIG_CMD_USB
+#define BOOT_TARGET_DEVICES_USB(func) func(USB, usb, 0)
+#else
+#define BOOT_TARGET_DEVICES_USB(func)
+#endif
+
+#ifdef CONFIG_CMD_SCSI
+#define BOOT_TARGET_DEVICES_SCSI(func) func(SCSI, scsi, 0)
+#else
+#define BOOT_TARGET_DEVICES_SCSI(func)
+#endif
+
+#ifdef CONFIG_CMD_VIRTIO
+#define BOOT_TARGET_DEVICES_VIRTIO(func) func(VIRTIO, virtio, 0)
+#else
+#define BOOT_TARGET_DEVICES_VIRTIO(func)
+#endif
+
+#if defined(CONFIG_CMD_DHCP)
+#define BOOT_TARGET_DEVICES_DHCP(func) func(DHCP, dhcp, na)
+#else
+#define BOOT_TARGET_DEVICES_DHCP(func)
+#endif
+
 #define BOOT_TARGET_DEVICES(func) \
-	func(USB, usb, 0) \
-	func(SCSI, scsi, 0) \
-	func(VIRTIO, virtio, 0) \
-	func(DHCP, dhcp, na)
+	BOOT_TARGET_DEVICES_USB(func) \
+	BOOT_TARGET_DEVICES_SCSI(func) \
+	BOOT_TARGET_DEVICES_VIRTIO(func) \
+	BOOT_TARGET_DEVICES_DHCP(func)
 
 #include <config_distro_bootcmd.h>
 #else
