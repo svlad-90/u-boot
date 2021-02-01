@@ -140,7 +140,7 @@ jobs:
           export USER=azure
           virtualenv -p /usr/bin/python3 /tmp/venv
           . /tmp/venv/bin/activate
-          pip install pyelftools pytest
+          pip install pyelftools pytest pygit2
           export UBOOT_TRAVIS_BUILD_DIR=/tmp/sandbox_spl
           export PYTHONPATH=${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc/pylibfdt
           export PATH=${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc:${PATH}
@@ -182,7 +182,7 @@ jobs:
           OVERRIDE: "-O clang-10"
         sandbox_spl:
           TEST_PY_BD: "sandbox_spl"
-          TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff"
+          TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff or test_spl"
         sandbox_flattree:
           TEST_PY_BD: "sandbox_flattree"
         evb_ast2500:
