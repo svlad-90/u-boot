@@ -69,16 +69,17 @@ int android_image_get_ramdisk(const struct andr_boot_info *boot_info,
 	return 0;
 }
 
-static struct boot_img_hdr_v3* _extract_boot_image_header(
+static struct boot_img_hdr_v4* _extract_boot_image_header(
 		struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img) {
 	long blk_cnt, blks_read;
-	blk_cnt = BLK_CNT(sizeof(struct boot_img_hdr_v3), boot_img->blksz);
+	blk_cnt = BLK_CNT(sizeof(struct boot_img_hdr_v4), boot_img->blksz);
 
-	struct boot_img_hdr_v3 *boot_hdr = (struct boot_img_hdr_v3*)
+	struct boot_img_hdr_v4 *boot_hdr = (struct boot_img_hdr_v4*)
 		(malloc(blk_cnt * boot_img->blksz));
 
 	if(!blk_cnt || !boot_hdr) {
+		free(boot_hdr);
 		return NULL;
 	}
 
@@ -86,17 +87,20 @@ static struct boot_img_hdr_v3* _extract_boot_image_header(
 	if(blks_read != blk_cnt) {
 		debug("boot img header blk cnt is %ld and blks read is %ld\n",
 			blk_cnt, blks_read);
+		free(boot_hdr);
 		return NULL;
 	}
 
 	if(strncmp(ANDR_BOOT_MAGIC, (const char *)boot_hdr->magic,
 		   ANDR_BOOT_MAGIC_SIZE)) {
 		debug("boot header magic is invalid.\n");
+		free(boot_hdr);
 		return NULL;
 	}
 
-	if(boot_hdr->header_version != 3) {
-		debug("boot header is not v3.\n");
+	if(boot_hdr->header_version < 3) {
+		debug("boot header is less than v3.\n");
+                free(boot_hdr);
 		return NULL;
 	}
 
@@ -104,18 +108,19 @@ static struct boot_img_hdr_v3* _extract_boot_image_header(
 	return boot_hdr;
 }
 
-static struct vendor_boot_img_hdr_v3* _extract_vendor_boot_image_header(
+static struct vendor_boot_img_hdr_v4* _extract_vendor_boot_image_header(
 		struct blk_desc *dev_desc,
 		const struct disk_partition *vendor_boot_img) {
 	long blk_cnt, blks_read;
-	blk_cnt = BLK_CNT(sizeof(struct vendor_boot_img_hdr_v3),
+	blk_cnt = BLK_CNT(sizeof(struct vendor_boot_img_hdr_v4),
 			vendor_boot_img->blksz);
 
-	struct vendor_boot_img_hdr_v3 *vboot_hdr =
-		(struct vendor_boot_img_hdr_v3*)
+	struct vendor_boot_img_hdr_v4 *vboot_hdr =
+		(struct vendor_boot_img_hdr_v4*)
 		(malloc(blk_cnt * vendor_boot_img->blksz));
 
 	if(!blk_cnt || !vboot_hdr) {
+		free(vboot_hdr);
 		return NULL;
 	}
 
@@ -123,35 +128,51 @@ static struct vendor_boot_img_hdr_v3* _extract_vendor_boot_image_header(
 	if(blks_read != blk_cnt) {
 		debug("vboot img header blk cnt is %ld and blks read is %ld\n",
 			blk_cnt, blks_read);
+		free(vboot_hdr);
 		return NULL;
 	}
 
 	if(strncmp(VENDOR_BOOT_MAGIC, (const char *)vboot_hdr->magic,
 		   VENDOR_BOOT_MAGIC_SIZE)) {
 		debug("vendor boot header magic is invalid.\n");
+		free(vboot_hdr);
 		return NULL;
 	}
 
-	if(vboot_hdr->header_version != 3) {
-		debug("vendor boot header is not v3.\n");
+	if(vboot_hdr->header_version < 3) {
+		debug("vendor boot header is less than v3.\n");
+		free(vboot_hdr);
 		return NULL;
 	}
 
 	return vboot_hdr;
 }
 
-static void _populate_boot_info(const struct boot_img_hdr_v3* boot_hdr,
-		const struct vendor_boot_img_hdr_v3* vboot_hdr,
+static void _populate_boot_info(const struct boot_img_hdr_v4* boot_hdr,
+		const struct vendor_boot_img_hdr_v4* vboot_hdr,
 		const void* load_addr,
 		struct andr_boot_info *boot_info) {
 	boot_info->kernel_size = boot_hdr->kernel_size;
 	boot_info->boot_ramdisk_size = boot_hdr->ramdisk_size;
+	boot_info->boot_header_version = boot_hdr->header_version;
 	boot_info->vendor_ramdisk_size = vboot_hdr->vendor_ramdisk_size;
 	boot_info->tags_addr = vboot_hdr->tags_addr;
 	boot_info->os_version = boot_hdr->os_version;
 	boot_info->page_size = vboot_hdr->page_size;
 	boot_info->dtb_size = vboot_hdr->dtb_size;
 	boot_info->dtb_addr = vboot_hdr->dtb_addr;
+	boot_info->vendor_header_version = vboot_hdr->header_version;
+	if (vboot_hdr->header_version > 3) {
+		boot_info->vendor_ramdisk_table_size = vboot_hdr->vendor_ramdisk_table_size;
+		boot_info->vendor_ramdisk_table_entry_num = vboot_hdr->vendor_ramdisk_table_entry_num;
+		boot_info->vendor_ramdisk_table_entry_size = vboot_hdr->vendor_ramdisk_table_entry_size;
+		boot_info->vendor_bootconfig_size = vboot_hdr->vendor_bootconfig_size;
+	} else {
+		boot_info->vendor_ramdisk_table_size = 0;
+		boot_info->vendor_ramdisk_table_entry_num = 0;
+		boot_info->vendor_ramdisk_table_entry_size = 0;
+		boot_info->vendor_bootconfig_size = 0;
+	}
 
 	memset(boot_info->name, 0, ANDR_BOOT_NAME_SIZE);
 	strncpy(boot_info->name, (const char *)vboot_hdr->name,
@@ -198,10 +219,10 @@ static bool _read_in_kernel(struct blk_desc *dev_desc,
 static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 		const struct disk_partition *vendor_boot_img,
 		const struct andr_boot_info *boot_info) {
-	u32 vendor_hdr_size_page_aligned = 
-		ALIGN(sizeof(struct vendor_boot_img_hdr_v3),
+	u32 vendor_hdr_size_page_aligned =
+		ALIGN(sizeof(struct vendor_boot_img_hdr_v4),
 			boot_info->page_size);
-	u32 vendor_ramdisk_size_page_aligned = 
+	u32 vendor_ramdisk_size_page_aligned =
 		ALIGN(boot_info->vendor_ramdisk_size, boot_info->page_size);
 	lbaint_t ramdisk_lba = vendor_boot_img->start
 		+ BLK_CNT(vendor_hdr_size_page_aligned, vendor_boot_img->blksz);
@@ -252,8 +273,8 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img,
 			const struct disk_partition *vendor_boot_img,
 			unsigned long load_address) {
-	struct boot_img_hdr_v3 *boot_hdr = NULL;
-	struct vendor_boot_img_hdr_v3 *vboot_hdr = NULL;
+	struct boot_img_hdr_v4 *boot_hdr = NULL;
+	struct vendor_boot_img_hdr_v4 *vboot_hdr = NULL;
 	struct andr_boot_info *boot_info = NULL;
 	void *kernel_rd_addr = NULL;
 
