@@ -12,6 +12,7 @@
 #include <mapmem.h>
 #include <errno.h>
 #include <asm/unaligned.h>
+#include <xbc.h>
 #include <mapmem.h>
 #include <part.h>
 #include <log.h>
@@ -65,7 +66,8 @@ int android_image_get_ramdisk(const struct andr_boot_info *boot_info,
 			      ulong *rd_data, ulong *rd_len)
 {
 	*rd_data = (ulong)(boot_info->vendor_ramdisk_addr);
-	*rd_len = boot_info->vendor_ramdisk_size + boot_info->boot_ramdisk_size;
+	*rd_len = boot_info->vendor_ramdisk_size + boot_info->boot_ramdisk_size
+		+ boot_info->vendor_bootconfig_size;
 	return 0;
 }
 
@@ -243,6 +245,68 @@ static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 	return true;
 }
 
+static bool _read_in_bootconfig(struct blk_desc *dev_desc,
+		const struct disk_partition *vendor_boot_img,
+		struct andr_boot_info *boot_info) {
+	if (boot_info->vendor_header_version < 4) {
+		// no error, just nothing to do for versions less than 4
+		return true;
+	}
+	long bootconfig_size = 0;
+	if (boot_info->vendor_bootconfig_size > 0) {
+		u32 vhdr_size_page_aligned =
+			ALIGN(sizeof(struct vendor_boot_img_hdr_v4), boot_info->page_size);
+		u32 vramdisk_size_page_aligned =
+			ALIGN(boot_info->vendor_ramdisk_size, boot_info->page_size);
+		u32 vdtb_size_page_aligned =
+			ALIGN(boot_info->dtb_size, boot_info->page_size);
+		u32 vramdisk_table_size_page_aligned =
+			ALIGN(boot_info->vendor_ramdisk_table_size, boot_info->page_size);
+		lbaint_t bootconfig_lba = vendor_boot_img->start
+			+ BLK_CNT(vhdr_size_page_aligned, vendor_boot_img->blksz)
+			+ BLK_CNT(vramdisk_size_page_aligned, vendor_boot_img->blksz)
+			+ BLK_CNT(vdtb_size_page_aligned, vendor_boot_img->blksz)
+			+ BLK_CNT(vramdisk_table_size_page_aligned, vendor_boot_img->blksz);
+
+		long blk_cnt, blks_read;
+		blk_cnt =
+			BLK_CNT(boot_info->vendor_bootconfig_size, vendor_boot_img->blksz);
+
+		blks_read = blk_dread(dev_desc, bootconfig_lba, blk_cnt,
+			(void*)(boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size));
+		if(blk_cnt != blks_read) {
+			debug("Reading out %lu blocks containing the vendor ramdisk."
+					"Expect to read out %lu blks.\n",
+					blks_read, blk_cnt);
+			return false;
+		}
+
+		bootconfig_size += boot_info->vendor_bootconfig_size;
+	}
+
+	// Add any additional boot config parameters from the boot loader here. The
+	// final size of the boot config section will need to be tracked.
+	int ret = addBootConfigParameters("androidboot.bootloader_example=1\n", 33, boot_info->boot_ramdisk_addr
+		+ boot_info->boot_ramdisk_size, bootconfig_size);
+	if (ret <= 0) {
+		debug("Failed to apply boot config params\n");
+	} else {
+		bootconfig_size += ret;
+	}
+	ret = addBootConfigParameters("androidboot.bootloader_example_2=2\n", 35,
+		boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size, bootconfig_size);
+	if (ret <= 0) {
+		debug("Failed to apply boot config params\n");
+	} else {
+		bootconfig_size += ret;
+	}
+
+	// Need to update the size after adding parameters
+	boot_info->vendor_bootconfig_size = bootconfig_size;
+
+	return true;
+}
+
 static bool _read_in_boot_ramdisk(struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img,
 		const struct andr_boot_info *boot_info) {
@@ -308,7 +372,8 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 	_populate_boot_info(boot_hdr, vboot_hdr, kernel_rd_addr, boot_info);
 	if(!_read_in_kernel(dev_desc, boot_img, boot_info)
 		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img, boot_info)
-		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info)) {
+		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info)
+		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info)) {
 		goto image_load_exit;
 	}
 
