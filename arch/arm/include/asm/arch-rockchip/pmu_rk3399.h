@@ -67,6 +67,6 @@ struct rk3399_pmu_regs {
 	u32 pmu_sys_reg_reg3;
 };
 
-check_member(rk3399_pmu_regs, pmu_sys_reg_reg3, 0xfc);
+//check_member(rk3399_pmu_regs, pmu_sys_reg_reg3, 0xfc);
 
 #endif	/* __SOC_ROCKCHIP_RK3399_PMU_H__ */

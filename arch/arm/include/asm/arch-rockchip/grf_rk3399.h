@@ -190,7 +190,7 @@ struct rk3399_grf_regs {
 	u32 reserved34;
 	u32 emmcphy_status;
 };
-check_member(rk3399_grf_regs, emmcphy_status, 0xf7a0);
+//check_member(rk3399_grf_regs, emmcphy_status, 0xf7a0);
 
 struct rk3399_pmugrf_regs {
 	union {
@@ -267,7 +267,7 @@ struct rk3399_pmugrf_regs {
 	u32 os_reg2;
 	u32 os_reg3;
 };
-check_member(rk3399_pmugrf_regs, os_reg3, 0x30c);
+//check_member(rk3399_pmugrf_regs, os_reg3, 0x30c);
 
 struct rk3399_pmusgrf_regs {
 	u32 ddr_rgn_con[35];
@@ -320,7 +320,7 @@ struct rk3399_pmusgrf_regs {
 	u32 slv_secure_con3;
 	u32 slv_secure_con4;
 };
-check_member(rk3399_pmusgrf_regs, slv_secure_con4, 0xe3d4);
+//check_member(rk3399_pmusgrf_regs, slv_secure_con4, 0xe3d4);
 
 enum {
 	/* GRF_GPIO2A_IOMUX */

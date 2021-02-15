@@ -22,7 +22,7 @@ struct rockchip_gpio_regs {
 	u32 reserved1[(0x60 - 0x54) / 4];
 	u32 ls_sync;
 };
-check_member(rockchip_gpio_regs, ls_sync, 0x60);
+//check_member(rockchip_gpio_regs, ls_sync, 0x60);
 
 enum gpio_pu_pd {
 	GPIO_PULL_NORMAL = 0,

@@ -153,7 +153,7 @@ struct rk3288_edp {
 	u8	res30[0x10];
 	u32	pll_reg_5;
 };
-check_member(rk3288_edp, pll_reg_5, 0xa00);
+//check_member(rk3288_edp, pll_reg_5, 0xa00);
 
 /* func_en_1 */
 #define VID_CAP_FUNC_EN_N			(0x1 << 6)

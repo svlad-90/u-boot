@@ -41,7 +41,7 @@ struct rk3328_cru {
 	u32 emmc_con[2];
 	u32 sdmmc_ext_con[2];
 };
-check_member(rk3328_cru, sdmmc_ext_con[1], 0x39c);
+//check_member(rk3328_cru, sdmmc_ext_con[1], 0x39c);
 #define MHz		1000000
 #define KHz		1000
 #define OSC_HZ		(24 * MHz)

@@ -68,7 +68,7 @@ struct rk3288_vop {
 	u32 dsp_vs_st_end_f1;
 	u32 dsp_vact_st_end_f1;
 };
-check_member(rk3288_vop, dsp_vact_st_end_f1, 0x19c);
+//check_member(rk3288_vop, dsp_vact_st_end_f1, 0x19c);
 
 enum rockchip_fb_data_format_t {
 	ARGB8888 = 0,
