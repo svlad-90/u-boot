@@ -1,0 +1,18 @@
+. ${ROOT_DIR}/u-boot/build.config.aarch64
+
+# NOTE: Due to upstream bugs with OF_EMBED, this make target
+# must be built with -j1 (no parallel make) or it WILL fail!
+
+DEFCONFIG=rockpi4_defconfig
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/configs/rock-pi-4-rk3399_defconfig ${ROOT_DIR}/${KERNEL_DIR}/rockpi4.fragment"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}"
+
+MAKE_GOALS="
+BL31=${PWD}/u-boot/bl31.elf
+"
+
+FILES="
+idbloader.img
+u-boot.itb
+u-boot-rockchip.bin
+"
