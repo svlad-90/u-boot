@@ -13,6 +13,8 @@
 
 #include <asm/io.h>
 
+#define TYPE_PCI 0x1
+
 /**
  * struct generic_ecam_pcie - generic_ecam PCIe controller state
  * @cfg_base: The base address of memory mapped configuration space
@@ -45,9 +47,16 @@ static int pci_generic_ecam_conf_address(const struct udevice *bus,
 	void *addr;
 
 	addr = pcie->cfg_base;
-	addr += (PCI_BUS(bdf) - pcie->first_busno) << 16;
-	addr += PCI_DEV(bdf) << 11;
-	addr += PCI_FUNC(bdf) << 8;
+
+	if (dev_get_driver_data(bus) == TYPE_PCI) {
+		addr += (PCI_BUS(bdf) - pcie->first_busno) << 16;
+		addr += PCI_DEV(bdf) << 11;
+		addr += PCI_FUNC(bdf) << 8;
+	} else {
+		addr += (PCI_BUS(bdf) - pcie->first_busno) << 20;
+		addr += PCI_DEV(bdf) << 15;
+		addr += PCI_FUNC(bdf) << 12;
+	}
 	addr += offset;
 	*paddress = addr;
 
@@ -157,7 +166,8 @@ static const struct dm_pci_ops pci_generic_ecam_ops = {
 };
 
 static const struct udevice_id pci_generic_ecam_ids[] = {
-	{ .compatible = "pci-host-cam-generic" },
+	{ .compatible = "pci-host-ecam-generic" /* PCI-E */ },
+	{ .compatible = "pci-host-cam-generic", .data = TYPE_PCI },
 	{ }
 };
 
