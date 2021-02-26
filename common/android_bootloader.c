@@ -262,7 +262,8 @@ static char *strjoin(const char **chunks, char separator)
  */
 static char *android_assemble_cmdline(const char *slot_suffix,
 				      const char *extra_args,
-				      const bool normal_boot)
+				      const bool normal_boot,
+				      const char *android_kernel_cmdline)
 {
 	const char *cmdline_chunks[16];
 	const char **current_chunk = cmdline_chunks;
@@ -270,6 +271,9 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 	char *allocated_suffix = NULL;
 	char *allocated_rootdev = NULL;
 	unsigned long rootdev_len;
+
+	if (android_kernel_cmdline)
+		*(current_chunk++) = android_kernel_cmdline;
 
 	env_cmdline = env_get("bootargs");
 	if (env_cmdline)
@@ -454,7 +458,8 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	env_set("android_slotsufix", slot_suffix);
 
 	/* Assemble the command line */
-	command_line = android_assemble_cmdline(slot_suffix, mode_cmdline, normal_boot);
+	command_line = android_assemble_cmdline(slot_suffix, mode_cmdline, normal_boot,
+							android_image_get_kernel_cmdline(boot_info));
 	env_set("bootargs", command_line);
 
 	debug("ANDROID: bootargs: \"%s\"\n", command_line);

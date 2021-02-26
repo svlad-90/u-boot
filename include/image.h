@@ -1517,6 +1517,8 @@ bool android_image_get_dtb_by_index(ulong hdr_addr, u32 index, ulong *addr,
 ulong android_image_get_end(const struct andr_boot_info *boot_info);
 ulong android_image_get_kload(const struct andr_boot_info *boot_info);
 ulong android_image_get_kcomp(const struct andr_boot_info *boot_info);
+const char* android_image_get_kernel_cmdline(
+				const struct andr_boot_info *boot_info);
 void android_print_contents(const struct andr_boot_info *boot_info);
 #if !defined(CONFIG_SPL_BUILD)
 bool android_image_print_dtb_contents(ulong hdr_addr);

@@ -71,6 +71,10 @@ int android_image_get_ramdisk(const struct andr_boot_info *boot_info,
 	return 0;
 }
 
+const char* android_image_get_kernel_cmdline(
+		const struct andr_boot_info *boot_info) {
+	return boot_info->cmdline;
+}
 static struct boot_img_hdr_v4* _extract_boot_image_header(
 		struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img) {
