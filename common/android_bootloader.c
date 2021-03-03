@@ -263,7 +263,8 @@ static char *strjoin(const char **chunks, char separator)
 static char *android_assemble_cmdline(const char *slot_suffix,
 				      const char *extra_args,
 				      const bool normal_boot,
-				      const char *android_kernel_cmdline)
+				      const char *android_kernel_cmdline,
+				      const bool bootconfig_used)
 {
 	const char *cmdline_chunks[16];
 	const char **current_chunk = cmdline_chunks;
@@ -279,10 +280,10 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 	if (env_cmdline)
 		*(current_chunk++) = env_cmdline;
 
-	/* The |slot_suffix| needs to be passed to the kernel to know what
-	 * slot to boot from.
+	/* The |slot_suffix| needs to be passed to Android init to know what
+	 * slot to boot from. This is done through bootconfig when supported.
 	 */
-	if (slot_suffix) {
+	if (slot_suffix && !bootconfig_used) {
 		allocated_suffix = malloc(strlen(ANDROID_ARG_SLOT_SUFFIX) +
 					  strlen(slot_suffix));
 		strcpy(allocated_suffix, ANDROID_ARG_SLOT_SUFFIX);
@@ -311,11 +312,12 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 	}
 
 	/* The force_normal_boot param must be passed to android's init sequence
-	 * to avoid booting into recovery mode.
+	 * to avoid booting into recovery mode. This is done through bootconfig when
+	 * supported.
 	 * Refer to link below under "Early Init Boot Sequence"
 	 * https://source.android.com/devices/architecture/kernel/mounting-partitions-early
 	 */
-	if (normal_boot) {
+	if (normal_boot && !bootconfig_used) {
 		*(current_chunk++) = ANDROID_NORMAL_BOOT;
 	}
 
@@ -445,7 +447,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 
 	struct andr_boot_info* boot_info = android_image_load(dev_desc, &boot_part_info,
 				 vendor_boot_part_info_ptr,
-				 kernel_address);
+				 kernel_address, slot_suffix, normal_boot);
 
 	if (!boot_info)
 		return -1;
@@ -459,7 +461,8 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 
 	/* Assemble the command line */
 	command_line = android_assemble_cmdline(slot_suffix, mode_cmdline, normal_boot,
-							android_image_get_kernel_cmdline(boot_info));
+							android_image_get_kernel_cmdline(boot_info),
+							android_image_is_bootconfig_used(boot_info));
 	env_set("bootargs", command_line);
 
 	debug("ANDROID: bootargs: \"%s\"\n", command_line);

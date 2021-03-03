@@ -19,6 +19,8 @@
 
 #define BLK_CNT(_num_bytes, _block_size) ((_num_bytes + _block_size - 1) / \
     _block_size)
+#define ANDROID_ARG_SLOT_SUFFIX "androidboot.slot_suffix="
+#define ANDROID_NORMAL_BOOT "androidboot.force_normal_boot=1\n"
 
 /**
  * android_image_get_kernel() - processes kernel part of Android boot images
@@ -75,6 +77,11 @@ const char* android_image_get_kernel_cmdline(
 		const struct andr_boot_info *boot_info) {
 	return boot_info->cmdline;
 }
+
+bool android_image_is_bootconfig_used(const struct andr_boot_info *boot_info) {
+	return boot_info->vendor_bootconfig_size > 0;
+}
+
 static struct boot_img_hdr_v4* _extract_boot_image_header(
 		struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img) {
@@ -252,7 +259,8 @@ static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 
 static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		const struct disk_partition *vendor_boot_img,
-		struct andr_boot_info *boot_info) {
+		struct andr_boot_info *boot_info, const char *slot_suffix,
+		const bool normal_boot) {
 	if (boot_info->vendor_header_version < 4
 		|| boot_info->vendor_bootconfig_size == 0) {
 		/*
@@ -294,14 +302,34 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 
 	// Add any additional boot config parameters from the boot loader here. The
 	// final size of the boot config section will need to be tracked.
-	int ret = addBootConfigParameters("androidboot.bootloader_example=1\n", 33, boot_info->boot_ramdisk_addr
+
+	/* The |slot_suffix| needs to be passed to Android init to know what
+	 * slot to boot from.
+	 */
+	char* allocated_suffix = NULL;
+	uint32_t suffix_param_size_bytes = strlen(ANDROID_ARG_SLOT_SUFFIX) +
+					  strlen(slot_suffix) + 1;
+	allocated_suffix = malloc(suffix_param_size_bytes);
+	if (!allocated_suffix) {
+		debug("Failed to allocate memory for slot_suffix\n");
+		return false;
+	}
+	strcpy(allocated_suffix, ANDROID_ARG_SLOT_SUFFIX);
+	strcat(allocated_suffix, slot_suffix);
+	strcat(allocated_suffix, "\n");
+	int ret = addBootConfigParameters(allocated_suffix, suffix_param_size_bytes, boot_info->boot_ramdisk_addr
 		+ boot_info->boot_ramdisk_size, bootconfig_size);
 	if (ret <= 0) {
 		debug("Failed to apply boot config params\n");
 	} else {
 		bootconfig_size += ret;
 	}
-	ret = addBootConfigParameters("androidboot.bootloader_example_2=2\n", 35,
+	/* The force_normal_boot param must be passed to android's init sequence
+	 * to avoid booting into recovery mode.
+	 * Refer to link below under "Early Init Boot Sequence"
+	 * https://source.android.com/devices/architecture/kernel/mounting-partitions-early
+	 */
+	ret = addBootConfigParameters(ANDROID_NORMAL_BOOT, strlen(ANDROID_NORMAL_BOOT),
 		boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size, bootconfig_size);
 	if (ret <= 0) {
 		debug("Failed to apply boot config params\n");
@@ -344,7 +372,8 @@ static bool _read_in_boot_ramdisk(struct blk_desc *dev_desc,
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img,
 			const struct disk_partition *vendor_boot_img,
-			unsigned long load_address) {
+			unsigned long load_address, const char *slot_suffix,
+			const bool normal_boot) {
 	struct boot_img_hdr_v4 *boot_hdr = NULL;
 	struct vendor_boot_img_hdr_v4 *vboot_hdr = NULL;
 	struct andr_boot_info *boot_info = NULL;
@@ -381,7 +410,8 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 	if(!_read_in_kernel(dev_desc, boot_img, boot_info)
 		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img, boot_info)
 		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info)
-		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info)) {
+		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info, slot_suffix,
+					normal_boot)) {
 		goto image_load_exit;
 	}
 

@@ -1519,6 +1519,7 @@ ulong android_image_get_kload(const struct andr_boot_info *boot_info);
 ulong android_image_get_kcomp(const struct andr_boot_info *boot_info);
 const char* android_image_get_kernel_cmdline(
 				const struct andr_boot_info *boot_info);
+bool android_image_is_bootconfig_used(const struct andr_boot_info *boot_info);
 void android_print_contents(const struct andr_boot_info *boot_info);
 #if !defined(CONFIG_SPL_BUILD)
 bool android_image_print_dtb_contents(ulong hdr_addr);
@@ -1529,22 +1530,22 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * Load an Android Image based on the header size in the storage. Return the
  * number of bytes read from storage, which could be bigger than the actual
  * Android Image as described in the header size. In case of error reading the
- * image or if the image size needed to be read from disk is bigger than the
- * the passed |max_size| a negative number is returned.
- *
+ * image, NULL is returned.
  * @dev_desc:		The device where to read the image from
  * @boot_img_info:	The partition in |dev_desc| to read the kernel and init
  * @device_info:	The partition in |dev_desc| to read device specific
  * 			content from. This partition is not expected on devices
  * 			with android boot images version 1 and 2.
  * @load_address:	The address where the image will be loaded
- * @max_size:		The maximum loaded size, in bytes
+ * @slot_suffix: 	The slot to boot from
+ * @normal_boot:	Force a normal boot and skip recovery if true
  * @return: android boot info struct pointer
  */
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img_info,
 			const struct disk_partition *device_info,
-			unsigned long load_address);
+			unsigned long load_address, const char *slot_suffix,
+			const bool normal_boot);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 #endif /* !USE_HOSTCC */
