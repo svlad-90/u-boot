@@ -9,8 +9,9 @@
 #define _AVB_VERIFY_H
 
 #include <../lib/libavb/libavb.h>
+#include <blk.h>
 #include <mapmem.h>
-#include <mmc.h>
+#include <part.h>
 
 #define AVB_MAX_ARGS			1024
 #define VERITY_TABLE_OPT_RESTART	"restart_on_corruption"
@@ -26,7 +27,8 @@ enum avb_boot_state {
 
 struct AvbOpsData {
 	struct AvbOps ops;
-	int mmc_dev;
+	const char *iface;
+	const char *devnum;
 	enum avb_boot_state boot_state;
 #ifdef CONFIG_OPTEE_TA_AVB
 	struct udevice *tee;
@@ -34,19 +36,17 @@ struct AvbOpsData {
 #endif
 };
 
-struct mmc_part {
-	int dev_num;
-	struct mmc *mmc;
-	struct blk_desc *mmc_blk;
+struct avb_part {
+	struct blk_desc *blk;
 	struct disk_partition info;
 };
 
-enum mmc_io_type {
+enum io_type {
 	IO_READ,
 	IO_WRITE
 };
 
-AvbOps *avb_ops_alloc(int boot_device);
+AvbOps *avb_ops_alloc(const char *iface, const char *devnum);
 void avb_ops_free(AvbOps *ops);
 
 char *avb_set_state(AvbOps *ops, enum avb_boot_state boot_state);
@@ -60,7 +60,7 @@ char *append_cmd_line(char *cmdline_orig, char *cmdline_new);
  * I/O helper inline functions
  * ============================================================================
  */
-static inline uint64_t calc_offset(struct mmc_part *part, int64_t offset)
+static inline uint64_t calc_offset(struct avb_part *part, int64_t offset)
 {
 	u64 part_size = part->info.size * part->info.blksz;
 
@@ -83,19 +83,6 @@ static inline void *get_sector_buf(void)
 static inline bool is_buf_unaligned(void *buffer)
 {
 	return (bool)((uintptr_t)buffer % ALLOWED_BUF_ALIGN);
-}
-
-static inline int get_boot_device(AvbOps *ops)
-{
-	struct AvbOpsData *data;
-
-	if (ops) {
-		data = ops->user_data;
-		if (data)
-			return data->mmc_dev;
-	}
-
-	return -1;
 }
 
 #endif /* _AVB_VERIFY_H */
