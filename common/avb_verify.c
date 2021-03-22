@@ -155,6 +155,37 @@ char *avb_set_enforce_verity(const char *cmdline)
  * IO auxiliary functions
  * ============================================================================
  */
+#if !defined(CONFIG_AVB_BUF_ADDR) || (CONFIG_AVB_BUF_ADDR == 0)
+__attribute__((aligned(ALLOWED_BUF_ALIGN)))
+static char sector_buf[CONFIG_AVB_BUF_SIZE];
+
+static void *get_sector_buf(void)
+{
+	return sector_buf;
+}
+
+static size_t get_sector_buf_size(void)
+{
+	return sizeof(sector_buf);
+}
+
+#else
+static void *get_sector_buf(void)
+{
+	return map_sysmem(CONFIG_AVB_BUF_ADDR, CONFIG_AVB_BUF_SIZE);
+}
+
+static size_t get_sector_buf_size(void)
+{
+	return (size_t)CONFIG_AVB_BUF_SIZE;
+}
+#endif
+
+static bool is_buf_unaligned(void *buffer)
+{
+	return (bool)((uintptr_t)buffer % ALLOWED_BUF_ALIGN);
+}
+
 static unsigned long blk_read_and_flush(struct avb_part *part,
 					lbaint_t start,
 					lbaint_t sectors,

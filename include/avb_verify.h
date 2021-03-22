@@ -70,19 +70,4 @@ static inline uint64_t calc_offset(struct avb_part *part, int64_t offset)
 	return offset;
 }
 
-static inline size_t get_sector_buf_size(void)
-{
-	return (size_t)CONFIG_AVB_BUF_SIZE;
-}
-
-static inline void *get_sector_buf(void)
-{
-	return map_sysmem(CONFIG_AVB_BUF_ADDR, CONFIG_AVB_BUF_SIZE);
-}
-
-static inline bool is_buf_unaligned(void *buffer)
-{
-	return (bool)((uintptr_t)buffer % ALLOWED_BUF_ALIGN);
-}
-
 #endif /* _AVB_VERIFY_H */
