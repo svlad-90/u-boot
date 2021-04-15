@@ -329,12 +329,15 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 	 * Refer to link below under "Early Init Boot Sequence"
 	 * https://source.android.com/devices/architecture/kernel/mounting-partitions-early
 	 */
-	ret = addBootConfigParameters(ANDROID_NORMAL_BOOT, strlen(ANDROID_NORMAL_BOOT),
-		boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size, bootconfig_size);
-	if (ret <= 0) {
-		debug("Failed to apply boot config params\n");
-	} else {
-		bootconfig_size += ret;
+	if (normal_boot) {
+		ret = addBootConfigParameters(ANDROID_NORMAL_BOOT, strlen(ANDROID_NORMAL_BOOT),
+			boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size,
+			bootconfig_size);
+		if (ret <= 0) {
+			debug("Failed to apply boot config params\n");
+		} else {
+			bootconfig_size += ret;
+		}
 	}
 
 	// Need to update the size after adding parameters
