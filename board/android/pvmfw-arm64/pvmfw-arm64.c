@@ -7,6 +7,7 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <env.h>
 #include <fdtdec.h>
 #include <init.h>
 #include <log.h>
@@ -14,6 +15,13 @@
 #include <virtio.h>
 
 #include <asm/armv8/mmu.h>
+
+/* Assigned in lowlevel_init.S
+ * Push the variable into the .data section so that it
+ * does not get cleared later.
+ */
+void * __section(.data) fw_dtb_pointer;
+void * __section(.data) fw_kernel_image_pointer;
 
 static struct mm_region pvmfw_mem_map[] = {
 	{
@@ -81,8 +89,14 @@ int dram_init_banksize(void)
 
 void *board_fdt_blob_setup(void)
 {
-	/* QEMU loads a generated DTB for us at the start of RAM. */
-	return (void *)CONFIG_SYS_SDRAM_BASE;
+	return fw_dtb_pointer;
+}
+
+int misc_init_r(void)
+{
+	env_set_hex("fdt_addr", (u64)fw_dtb_pointer);
+	env_set_hex("kernel_image_addr", (u64)fw_kernel_image_pointer);
+	return 0;
 }
 
 void enable_caches(void)
