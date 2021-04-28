@@ -23,6 +23,9 @@
 void * __section(.data) fw_dtb_pointer;
 void * __section(.data) fw_kernel_image_pointer;
 
+#define CROSVM_FDT_MAX_SIZE 0x200000
+#define CROSVM_EXTRA_SUBTRACT 0x10000
+
 static struct mm_region pvmfw_mem_map[] = {
 	{
 		/* Map NULL
@@ -97,6 +100,11 @@ int misc_init_r(void)
 	env_set_hex("fdt_addr", (u64)fw_dtb_pointer);
 	env_set_hex("kernel_image_addr", (u64)fw_kernel_image_pointer);
 	return 0;
+}
+
+ulong board_get_usable_ram_top(ulong total_size)
+{
+	return gd->ram_top - CROSVM_FDT_MAX_SIZE - CROSVM_EXTRA_SUBTRACT;
 }
 
 void enable_caches(void)
