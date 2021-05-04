@@ -20,6 +20,7 @@
 #define ANDROID_PARTITION_VENDOR_BOOT "vendor_boot"
 #define ANDROID_PARTITION_RECOVERY "recovery"
 #define ANDROID_PARTITION_SYSTEM "system"
+#define ANDROID_PARTITION_BOOTCONFIG "bootconfig"
 
 #define ANDROID_ARG_SLOT_SUFFIX "androidboot.slot_suffix="
 #define ANDROID_ARG_ROOT "root="
@@ -331,7 +332,8 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 				 const struct disk_partition *misc_part_info,
 				 const char *slot,
-				 unsigned long kernel_address)
+				 unsigned long kernel_address,
+				 struct blk_desc *persistant_dev_desc)
 {
 	enum android_boot_mode mode;
 	struct disk_partition boot_part_info;
@@ -419,6 +421,20 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	    android_part_get_info_by_name_suffix(dev_desc, vendor_boot_partition,
 						 slot_suffix,
 						 &vendor_boot_part_info);
+	struct disk_partition *bootconfig_part_info_ptr = NULL;
+#ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
+	struct disk_partition bootconfig_part_info;
+	const char *bootconfig_partition = ANDROID_PARTITION_BOOTCONFIG;
+	int bootconfig_part_num = android_part_get_info_by_name_suffix(persistant_dev_desc,
+						 bootconfig_partition,
+						 NULL,
+						 &bootconfig_part_info);
+	if (bootconfig_part_num < 0) {
+		log_err("Failed to find device specific bootconfig.\n");
+	} else {
+		bootconfig_part_info_ptr = &bootconfig_part_info;
+	}
+#endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 	if (boot_part_num < 0)
 		return -1;
 	debug("ANDROID: Loading kernel from \"%s\", partition %d.\n",
@@ -447,7 +463,8 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 
 	struct andr_boot_info* boot_info = android_image_load(dev_desc, &boot_part_info,
 				 vendor_boot_part_info_ptr,
-				 kernel_address, slot_suffix, normal_boot);
+				 kernel_address, slot_suffix, normal_boot,
+				 persistant_dev_desc, bootconfig_part_info_ptr);
 
 	if (!boot_info)
 		return -1;

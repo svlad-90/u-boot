@@ -488,6 +488,20 @@ config ANDROID_USES_RECOVERY_AS_BOOT
 	  ramdisk located in the boot image. This flow requires an Android
 	  Bootloader
 
+config ANDROID_PERSISTENT_RAW_DISK
+	bool "Support using a persistent disk device"
+	help
+		Define this if you want to use a persistent raw disk for device
+		configuration.
+
+config ANDROID_PERSISTENT_RAW_DISK_DEVICE
+	int "Device number for the persistent disk"
+	depends on ANDROID_PERSISTENT_RAW_DISK
+	default 0
+	help
+		This is the device number of the persistent disk. Possible devices
+		start at 0.
+
 menu "Start-up hooks"
 
 config ARCH_EARLY_INIT_R

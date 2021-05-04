@@ -36,16 +36,18 @@ struct disk_partition;
  * The boot mode is determined by the contents of the Android Bootloader
  * Message. On success it doesn't return.
  *
- * @dev_desc:		device where to load the kernel and system to boot from.
- * @misc_part_info:	the "misc" partition descriptor in 'dev_desc'.
- * @slot:		the boot slot to boot from.
- * @kernel_address:	address where to load the kernel if needed.
+ * @dev_desc:			device to load the kernel and system from.
+ * @misc_part_info:		the "misc" partition descriptor in 'dev_desc'.
+ * @slot:			the boot slot to boot from.
+ * @kernel_address:		address where to load the kernel if needed.
+ * @persistant_dev_desc:	device to load all persistent data from.
  *
  * @return a negative number in case of error, otherwise it doesn't return.
  */
 int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 				 const struct disk_partition *misc_part_info,
 				 const char *slot,
-				 unsigned long kernel_address);
+				 unsigned long kernel_address,
+				 struct blk_desc *persistant_dev_desc);
 
 #endif  /* __ANDROID_BOOTLOADER_H */

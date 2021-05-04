@@ -1539,13 +1539,17 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * @load_address:	The address where the image will be loaded
  * @slot_suffix: 	The slot to boot from
  * @normal_boot:	Force a normal boot and skip recovery if true
+ * @persistent_dev_desc:	The device to read persistent data from
+ * @device_specific_bootconfig_img:	device specific bootconfig partition
  * @return: android boot info struct pointer
  */
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img_info,
 			const struct disk_partition *device_info,
 			unsigned long load_address, const char *slot_suffix,
-			const bool normal_boot);
+			const bool normal_boot,
+			struct blk_desc *persistent_dev_desc,
+			const struct disk_partition *device_specific_bootconfig_img);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 #endif /* !USE_HOSTCC */

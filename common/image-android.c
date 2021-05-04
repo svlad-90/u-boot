@@ -260,7 +260,9 @@ static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		const struct disk_partition *vendor_boot_img,
 		struct andr_boot_info *boot_info, const char *slot_suffix,
-		const bool normal_boot) {
+		const bool normal_boot,
+		struct blk_desc *persistent_dev_desc,
+		const struct disk_partition *device_specific_bootconfig_img) {
 	if (boot_info->vendor_header_version < 4
 		|| boot_info->vendor_bootconfig_size == 0) {
 		/*
@@ -317,10 +319,11 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 	strcpy(allocated_suffix, ANDROID_ARG_SLOT_SUFFIX);
 	strcat(allocated_suffix, slot_suffix);
 	strcat(allocated_suffix, "\n");
-	int ret = addBootConfigParameters(allocated_suffix, suffix_param_size_bytes, boot_info->boot_ramdisk_addr
-		+ boot_info->boot_ramdisk_size, bootconfig_size);
+	int ret = addBootConfigParameters(allocated_suffix, suffix_param_size_bytes,
+		boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size,
+		bootconfig_size);
 	if (ret <= 0) {
-		debug("Failed to apply boot config params\n");
+		debug("Failed to apply slot_suffix bootconfig param\n");
 	} else {
 		bootconfig_size += ret;
 	}
@@ -334,11 +337,37 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 			boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size,
 			bootconfig_size);
 		if (ret <= 0) {
-			debug("Failed to apply boot config params\n");
+			debug("Failed to apply force_normal_boot bootconfig param\n");
 		} else {
 			bootconfig_size += ret;
 		}
 	}
+#ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
+	if (device_specific_bootconfig_img) {
+		// Add persistent factory information
+		long bootconfig_buffer_size =
+			device_specific_bootconfig_img->size * device_specific_bootconfig_img->blksz;
+		char *bootconfig_buffer = (char*)(malloc(bootconfig_buffer_size));
+		if (!bootconfig_buffer) {
+	  		printf("Failed to allocate memory for bootconfig_buffer.\n");
+			return false;
+		}
+		if (blk_dread(persistent_dev_desc, device_specific_bootconfig_img->start,
+				device_specific_bootconfig_img->size,
+				bootconfig_buffer) != device_specific_bootconfig_img->size) {
+			printf("Failed to read from bootconfig partition\n");
+		}
+
+		ret = addBootConfigParameters(bootconfig_buffer, bootconfig_buffer_size,
+				boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size,
+				bootconfig_size);
+		if (ret <= 0) {
+			debug("Failed to apply the persistent bootconfig params\n");
+		} else {
+			bootconfig_size += ret;
+		}
+	}
+#endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 
 	// Need to update the size after adding parameters
 	boot_info->vendor_bootconfig_size = bootconfig_size;
@@ -376,7 +405,9 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img,
 			const struct disk_partition *vendor_boot_img,
 			unsigned long load_address, const char *slot_suffix,
-			const bool normal_boot) {
+			const bool normal_boot,
+			struct blk_desc *persistent_dev_desc,
+			const struct disk_partition *device_specific_bootconfig_img) {
 	struct boot_img_hdr_v4 *boot_hdr = NULL;
 	struct vendor_boot_img_hdr_v4 *vboot_hdr = NULL;
 	struct andr_boot_info *boot_info = NULL;
@@ -414,7 +445,7 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img, boot_info)
 		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info)
 		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info, slot_suffix,
-					normal_boot)) {
+					normal_boot, persistent_dev_desc, device_specific_bootconfig_img)) {
 		goto image_load_exit;
 	}
 

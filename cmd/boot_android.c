@@ -15,11 +15,11 @@ static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
 	int ret = CMD_RET_SUCCESS;
 	char *addr_arg_endp, *addr_str;
 	struct blk_desc *dev_desc;
+	struct blk_desc *persistant_dev_desc = NULL;
 	struct disk_partition part_info;
 	const char *misc_part_iface;
 	const char *misc_part_desc;
 	const char *slot = NULL;
-
 	if (argc < 3)
 		return CMD_RET_USAGE;
 	if (argc > 5)
@@ -47,9 +47,16 @@ static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
 						 misc_part_desc,
 						 &dev_desc, &part_info) < 0)
 		return CMD_RET_FAILURE;
-
+#ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
+	/* Get the persistent disk that contains the bootconfig partition */
+	persistant_dev_desc = blk_get_dev(misc_part_iface, CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE);
+	if (!persistant_dev_desc) {
+		printf("Failed to get blk device with dev_num: %d\n", CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE);
+		return CMD_RET_FAILURE;
+	}
+#endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 	ret = android_bootloader_boot_flow(dev_desc, &part_info, slot,
-					   load_address);
+					   load_address, persistant_dev_desc);
 	if (ret < 0) {
 		printf("Android boot failed, error %d.\n", ret);
 		return CMD_RET_FAILURE;
