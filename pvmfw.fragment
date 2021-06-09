@@ -1,0 +1,15 @@
+CONFIG_ARCH_PVMFW=y
+# CONFIG_ARCH_QEMU is not set
+
+# Default overrides that ARCH_QEMU is using in upper-level Kconfigs.
+# CONFIG_INIT_SP_RELATIVE is not set
+CONFIG_SYS_MALLOC_F_LEN=0x2000
+
+# Borrowed from cuttlefish.fragment
+
+# crosvm's virtio-net implementation gets "stuck" when initialization is
+# attempted by u-boot -- probably a combination of bugs in crosvm and u-boot.
+# CONFIG_VIRTIO_NET is not set
+
+# Disable the NET core so we can simplify CONFIG_DISTRO_DEFAULTS
+# CONFIG_NET is not set
