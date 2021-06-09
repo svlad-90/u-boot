@@ -1,5 +1,6 @@
 CONFIG_ARCH_PVMFW=y
 # CONFIG_ARCH_QEMU is not set
+CONFIG_MISC_INIT_R=y
 
 # Default overrides that ARCH_QEMU is using in upper-level Kconfigs.
 # CONFIG_INIT_SP_RELATIVE is not set
