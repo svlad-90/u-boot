@@ -14,7 +14,7 @@ BUILDTOOLS_PREBUILT_BIN=${CLANG_PREBUILT_BIN}/../python3/bin
 
 function check_u-boot_defconfig() {
     (cd ${OUT_DIR} && \
-     make "${TOOL_ARGS[@]}" O=${OUT_DIR} savedefconfig)
+     make ${TOOL_ARGS} O=${OUT_DIR} savedefconfig)
     echo Verifying that savedefconfig matches ${KERNEL_DIR}/configs/${DEFCONFIG}
     RES=0
     diff -u ${KERNEL_DIR}/configs/${DEFCONFIG} ${OUT_DIR}/defconfig ||
