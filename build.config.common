@@ -2,7 +2,7 @@ BRANCH=u-boot-mainline
 SKIP_CP_KERNEL_HDR=1
 KERNEL_DIR=u-boot
 
-CLANG_PREBUILT_BIN=prebuilts-master/clang/host/linux-x86/clang-r383902/bin
+CLANG_PREBUILT_BIN=prebuilts-master/clang/host/linux-x86/clang-r416183b/bin
 CC=clang
 HOSTCC=clang
 NM=llvm-nm
