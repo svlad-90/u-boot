@@ -82,6 +82,4 @@
 	"distro_bootcmd=$distro_bootcmd; run importbootenv;\0"
 #endif
 
-/* enable usb config for usb ether */
-
 #endif

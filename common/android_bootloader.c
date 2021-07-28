@@ -299,7 +299,8 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 		strcpy(allocated_rootdev, ANDROID_ARG_ROOT);
 		cli_simple_process_macros(rootdev_input,
 					  allocated_rootdev +
-					  strlen(ANDROID_ARG_ROOT));
+					  strlen(ANDROID_ARG_ROOT),
+					  rootdev_len);
 		/* Make sure that the string is null-terminated since the
 		 * previous could not copy to the end of the input string if it
 		 * is too big.

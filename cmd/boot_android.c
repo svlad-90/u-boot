@@ -45,7 +45,8 @@ static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
 	/* Split the part_name if passed as "$dev_num;part_name". */
 	if (part_get_info_by_dev_and_name_or_num(misc_part_iface,
 						 misc_part_desc,
-						 &dev_desc, &part_info) < 0)
+						 &dev_desc, &part_info,
+						 false) < 0)
 		return CMD_RET_FAILURE;
 #ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
 	/* Get the persistent disk that contains the bootconfig partition */
