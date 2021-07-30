@@ -1,10 +1,6 @@
 # Disable STATIC_RELA as it is broken with clang/llvm on arm64
 # CONFIG_STATIC_RELA is not set
 
-# Disable OF_SEPARATE as it is broken with clang/llvm on arm64
-# CONFIG_OF_SEPARATE is not set
-CONFIG_OF_EMBED=y
-
 CONFIG_NET_RANDOM_ETHADDR=y
 CONFIG_DM_GPIO=y
 CONFIG_CMD_GPIO=y
