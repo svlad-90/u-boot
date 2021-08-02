@@ -20,7 +20,7 @@
  * Push the variable into the .data section so that it
  * does not get cleared later.
  */
-void * __section(".data)" fw_dtb_pointer;
+void * __section(".data") fw_dtb_pointer;
 void * __section(".data") fw_kernel_image_pointer;
 
 #define CROSVM_FDT_MAX_SIZE 0x200000
