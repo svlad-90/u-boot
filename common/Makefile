@@ -161,6 +161,13 @@ ifneq ($(findstring arm-,$(LD)),)
         ld_for_avbpubkey := arm-linux-androideabi-ld.gold
     endif
 endif
+ifneq ($(findstring ld.lld,$(LD)),)
+    ifdef CONFIG_ARM64
+        ld_for_avbpubkey += -maarch64elf
+    else ifdef CONFIG_ARM
+        ld_for_avbpubkey += -marmelf
+    endif
+endif
 
 # The content of the file which CONFIG_AVB_PUBKEY_FILE refers to is imported
 # as binary. Copying to a temporary file `avb_pubkey` is necessary to keep the

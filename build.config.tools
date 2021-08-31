@@ -2,6 +2,7 @@
 
 ARCH=arm
 DEFCONFIG=am57xx_evm_defconfig
+LD=ld.lld
 
 MAKE_GOALS="tools-only"
 
