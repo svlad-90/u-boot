@@ -5,6 +5,7 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <env.h>
 #include <init.h>
 #include <pci.h>
 #include <qfw.h>
@@ -123,6 +124,15 @@ int arch_early_init_r(void)
 
 	return 0;
 }
+
+#if defined(CONFIG_ARCH_MISC_INIT)
+int arch_misc_init(void)
+{
+	env_set("cbootargs", (char *)CONFIG_SYS_CMDLINE_ADDR);
+
+	return 0;
+}
+#endif
 
 #ifdef CONFIG_GENERATE_MP_TABLE
 int mp_determine_pci_dstirq(int bus, int dev, int func, int pirq)
