@@ -62,6 +62,8 @@ struct andr_boot_info {
     u32 vendor_ramdisk_table_size;
     u32 vendor_ramdisk_table_entry_num;
     u32 vendor_ramdisk_table_entry_size;
+
+    u32 vendor_bootconfig_addr; /* physical load addr */
     u32 vendor_bootconfig_size; /* size in bytes for bootconfig image */
 } __attribute__((packed));
 

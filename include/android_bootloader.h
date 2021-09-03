@@ -39,14 +39,18 @@ struct disk_partition;
  * @dev_desc:			device to load the kernel and system from.
  * @misc_part_info:		the "misc" partition descriptor in 'dev_desc'.
  * @slot:			the boot slot to boot from.
+ * @verify:			whether to boot using verified boot protocol
  * @kernel_address:		address where to load the kernel if needed.
  * @persistant_dev_desc:	device to load all persistent data from.
  *
  * @return a negative number in case of error, otherwise it doesn't return.
  */
-int android_bootloader_boot_flow(struct blk_desc *dev_desc,
+int android_bootloader_boot_flow(const char *iface_str,
+				 const char *dev_str,
+				 struct blk_desc *dev_desc,
 				 const struct disk_partition *misc_part_info,
 				 const char *slot,
+				 bool verify,
 				 unsigned long kernel_address,
 				 struct blk_desc *persistant_dev_desc);
 

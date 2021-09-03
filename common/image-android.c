@@ -17,6 +17,7 @@
 #include <part.h>
 #include <log.h>
 #include <linux/libfdt.h>
+#include <avb_verify.h>
 
 #define BLK_CNT(_num_bytes, _block_size) ((_num_bytes + _block_size - 1) / \
     _block_size)
@@ -83,24 +84,81 @@ bool android_image_is_bootconfig_used(const struct andr_boot_info *boot_info) {
 	return boot_info->vendor_bootconfig_size > 0;
 }
 
+/* Read `size` amount of data from `offset` in `part` to `dest`. */
+static bool android_read_from_avb_partition(const AvbPartitionData *part,
+				    size_t offset, void *dest, size_t size) {
+	if (offset + size > part->data_size) {
+		debug("attempted to read past the partition boundary");
+		return false;
+	}
+	memcpy(dest, part->data + offset, size);
+	return true;
+}
+
+/* Read from either block device or buffer that was already filled by libAVB.
+ * `name` is a debug string that represents the data to be read.
+ * `block_dev` is the block device from which the data is read. This is used
+ * only when the buffer from libAVB is empty. i.e. avb_part == NULL.
+ * `part`is the partition in the block device where `offset` is based at.
+ * `verified_part` is the buffer filled by libAVB from which the data is read.
+ * Data should be read from here if this is not NULL.
+ * `offset` is the start potition of the data to be read in either `part` or
+ * `avb_part`.
+ * `dest` is the adddress where the read data is written. The area should be
+ * large enough to hold ALIGN(size, part->blksz) amount of data.
+ * `size` is the amount of data to be read
+ */
+static bool android_read_data(const char *name,
+			      struct blk_desc *block_dev,
+			      const struct disk_partition *part,
+			      const AvbPartitionData *verified_part,
+			      size_t offset, // from the start of partition
+			      void *dest,
+			      size_t size) {
+	if (size > ALIGN(size, part->blksz)) {
+		debug("%s size %ld does align with block boundaries",
+		      name, size);
+		return false;
+	}
+
+	// If verified data is available, we shouldn't do additional I/O again.
+	if (verified_part != NULL) {
+		return android_read_from_avb_partition(
+			verified_part, offset, dest, size);
+	}
+
+	// Fallback to I/O
+	ulong blksz = part->blksz;
+	lbaint_t start = part->start + BLK_CNT(offset, blksz);
+	lbaint_t blk_cnt = BLK_CNT(size, blksz);
+	unsigned long blks_read  = blk_dread(block_dev, start, blk_cnt, dest);
+	if(blks_read != blk_cnt) {
+		debug("%s blk cnt is %ld and blks read is %ld\n",
+			name, blk_cnt, blks_read);
+		return false;
+	}
+	return true;
+}
+
 static struct boot_img_hdr_v4* _extract_boot_image_header(
 		struct blk_desc *dev_desc,
-		const struct disk_partition *boot_img) {
-	long blk_cnt, blks_read;
-	blk_cnt = BLK_CNT(sizeof(struct boot_img_hdr_v4), boot_img->blksz);
+		const struct disk_partition *boot_img,
+		AvbPartitionData *verified_boot_img) {
+	long blk_cnt = BLK_CNT(sizeof(struct boot_img_hdr_v4), boot_img->blksz);
 
 	struct boot_img_hdr_v4 *boot_hdr = (struct boot_img_hdr_v4*)
 		(malloc(blk_cnt * boot_img->blksz));
 
-	if(!blk_cnt || !boot_hdr) {
-		free(boot_hdr);
+	if(!boot_hdr) {
 		return NULL;
 	}
 
-	blks_read  = blk_dread(dev_desc, boot_img->start, blk_cnt, boot_hdr);
-	if(blks_read != blk_cnt) {
-		debug("boot img header blk cnt is %ld and blks read is %ld\n",
-			blk_cnt, blks_read);
+	size_t offset = 0; // header is at the front of the partition
+	size_t size = sizeof(struct boot_img_hdr_v4);
+	void *laddr = boot_hdr;
+	if (!android_read_data("boot header",
+			       dev_desc, boot_img, verified_boot_img,
+			       offset, laddr, size)) {
 		free(boot_hdr);
 		return NULL;
 	}
@@ -124,26 +182,27 @@ static struct boot_img_hdr_v4* _extract_boot_image_header(
 
 static struct vendor_boot_img_hdr_v4* _extract_vendor_boot_image_header(
 		struct blk_desc *dev_desc,
-		const struct disk_partition *vendor_boot_img) {
-	long blk_cnt, blks_read;
-	blk_cnt = BLK_CNT(sizeof(struct vendor_boot_img_hdr_v4),
+		const struct disk_partition *vendor_boot_img,
+		const AvbPartitionData *loaded_vendor_boot_img) {
+	long blk_cnt = BLK_CNT(sizeof(struct vendor_boot_img_hdr_v4),
 			vendor_boot_img->blksz);
 
 	struct vendor_boot_img_hdr_v4 *vboot_hdr =
 		(struct vendor_boot_img_hdr_v4*)
 		(malloc(blk_cnt * vendor_boot_img->blksz));
 
-	if(!blk_cnt || !vboot_hdr) {
-		free(vboot_hdr);
+	if(!vboot_hdr) {
 		return NULL;
 	}
 
-	blks_read = blk_dread(dev_desc, vendor_boot_img->start, blk_cnt, vboot_hdr);
-	if(blks_read != blk_cnt) {
-		debug("vboot img header blk cnt is %ld and blks read is %ld\n",
-			blk_cnt, blks_read);
-		free(vboot_hdr);
-		return NULL;
+	size_t offset = 0; // header is at the front of the partition
+	size_t size = sizeof(struct vendor_boot_img_hdr_v4);
+	void *laddr = vboot_hdr;
+	if (!android_read_data("vendor boot header",
+			       dev_desc, vendor_boot_img, loaded_vendor_boot_img,
+			       offset, laddr, size)) {
+	      free(vboot_hdr);
+	      return NULL;
 	}
 
 	if(strncmp(VENDOR_BOOT_MAGIC, (const char *)vboot_hdr->magic,
@@ -206,26 +265,24 @@ static void _populate_boot_info(const struct boot_img_hdr_v4* boot_hdr,
 			ALIGN(boot_info->kernel_size, SZ_64M);
 	boot_info->boot_ramdisk_addr = boot_info->vendor_ramdisk_addr
 		+ boot_info->vendor_ramdisk_size;
+
+	boot_info->vendor_bootconfig_addr = boot_info->boot_ramdisk_addr
+		+ boot_info->boot_ramdisk_size;
 }
 
 static bool _read_in_kernel(struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img,
-		const struct andr_boot_info *boot_info) {
-	lbaint_t kernel_lba = boot_img->start
-		+ BLK_CNT(ANDR_BOOT_IMG_HDR_SIZE, boot_img->blksz);
-	u32 kernel_size_page_aligned =
-		ALIGN(boot_info->kernel_size, ANDR_BOOT_IMG_HDR_SIZE);
+		const struct andr_boot_info *boot_info,
+		const AvbPartitionData *verified_boot_img) {
 
-	long blk_cnt, blks_read;
-	blk_cnt = BLK_CNT(kernel_size_page_aligned, boot_img->blksz);
-	blks_read = blk_dread(dev_desc, kernel_lba, blk_cnt,
-			(void*)boot_info->kernel_addr);
-
-	if(blk_cnt != blks_read) {
-		debug("Reading out %lu blocks containing the kernel."
-				"Expect to read out %lu blks.\n",
-				blks_read, blk_cnt);
-		return false;
+	// kernel is at the block next to the boot header
+	size_t page = boot_info->page_size;
+	size_t offset = ALIGN(ANDR_BOOT_IMG_HDR_SIZE, page);
+	size_t size = ALIGN(boot_info->kernel_size, page);
+	void *laddr = (void*)boot_info->kernel_addr;
+	if (!android_read_data("kernel", dev_desc, boot_img, verified_boot_img,
+			       offset, laddr, size)) {
+	      return false;
 	}
 
 	return true;
@@ -233,26 +290,17 @@ static bool _read_in_kernel(struct blk_desc *dev_desc,
 
 static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 		const struct disk_partition *vendor_boot_img,
-		const struct andr_boot_info *boot_info) {
-	u32 vendor_hdr_size_page_aligned =
-		ALIGN(sizeof(struct vendor_boot_img_hdr_v4),
-			boot_info->page_size);
-	u32 vendor_ramdisk_size_page_aligned =
-		ALIGN(boot_info->vendor_ramdisk_size, boot_info->page_size);
-	lbaint_t ramdisk_lba = vendor_boot_img->start
-		+ BLK_CNT(vendor_hdr_size_page_aligned, vendor_boot_img->blksz);
+		const struct andr_boot_info *boot_info,
+		AvbPartitionData *verified_vendor_boot_img) {
 
-	long blk_cnt, blks_read;
-	blk_cnt = BLK_CNT(vendor_ramdisk_size_page_aligned,
-			vendor_boot_img->blksz);
-	blks_read = blk_dread(dev_desc, ramdisk_lba, blk_cnt,
-			(void*)boot_info->vendor_ramdisk_addr);
-
-	if(blk_cnt != blks_read) {
-		debug("Reading out %lu blocks containing the vendor ramdisk."
-				"Expect to read out %lu blks.\n",
-				blks_read, blk_cnt);
-		return false;
+	// Vendor ramdisk is next to the vendor boot header
+	size_t page = boot_info->page_size;
+	size_t offset = ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page);
+	size_t size = ALIGN(boot_info->vendor_ramdisk_size, page);
+	void *laddr = (void*)boot_info->vendor_ramdisk_addr;
+	if (!android_read_data("vendor ramdisk", dev_desc, vendor_boot_img,
+			       verified_vendor_boot_img, offset, laddr, size)) {
+	      return false;
 	}
 
 	return true;
@@ -263,7 +311,8 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		struct andr_boot_info *boot_info, const char *slot_suffix,
 		const bool normal_boot,
 		struct blk_desc *persistent_dev_desc,
-		const struct disk_partition *device_specific_bootconfig_img) {
+		const struct disk_partition *device_specific_bootconfig_img,
+		const AvbPartitionData *verified_vendor_boot_img) {
 	if (boot_info->vendor_header_version < 4
 		|| boot_info->vendor_bootconfig_size == 0) {
 		/*
@@ -274,31 +323,20 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 	}
 
 	long bootconfig_size = 0;
-	u32 vhdr_size_page_aligned =
-		ALIGN(sizeof(struct vendor_boot_img_hdr_v4), boot_info->page_size);
-	u32 vramdisk_size_page_aligned =
-		ALIGN(boot_info->vendor_ramdisk_size, boot_info->page_size);
-	u32 vdtb_size_page_aligned =
-		ALIGN(boot_info->dtb_size, boot_info->page_size);
-	u32 vramdisk_table_size_page_aligned =
-		ALIGN(boot_info->vendor_ramdisk_table_size, boot_info->page_size);
-	lbaint_t bootconfig_lba = vendor_boot_img->start
-		+ BLK_CNT(vhdr_size_page_aligned, vendor_boot_img->blksz)
-		+ BLK_CNT(vramdisk_size_page_aligned, vendor_boot_img->blksz)
-		+ BLK_CNT(vdtb_size_page_aligned, vendor_boot_img->blksz)
-		+ BLK_CNT(vramdisk_table_size_page_aligned, vendor_boot_img->blksz);
 
-	long blk_cnt, blks_read;
-	blk_cnt =
-		BLK_CNT(boot_info->vendor_bootconfig_size, vendor_boot_img->blksz);
-
-	blks_read = blk_dread(dev_desc, bootconfig_lba, blk_cnt,
-		(void*)(boot_info->boot_ramdisk_addr + boot_info->boot_ramdisk_size));
-	if(blk_cnt != blks_read) {
-		debug("Reading out %lu blocks containing the vendor ramdisk."
-				"Expect to read out %lu blks.\n",
-				blks_read, blk_cnt);
-		return false;
+	// Vendor bootconfig is after vendor boot hader, ramdisk, dtb, and
+	// ramdisk table
+	size_t page = boot_info->page_size;
+	size_t offset =
+		ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page) +
+		ALIGN(boot_info->vendor_ramdisk_size, page) +
+		ALIGN(boot_info->dtb_size, page) +
+		ALIGN(boot_info->vendor_ramdisk_table_size, page);
+	size_t size = boot_info->vendor_bootconfig_size;
+	void *laddr = (void*)(boot_info->vendor_bootconfig_addr);
+	if (!android_read_data("vendor bootconfig", dev_desc, vendor_boot_img,
+			       verified_vendor_boot_img, offset, laddr, size)) {
+	      return false;
 	}
 
 	bootconfig_size += boot_info->vendor_bootconfig_size;
@@ -378,25 +416,18 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 
 static bool _read_in_boot_ramdisk(struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img,
-		const struct andr_boot_info *boot_info) {
-	u32 kernel_size_page_aligned =
+		const struct andr_boot_info *boot_info,
+		const AvbPartitionData *verified_boot_img) {
+
+	// Ramdisk is after the kernel
+	size_t offset =
+		ALIGN(ANDR_BOOT_IMG_HDR_SIZE, ANDR_BOOT_IMG_HDR_SIZE) +
 		ALIGN(boot_info->kernel_size, ANDR_BOOT_IMG_HDR_SIZE);
-	lbaint_t ramdisk_lba = boot_img->start
-		+ BLK_CNT(ANDR_BOOT_IMG_HDR_SIZE, boot_img->blksz)
-		+ BLK_CNT(kernel_size_page_aligned, boot_img->blksz);
-	u32 ramdisk_size_page_aligned =
-		ALIGN(boot_info->boot_ramdisk_size, ANDR_BOOT_IMG_PAGE_SIZE);
-
-	long blk_cnt, blks_read;
-	blk_cnt = BLK_CNT(ramdisk_size_page_aligned, boot_img->blksz);
-	blks_read = blk_dread(dev_desc, ramdisk_lba, blk_cnt,
-			(void*)boot_info->boot_ramdisk_addr);
-
-	if(blk_cnt != blks_read) {
-		debug("Reading out %lu blocks containing the boot ramdisk."
-				"Expect to read out %lu blks.\n",
-				blks_read, blk_cnt);
-		return false;
+	size_t size = ALIGN(boot_info->boot_ramdisk_size, ANDR_BOOT_IMG_PAGE_SIZE);
+	void *laddr = (void*)boot_info->boot_ramdisk_addr;
+	if (!android_read_data("ramdisk", dev_desc, boot_img, verified_boot_img,
+			       offset, laddr, size)) {
+	      return false;
 	}
 
 	return true;
@@ -408,7 +439,9 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			unsigned long load_address, const char *slot_suffix,
 			const bool normal_boot,
 			struct blk_desc *persistent_dev_desc,
-			const struct disk_partition *device_specific_bootconfig_img) {
+			const struct disk_partition *device_specific_bootconfig_img,
+			const AvbPartitionData *verified_boot_img,
+			const AvbPartitionData *verified_vendor_boot_img) {
 	struct boot_img_hdr_v4 *boot_hdr = NULL;
 	struct vendor_boot_img_hdr_v4 *vboot_hdr = NULL;
 	struct andr_boot_info *boot_info = NULL;
@@ -419,9 +452,10 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 		goto image_load_exit;
 	}
 
-	boot_hdr = _extract_boot_image_header(dev_desc, boot_img);
-	vboot_hdr = _extract_vendor_boot_image_header(dev_desc,
-						      vendor_boot_img);
+	boot_hdr = _extract_boot_image_header(dev_desc, boot_img,
+					      verified_boot_img);
+	vboot_hdr = _extract_vendor_boot_image_header(dev_desc, vendor_boot_img,
+						      verified_vendor_boot_img);
 	if(!boot_hdr || !vboot_hdr) {
 		goto image_load_exit;
 	}
@@ -442,11 +476,16 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 	}
 
 	_populate_boot_info(boot_hdr, vboot_hdr, kernel_rd_addr, boot_info);
-	if(!_read_in_kernel(dev_desc, boot_img, boot_info)
-		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img, boot_info)
-		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info)
-		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info, slot_suffix,
-					normal_boot, persistent_dev_desc, device_specific_bootconfig_img)) {
+	if(!_read_in_kernel(dev_desc, boot_img, boot_info, verified_boot_img)
+		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img,
+					    boot_info, verified_vendor_boot_img)
+		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info,
+					  verified_boot_img)
+		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info,
+					slot_suffix, normal_boot,
+					persistent_dev_desc,
+					device_specific_bootconfig_img,
+					verified_vendor_boot_img)) {
 		goto image_load_exit;
 	}
 

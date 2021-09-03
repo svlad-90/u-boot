@@ -8,8 +8,8 @@
 #include <command.h>
 #include <part.h>
 
-static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
-			   char * const argv[])
+static int boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
+			char * const argv[], bool verify)
 {
 	unsigned long load_address;
 	int ret = CMD_RET_SUCCESS;
@@ -56,13 +56,26 @@ static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 	}
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
-	ret = android_bootloader_boot_flow(dev_desc, &part_info, slot,
+	ret = android_bootloader_boot_flow(misc_part_iface, misc_part_desc,
+					   dev_desc, &part_info, slot, verify,
 					   load_address, persistant_dev_desc);
 	if (ret < 0) {
 		printf("Android boot failed, error %d.\n", ret);
 		return CMD_RET_FAILURE;
 	}
 	return CMD_RET_SUCCESS;
+}
+
+static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
+			   char * const argv[]) {
+	bool verify = false;
+	return boot_android(cmdtp, flag, argc, argv, verify);
+}
+
+static int do_verified_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
+				    char * const argv[]) {
+	bool verify = true;
+	return boot_android(cmdtp, flag, argc, argv, verify);
 }
 
 U_BOOT_CMD(
@@ -82,4 +95,9 @@ U_BOOT_CMD(
 	"    - If 'part_name' is passed, preceded with a ; instead of :, the\n"
 	"      partition name whose label is 'part_name' will be looked up in\n"
 	"      the partition table. This is commonly the \"misc\" partition.\n"
+);
+U_BOOT_CMD(
+	verified_boot_android, 5, 0, do_verified_boot_android,
+	"Execute the Android Verified Boot flow. The arguments are the same \n",
+	"as \"boot_android\"."
 );
