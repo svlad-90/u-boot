@@ -5,6 +5,9 @@ CLANG_TRIPLE=aarch64-linux-gnu-
 CROSS_COMPILE=aarch64-linux-androidkernel-
 LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin
 
+# TODO(b/164420327): Builds, but does not boot
+#LD=ld.lld
+
 FILES="u-boot.bin
 System.map
 "
