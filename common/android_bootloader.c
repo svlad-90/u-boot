@@ -15,6 +15,7 @@
 #include <log.h>
 #include <malloc.h>
 #include <part.h>
+#include <avb_verify.h>
 
 #define ANDROID_PARTITION_BOOT "boot"
 #define ANDROID_PARTITION_VENDOR_BOOT "vendor_boot"
@@ -265,7 +266,8 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 				      const char *extra_args,
 				      const bool normal_boot,
 				      const char *android_kernel_cmdline,
-				      const bool bootconfig_used)
+				      const bool bootconfig_used,
+				      const char *avb_cmdline)
 {
 	const char *cmdline_chunks[16];
 	const char **current_chunk = cmdline_chunks;
@@ -313,6 +315,10 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 		*(current_chunk++) = extra_args;
 	}
 
+	if (avb_cmdline) {
+		*(current_chunk++) = avb_cmdline;
+	}
+
 	/* The force_normal_boot param must be passed to android's init sequence
 	 * to avoid booting into recovery mode. This is done through bootconfig when
 	 * supported.
@@ -330,9 +336,109 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 	return cmdline;
 }
 
-int android_bootloader_boot_flow(struct blk_desc *dev_desc,
+static int avb_verify(const char *iface,
+		      const char *devnum,
+		      const char *slot_suffix,
+		      AvbSlotVerifyData **out_data,
+		      const char **out_cmdline)
+{
+	int ret = 0;
+	struct AvbOps *ops;
+	const char * const requested_partitions[] = {"boot", "vendor_boot", NULL};
+	AvbSlotVerifyResult slot_result;
+	char *extra_args;
+	bool unlocked = false;
+
+	ops = avb_ops_alloc(iface, devnum);
+	if (ops == NULL) {
+		 printf("Failed to initialize avb2\n");
+		 goto fail;
+	}
+
+	printf("## Android Verified Boot 2.0 version %s\n",
+	       avb_version_string());
+
+	if (ops->read_is_device_unlocked(ops, &unlocked) !=
+	    AVB_IO_RESULT_OK) {
+		printf("Can't determine device lock state.\n");
+		goto fail;
+	}
+
+	slot_result =
+		avb_slot_verify(ops,
+				requested_partitions,
+				slot_suffix,
+				unlocked,
+				AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE,
+				out_data);
+
+	switch (slot_result) {
+	case AVB_SLOT_VERIFY_RESULT_OK:
+		/* Until we don't have support of changing unlock states, we
+		 * assume that we are by default in locked state.
+		 * So in this case we can boot only when verification is
+		 * successful; we also supply in cmdline GREEN boot state
+		 */
+		printf("Verification passed successfully\n");
+
+		char *extra_args = avb_set_state(ops, AVB_GREEN);
+		if (extra_args) {
+			const char *strings[3];
+			strings[0] = (*out_data)->cmdline;
+			strings[1] = extra_args;
+			strings[2] = NULL;
+			*out_cmdline = strjoin(strings, ' ');
+		} else {
+			*out_cmdline = strdup((*out_data)->cmdline);
+		}
+
+		goto success;
+	case AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION:
+		printf("Verification failed\n");
+		break;
+	case AVB_SLOT_VERIFY_RESULT_ERROR_IO:
+		printf("I/O error occurred during verification\n");
+		break;
+	case AVB_SLOT_VERIFY_RESULT_ERROR_OOM:
+		printf("OOM error occurred during verification\n");
+		break;
+	case AVB_SLOT_VERIFY_RESULT_ERROR_INVALID_METADATA:
+		printf("Corrupted dm-verity metadata detected\n");
+		break;
+	case AVB_SLOT_VERIFY_RESULT_ERROR_UNSUPPORTED_VERSION:
+		printf("Unsupported version avbtool was used\n");
+		break;
+	case AVB_SLOT_VERIFY_RESULT_ERROR_ROLLBACK_INDEX:
+		printf("Checking rollback index failed\n");
+		break;
+	case AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED:
+		printf("Public key was rejected\n");
+		break;
+	default:
+		printf("Unknown error occurred\n");
+	}
+
+fail:
+	ret = 0;
+	goto out;
+
+success:
+	ret = 1;
+	goto out;
+
+out:
+	if (ops != NULL) {
+		avb_ops_free(ops);
+	}
+	return ret;
+}
+
+int android_bootloader_boot_flow(const char* iface_str,
+				 const char* dev_str,
+				 struct blk_desc *dev_desc,
 				 const struct disk_partition *misc_part_info,
 				 const char *slot,
+				 bool verify,
 				 unsigned long kernel_address,
 				 struct blk_desc *persistant_dev_desc)
 {
@@ -343,6 +449,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	char *command_line;
 	char slot_suffix[3];
 	const char *mode_cmdline = NULL;
+	const char *avb_cmdline = NULL;
 	const char *boot_partition = ANDROID_PARTITION_BOOT;
 	const char *vendor_boot_partition = ANDROID_PARTITION_VENDOR_BOOT;
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
@@ -413,6 +520,34 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 #endif
 	}
 
+	/* Run AVB if requested. During the verification, the bits from the
+	 * partitions are loaded by libAVB and are stored in avb_out_data.
+	 * We need to use the verified data and shouldn't read data from the
+	 * disk again.*/
+	AvbSlotVerifyData *avb_out_data = NULL;
+	AvbPartitionData *verified_boot_img = NULL;
+	AvbPartitionData *verified_vendor_boot_img = NULL;
+	if (verify) {
+		if (!avb_verify(iface_str, dev_str, slot_suffix, &avb_out_data,
+				&avb_cmdline)) {
+			goto bail;
+		}
+		for (int i = 0; i < avb_out_data->num_loaded_partitions; i++) {
+			AvbPartitionData *p =
+			    &avb_out_data->loaded_partitions[i];
+			if (strcmp("boot", p->partition_name) == 0) {
+				verified_boot_img = p;
+			}
+			if (strcmp("vendor_boot", p->partition_name) == 0) {
+				verified_vendor_boot_img = p;
+			}
+		}
+		if (verified_boot_img == NULL || verified_vendor_boot_img == NULL) {
+			debug("verified partition not found");
+			goto bail;
+		}
+	}
+
 	/* Load the kernel from the desired "boot" partition. */
 	boot_part_num =
 	    android_part_get_info_by_name_suffix(dev_desc, boot_partition,
@@ -437,7 +572,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	}
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 	if (boot_part_num < 0)
-		return -1;
+		goto bail;
 	debug("ANDROID: Loading kernel from \"%s\", partition %d.\n",
 	      boot_part_info.name, boot_part_num);
 
@@ -448,7 +583,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 						 slot_suffix,
 						 &system_part_info);
 	if (system_part_num < 0)
-		return -1;
+		goto bail;
 	debug("ANDROID: Using system image from \"%s\", partition %d.\n",
 	      system_part_info.name, system_part_num);
 #endif
@@ -465,10 +600,12 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	struct andr_boot_info* boot_info = android_image_load(dev_desc, &boot_part_info,
 				 vendor_boot_part_info_ptr,
 				 kernel_address, slot_suffix, normal_boot,
-				 persistant_dev_desc, bootconfig_part_info_ptr);
+				 persistant_dev_desc, bootconfig_part_info_ptr,
+				 verified_boot_img, verified_vendor_boot_img);
 
 	if (!boot_info)
-		return -1;
+		goto bail;
+
 
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 	/* Set Android root variables. */
@@ -480,12 +617,22 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	/* Assemble the command line */
 	command_line = android_assemble_cmdline(slot_suffix, mode_cmdline, normal_boot,
 							android_image_get_kernel_cmdline(boot_info),
-							android_image_is_bootconfig_used(boot_info));
+							android_image_is_bootconfig_used(boot_info),
+							avb_cmdline);
 	env_set("bootargs", command_line);
 
 	debug("ANDROID: bootargs: \"%s\"\n", command_line);
 	android_bootloader_boot_kernel(boot_info);
 
 	/* TODO: If the kernel doesn't boot mark the selected slot as bad. */
+	goto bail;
+
+bail:
+	if (avb_out_data != NULL) {
+		avb_slot_verify_data_free(avb_out_data);
+	}
+	if (avb_cmdline != NULL) {
+		free(avb_cmdline);
+	}
 	return -1;
 }

@@ -1561,6 +1561,8 @@ void android_print_contents(const struct andr_boot_info *boot_info);
 bool android_image_print_dtb_contents(ulong hdr_addr);
 #endif
 
+#include <avb_verify.h>
+
 /** android_image_load - Load an Android Image from storage.
  *
  * Load an Android Image based on the header size in the storage. Return the
@@ -1577,6 +1579,10 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * @normal_boot:	Force a normal boot and skip recovery if true
  * @persistent_dev_desc:	The device to read persistent data from
  * @device_specific_bootconfig_img:	device specific bootconfig partition
+ * @verified_boot_image: boot partition that is verified. If this is not NULL,
+ * data should be read from here instead of dev_desc.
+ * @verified_vendor_boot_image: vendor_boot partition that is verified. If this
+ * is not NULL, data should be read from here instead of dev_desc
  * @return: android boot info struct pointer
  */
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
@@ -1585,7 +1591,9 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			unsigned long load_address, const char *slot_suffix,
 			const bool normal_boot,
 			struct blk_desc *persistent_dev_desc,
-			const struct disk_partition *device_specific_bootconfig_img);
+			const struct disk_partition *device_specific_bootconfig_img,
+			const AvbPartitionData *verified_boot_img,
+			const AvbPartitionData *verified_vendor_boot_img);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 #endif /* !USE_HOSTCC */
