@@ -1,0 +1,5 @@
+# Use the below line for AVB
+# bootcmd=virtio scan && avb init virtio 0 && avb verify _a && setenv bootargs "$cbootargs $avb_bootargs $bootargs" && boot_android virtio 0 a
+bootcmd=virtio scan && setenv bootargs "$cbootargs $bootargs" && boot_android virtio 0 a
+
+bootdelay=0
