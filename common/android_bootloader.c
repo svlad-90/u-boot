@@ -315,7 +315,7 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 		*(current_chunk++) = extra_args;
 	}
 
-	if (avb_cmdline) {
+	if (avb_cmdline && !bootconfig_used) {
 		*(current_chunk++) = avb_cmdline;
 	}
 
@@ -597,9 +597,25 @@ int android_bootloader_boot_flow(const char* iface_str,
 		       vendor_boot_part_num);
 	}
 
+	char *avb_bootconfig;
+	// convert avb_cmdline into avb_bootconfig by replacing ' ' with '\n'.
+	if (avb_cmdline != NULL) {
+		size_t len = strlen(avb_cmdline);
+		// Why +2? One byte is for the last '\n', one another byte is
+		// for the null terminator
+		size_t newlen = len + 2;
+		avb_bootconfig = (char *)malloc(newlen);
+		strncpy(avb_bootconfig, avb_cmdline, len);
+		for (char *p = avb_bootconfig; *p; p++) {
+			if (*p == ' ') *p = '\n';
+		}
+		avb_bootconfig[len] = '\n';
+		avb_bootconfig[len + 1] = 0;
+	}
+
 	struct andr_boot_info* boot_info = android_image_load(dev_desc, &boot_part_info,
 				 vendor_boot_part_info_ptr,
-				 kernel_address, slot_suffix, normal_boot,
+				 kernel_address, slot_suffix, normal_boot, avb_bootconfig,
 				 persistant_dev_desc, bootconfig_part_info_ptr,
 				 verified_boot_img, verified_vendor_boot_img);
 
@@ -633,6 +649,9 @@ bail:
 	}
 	if (avb_cmdline != NULL) {
 		free(avb_cmdline);
+	}
+	if (avb_bootconfig != NULL) {
+		free(avb_bootconfig);
 	}
 	return -1;
 }
