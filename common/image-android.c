@@ -398,13 +398,20 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 			printf("Failed to read from bootconfig partition\n");
 		}
 
-		ret = addBootConfigParameters(bootconfig_buffer, bootconfig_buffer_size,
+		// blk_dread reads data in block unit (usually 512 bytes). The actual content
+		// is likely to be smaller than the read blocks. Don't copy the entire blocks,
+		// but only the actual content. Otherwise, bootconfig parameters added via
+		// subsequent calls to addBootConfigParameters will be ignored due to null
+		// terminators in the extra bits copied here.
+		size_t real_size = min(bootconfig_buffer_size, strlen(bootconfig_buffer));
+		ret = addBootConfigParameters(bootconfig_buffer, real_size,
 					      bootconfig_start_addr, bootconfig_size);
 		if (ret <= 0) {
 			debug("Failed to apply the persistent bootconfig params\n");
 		} else {
 			bootconfig_size += ret;
 		}
+		free(bootconfig_buffer);
 	}
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 
