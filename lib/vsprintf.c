@@ -768,7 +768,11 @@ int scnprintf(char *buf, size_t size, const char *fmt, ...)
  */
 int vsprintf(char *buf, const char *fmt, va_list args)
 {
-	return vsnprintf_internal(buf, INT_MAX, fmt, args);
+	/* vsnprintf_internal adds size to buf, so use a size that won't
+	 * overflow. */
+	size_t max_size = SIZE_MAX - (size_t)buf;
+
+	return vsnprintf_internal(buf, max_size, fmt, args);
 }
 
 int sprintf(char *buf, const char *fmt, ...)
