@@ -60,7 +60,15 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
 
 void lapic_write(unsigned long reg, unsigned long v)
 {
+#ifdef CONFIG_APIC_ALLOWS_XCHG
 	(void)xchg((volatile unsigned long *)(LAPIC_DEFAULT_BASE + reg), v);
+#else
+	__asm__ __volatile__(
+			"movl    %0, %1"
+			: "=r" (v)
+			: "m" (*(int*)(LAPIC_DEFAULT_BASE + reg)), "r" (v)
+			: "memory");
+#endif
 }
 
 void enable_lapic(void)

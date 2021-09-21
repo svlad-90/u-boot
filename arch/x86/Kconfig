@@ -887,6 +887,14 @@ config APIC
 	  cores. In most cases there are some LAPICs (local) for each core and
 	  one I/O APIC. This conjunction is found on most modern x86 systems.
 
+config APIC_ALLOWS_XCHG
+	bool "Use xchg when writing to APIC registers"
+	default y
+	help
+	  APIC registers are ideally written atomically via the xchg instruction,
+	  but some APIC implementations do not support this behavior and must use
+	  mov instructions instead.
+
 config PINCTRL_ICH6
 	bool
 	help
