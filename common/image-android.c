@@ -116,7 +116,7 @@ static bool android_read_data(const char *name,
 			      void *dest,
 			      size_t size) {
 	if (size > ALIGN(size, part->blksz)) {
-		debug("%s size %ld does align with block boundaries",
+		debug("%s size %zu does align with block boundaries",
 		      name, size);
 		return false;
 	}
@@ -143,7 +143,7 @@ static bool android_read_data(const char *name,
 static struct boot_img_hdr_v4* _extract_boot_image_header(
 		struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img,
-		AvbPartitionData *verified_boot_img) {
+		const AvbPartitionData *verified_boot_img) {
 	long blk_cnt = BLK_CNT(sizeof(struct boot_img_hdr_v4), boot_img->blksz);
 
 	struct boot_img_hdr_v4 *boot_hdr = (struct boot_img_hdr_v4*)
@@ -291,7 +291,7 @@ static bool _read_in_kernel(struct blk_desc *dev_desc,
 static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 		const struct disk_partition *vendor_boot_img,
 		const struct andr_boot_info *boot_info,
-		AvbPartitionData *verified_vendor_boot_img) {
+		const AvbPartitionData *verified_vendor_boot_img) {
 
 	// Vendor ramdisk is next to the vendor boot header
 	size_t page = boot_info->page_size;
@@ -385,7 +385,7 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 #ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
 	if (device_specific_bootconfig_img) {
 		// Add persistent factory information
-		long bootconfig_buffer_size =
+		size_t bootconfig_buffer_size =
 			device_specific_bootconfig_img->size * device_specific_bootconfig_img->blksz;
 		char *bootconfig_buffer = (char*)(malloc(bootconfig_buffer_size));
 		if (!bootconfig_buffer) {

@@ -340,13 +340,12 @@ static int avb_verify(const char *iface,
 		      const char *devnum,
 		      const char *slot_suffix,
 		      AvbSlotVerifyData **out_data,
-		      const char **out_cmdline)
+		      char **out_cmdline)
 {
 	int ret = 0;
 	struct AvbOps *ops;
 	const char * const requested_partitions[] = {"boot", "vendor_boot", NULL};
 	AvbSlotVerifyResult slot_result;
-	char *extra_args;
 	bool unlocked = false;
 
 	ops = avb_ops_alloc(iface, devnum);
@@ -449,7 +448,8 @@ int android_bootloader_boot_flow(const char* iface_str,
 	char *command_line;
 	char slot_suffix[3];
 	const char *mode_cmdline = NULL;
-	const char *avb_cmdline = NULL;
+	char *avb_cmdline = NULL;
+	char *avb_bootconfig = NULL;
 	const char *boot_partition = ANDROID_PARTITION_BOOT;
 	const char *vendor_boot_partition = ANDROID_PARTITION_VENDOR_BOOT;
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
@@ -598,7 +598,6 @@ int android_bootloader_boot_flow(const char* iface_str,
 		       vendor_boot_part_num);
 	}
 
-	char *avb_bootconfig;
 	// convert avb_cmdline into avb_bootconfig by replacing ' ' with '\n'.
 	if (avb_cmdline != NULL) {
 		size_t len = strlen(avb_cmdline);
