@@ -336,96 +336,29 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 	return cmdline;
 }
 
-static int avb_verify(const char *iface,
-		      const char *devnum,
-		      const char *slot_suffix,
-		      AvbSlotVerifyData **out_data,
-		      char **out_cmdline)
+/**
+ * Calls avb_verify() with ops allocated for iface and devnum.
+ *
+ * Returns AvbSlotVerifyData and kernel command line parameters as out arguments and either
+ * CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.
+ */
+static int do_avb_verify(const char *iface,
+		         const char *devnum,
+		         const char *slot_suffix,
+		         AvbSlotVerifyData **out_data,
+		         char **out_cmdline)
 {
-	int ret = 0;
+	int ret = CMD_RET_FAILURE;
 	struct AvbOps *ops;
-	const char * const requested_partitions[] = {"boot", "vendor_boot", NULL};
-	AvbSlotVerifyResult slot_result;
-	bool unlocked = false;
 
 	ops = avb_ops_alloc(iface, devnum);
 	if (ops == NULL) {
 		 printf("Failed to initialize avb2\n");
-		 goto fail;
+		 return CMD_RET_FAILURE;
 	}
 
-	printf("## Android Verified Boot 2.0 version %s\n",
-	       avb_version_string());
+	ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
 
-	if (ops->read_is_device_unlocked(ops, &unlocked) !=
-	    AVB_IO_RESULT_OK) {
-		printf("Can't determine device lock state.\n");
-		goto fail;
-	}
-
-	slot_result =
-		avb_slot_verify(ops,
-				requested_partitions,
-				slot_suffix,
-				unlocked,
-				AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE,
-				out_data);
-
-	switch (slot_result) {
-	case AVB_SLOT_VERIFY_RESULT_OK:
-		/* Until we don't have support of changing unlock states, we
-		 * assume that we are by default in locked state.
-		 * So in this case we can boot only when verification is
-		 * successful; we also supply in cmdline GREEN boot state
-		 */
-		printf("Verification passed successfully\n");
-
-		char *extra_args = avb_set_state(ops, AVB_GREEN);
-		if (extra_args) {
-			const char *strings[3];
-			strings[0] = (*out_data)->cmdline;
-			strings[1] = extra_args;
-			strings[2] = NULL;
-			*out_cmdline = strjoin(strings, ' ');
-		} else {
-			*out_cmdline = strdup((*out_data)->cmdline);
-		}
-
-		goto success;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION:
-		printf("Verification failed\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_IO:
-		printf("I/O error occurred during verification\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_OOM:
-		printf("OOM error occurred during verification\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_INVALID_METADATA:
-		printf("Corrupted dm-verity metadata detected\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_UNSUPPORTED_VERSION:
-		printf("Unsupported version avbtool was used\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_ROLLBACK_INDEX:
-		printf("Checking rollback index failed\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED:
-		printf("Public key was rejected\n");
-		break;
-	default:
-		printf("Unknown error occurred\n");
-	}
-
-fail:
-	ret = 0;
-	goto out;
-
-success:
-	ret = 1;
-	goto out;
-
-out:
 	if (ops != NULL) {
 		avb_ops_free(ops);
 	}
@@ -529,8 +462,8 @@ int android_bootloader_boot_flow(const char* iface_str,
 	AvbPartitionData *verified_boot_img = NULL;
 	AvbPartitionData *verified_vendor_boot_img = NULL;
 	if (verify) {
-		if (!avb_verify(iface_str, dev_str, slot_suffix, &avb_out_data,
-				&avb_cmdline)) {
+		if (do_avb_verify(iface_str, dev_str, slot_suffix, &avb_out_data, &avb_cmdline) ==
+			CMD_RET_FAILURE) {
 			goto bail;
 		}
 		for (int i = 0; i < avb_out_data->num_loaded_partitions; i++) {

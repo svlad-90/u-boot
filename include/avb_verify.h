@@ -10,6 +10,7 @@
 
 #include <../lib/libavb/libavb.h>
 #include <blk.h>
+#include <command.h>
 #include <mapmem.h>
 #include <part.h>
 
@@ -53,7 +54,16 @@ char *avb_set_state(AvbOps *ops, enum avb_boot_state boot_state);
 char *avb_set_enforce_verity(const char *cmdline);
 char *avb_set_ignore_corruption(const char *cmdline);
 
-char *append_cmd_line(char *cmdline_orig, char *cmdline_new);
+/**
+ * Verifies vbmeta, any chained vbmeta, boot, and vendor_boot partitions.
+ *
+ * Returns AvbSlotVerifyData and kernel command line parameters as out arguments and either
+ * CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.
+ */
+int avb_verify(struct AvbOps *ops,
+	       const char *slot_suffix,
+	       AvbSlotVerifyData **out_data,
+	       char **out_cmdline);
 
 /**
  * ============================================================================

@@ -232,14 +232,9 @@ int do_avb_get_uuid(struct cmd_tbl *cmdtp, int flag,
 int do_avb_verify_part(struct cmd_tbl *cmdtp, int flag,
 		       int argc, char *const argv[])
 {
-	const char * const requested_partitions[] = {"boot", NULL};
-	AvbSlotVerifyResult slot_result;
-	AvbSlotVerifyData *out_data;
-	char *cmdline;
-	char *extra_args;
+	AvbSlotVerifyData *out_data = NULL;
+	char *out_cmdline = NULL;
 	char *slot_suffix = "";
-
-	bool unlocked = false;
 	int res = CMD_RET_FAILURE;
 
 	if (!avb_ops) {
@@ -253,69 +248,13 @@ int do_avb_verify_part(struct cmd_tbl *cmdtp, int flag,
 	if (argc == 2)
 		slot_suffix = argv[1];
 
-	printf("## Android Verified Boot 2.0 version %s\n",
-	       avb_version_string());
-
-	if (avb_ops->read_is_device_unlocked(avb_ops, &unlocked) !=
-	    AVB_IO_RESULT_OK) {
-		printf("Can't determine device lock state.\n");
-		return CMD_RET_FAILURE;
-	}
-
-	slot_result =
-		avb_slot_verify(avb_ops,
-				requested_partitions,
-				slot_suffix,
-				unlocked,
-				AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE,
-				&out_data);
-
-	switch (slot_result) {
-	case AVB_SLOT_VERIFY_RESULT_OK:
-		/* Until we don't have support of changing unlock states, we
-		 * assume that we are by default in locked state.
-		 * So in this case we can boot only when verification is
-		 * successful; we also supply in cmdline GREEN boot state
-		 */
-		printf("Verification passed successfully\n");
-
-		/* export additional bootargs to AVB_BOOTARGS env var */
-
-		extra_args = avb_set_state(avb_ops, AVB_GREEN);
-		if (extra_args)
-			cmdline = append_cmd_line(out_data->cmdline,
-						  extra_args);
-		else
-			cmdline = out_data->cmdline;
-
-		env_set(AVB_BOOTARGS, cmdline);
-
+	if (avb_verify(avb_ops, slot_suffix, &out_data, &out_cmdline) == CMD_RET_SUCCESS) {
+		env_set(AVB_BOOTARGS, out_cmdline);
 		res = CMD_RET_SUCCESS;
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION:
-		printf("Verification failed\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_IO:
-		printf("I/O error occurred during verification\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_OOM:
-		printf("OOM error occurred during verification\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_INVALID_METADATA:
-		printf("Corrupted dm-verity metadata detected\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_UNSUPPORTED_VERSION:
-		printf("Unsupported version avbtool was used\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_ROLLBACK_INDEX:
-		printf("Checking rollback index failed\n");
-		break;
-	case AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED:
-		printf("Public key was rejected\n");
-		break;
-	default:
-		printf("Unknown error occurred\n");
 	}
+
+	if (out_cmdline)
+		free(out_cmdline);
 
 	if (out_data)
 		avb_slot_verify_data_free(out_data);
