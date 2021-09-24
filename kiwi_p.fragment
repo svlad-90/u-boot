@@ -1,1 +1,2 @@
+# CONFIG_AVB_IS_UNLOCKED is not set
 CONFIG_AVB_PUBKEY_FILE="kiwi.avbpubkey"
