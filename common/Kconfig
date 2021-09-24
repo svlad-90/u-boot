@@ -636,6 +636,12 @@ config AVB_PUBKEY_FILE
 	  created via `avbtool extract_public_key --key <path_to_private_key>
 	  --out <path_to_public_key>`.
 
+config AVB_IS_UNLOCKED
+	bool "Whether or not AVB is unlocked"
+	help
+	  If a TEE is not used, this options determines whether or not the
+	  bootloader is locked.
+
 endif # AVB_VERIFY
 
 config SCP03

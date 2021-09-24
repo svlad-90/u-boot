@@ -682,7 +682,11 @@ static AvbIOResult read_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
 
 	printf("%s not supported yet\n", __func__);
 
+#ifdef CONFIG_AVB_IS_UNLOCKED
 	*out_is_unlocked = true;
+#else
+	*out_is_unlocked = false;
+#endif
 
 	return AVB_IO_RESULT_OK;
 #else
@@ -955,6 +959,8 @@ int avb_verify(struct AvbOps *ops,
 	const char * const requested_partitions[] = {"boot", "vendor_boot", NULL};
 	AvbSlotVerifyResult slot_result;
 	bool unlocked = false;
+	enum avb_boot_state verified_boot_state = AVB_GREEN;
+	AvbSlotVerifyFlags flags = 0;
 	char *extra_args = NULL;
 
 	if (ops->read_is_device_unlocked(ops, &unlocked) !=
@@ -963,32 +969,26 @@ int avb_verify(struct AvbOps *ops,
 		return CMD_RET_FAILURE;
 	}
 
+	if (unlocked) {
+		verified_boot_state = AVB_ORANGE;
+		flags |= AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR;
+	}
+
 	slot_result =
 		avb_slot_verify(ops,
 				requested_partitions,
 				slot_suffix,
-				unlocked,
+				flags,
 				AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE,
 				out_data);
 
 	switch (slot_result) {
 	case AVB_SLOT_VERIFY_RESULT_OK:
-		/* Until we don't have support of changing unlock states, we
-		 * assume that we are by default in locked state.
-		 * So in this case we can boot only when verification is
-		 * successful; we also supply in cmdline GREEN boot state
-		 */
 		printf("Verification passed successfully\n");
-		extra_args = avb_set_state(ops, AVB_GREEN);
-		if (extra_args) {
-			*out_cmdline = append_cmd_line((*out_data)->cmdline, extra_args);
-		} else {
-			*out_cmdline = strdup((*out_data)->cmdline);
-		}
-		return CMD_RET_SUCCESS;
+		goto success;
 	case AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION:
 		printf("Verification failed\n");
-		break;
+		goto success_if_unlocked;
 	case AVB_SLOT_VERIFY_RESULT_ERROR_IO:
 		printf("I/O error occurred during verification\n");
 		break;
@@ -1003,13 +1003,27 @@ int avb_verify(struct AvbOps *ops,
 		break;
 	case AVB_SLOT_VERIFY_RESULT_ERROR_ROLLBACK_INDEX:
 		printf("Checking rollback index failed\n");
-		break;
+		goto success_if_unlocked;
 	case AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED:
 		printf("Public key was rejected\n");
-		break;
+		goto success_if_unlocked;
 	default:
 		printf("Unknown error occurred\n");
 	}
 
 	return CMD_RET_FAILURE;
+
+success_if_unlocked:
+	if (!unlocked) {
+		return CMD_RET_FAILURE;
+	}
+	printf("Returning Verification success due to unlocked bootloader\n");
+success:
+	extra_args = avb_set_state(ops, verified_boot_state);
+	if (extra_args) {
+		*out_cmdline = append_cmd_line((*out_data)->cmdline, extra_args);
+	} else {
+		*out_cmdline = strdup((*out_data)->cmdline);
+	}
+	return CMD_RET_SUCCESS;
 }
