@@ -343,18 +343,30 @@ static char *android_assemble_cmdline(const char *slot_suffix,
  * CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.
  */
 static int do_avb_verify(const char *iface,
-		         const char *devnum,
+		         const char *devstr,
 		         const char *slot_suffix,
 		         AvbSlotVerifyData **out_data,
 		         char **out_cmdline)
 {
 	int ret = CMD_RET_FAILURE;
 	struct AvbOps *ops;
+	char *devnum = strdup(devstr);
+	char *hash_char = NULL;
+
+	if (devnum == NULL) {
+		 printf("OOM when copying devstr\n");
+		 return CMD_RET_FAILURE;
+	}
+
+	hash_char = strchr(devnum, '#');
+	if (hash_char != NULL) {
+		*hash_char = '\0';
+	}
 
 	ops = avb_ops_alloc(iface, devnum);
 	if (ops == NULL) {
 		 printf("Failed to initialize avb2\n");
-		 return CMD_RET_FAILURE;
+		 goto out;
 	}
 
 	ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
@@ -362,6 +374,9 @@ static int do_avb_verify(const char *iface,
 	if (ops != NULL) {
 		avb_ops_free(ops);
 	}
+
+out:
+	free(devnum);
 	return ret;
 }
 
