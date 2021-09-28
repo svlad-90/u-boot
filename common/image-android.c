@@ -368,8 +368,9 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 	} else {
 		bootconfig_size += ret;
 	}
+#ifdef CONFIG_ANDROID_USES_RECOVERY_AS_BOOT
 	/* The force_normal_boot param must be passed to android's init sequence
-	 * to avoid booting into recovery mode.
+	 * to avoid booting into recovery mode when using recovery as boot.
 	 * Refer to link below under "Early Init Boot Sequence"
 	 * https://source.android.com/devices/architecture/kernel/mounting-partitions-early
 	 */
@@ -382,6 +383,7 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 			bootconfig_size += ret;
 		}
 	}
+#endif
 #ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
 	if (device_specific_bootconfig_img) {
 		// Add persistent factory information

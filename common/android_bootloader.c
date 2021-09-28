@@ -319,15 +319,17 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 		*(current_chunk++) = avb_cmdline;
 	}
 
+#ifdef CONFIG_ANDROID_USES_RECOVERY_AS_BOOT
 	/* The force_normal_boot param must be passed to android's init sequence
-	 * to avoid booting into recovery mode. This is done through bootconfig when
-	 * supported.
+	 * to avoid booting into recovery mode when using recovery as boot.
+	 * This is done through bootconfig when supported.
 	 * Refer to link below under "Early Init Boot Sequence"
 	 * https://source.android.com/devices/architecture/kernel/mounting-partitions-early
 	 */
 	if (normal_boot && !bootconfig_used) {
 		*(current_chunk++) = ANDROID_NORMAL_BOOT;
 	}
+#endif
 
 	*(current_chunk++) = NULL;
 	cmdline = strjoin(cmdline_chunks, ' ');
