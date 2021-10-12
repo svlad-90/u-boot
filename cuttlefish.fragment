@@ -44,3 +44,6 @@ CONFIG_CMD_BOOTEFI=y
 
 # Support bootconfig with libxbc
 CONFIG_XBC=y
+
+# Support examining device model state
+CONFIG_CMD_DM=y
