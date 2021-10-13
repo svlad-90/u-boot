@@ -70,6 +70,15 @@ config LIB_BORINGSSL
 config LIB_UUID
 	bool
 
+config LIB_OPENDICE
+	bool "Enable AOSP library: Open Profile for DICE"
+	default n
+
+config LIB_OPENDICE_CONFIG
+	string "Name of Open Profile for DICE library configuration"
+	default "boringssl_ed25519"
+	depends on LIB_OPENDICE
+
 config PRINTF
 	bool
 	default y

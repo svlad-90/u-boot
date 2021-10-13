@@ -79,6 +79,7 @@ obj-$(CONFIG_$(SPL_)LIB_RATIONAL) += rational.o
 
 obj-$(CONFIG_LIB_BORINGSSL) += boringssl/
 obj-$(CONFIG_LIBAVB) += libavb/
+obj-$(CONFIG_LIB_OPENDICE) += open-dice/
 
 obj-$(CONFIG_XBC) += libxbc/
 
