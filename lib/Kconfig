@@ -63,6 +63,10 @@ config HAVE_ARCH_IOMAP
 config HAVE_PRIVATE_LIBGCC
 	bool
 
+config LIB_BORINGSSL
+	bool "Enable AOSP library: BoringSSL"
+	default n
+
 config LIB_UUID
 	bool
 
