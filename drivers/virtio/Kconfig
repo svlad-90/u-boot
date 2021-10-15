@@ -60,6 +60,14 @@ config VIRTIO_BLK
 	  This is the virtual block driver for virtio. It can be used with
 	  QEMU based targets.
 
+config VIRTIO_CONSOLE
+	bool "virtio console driver"
+	depends on VIRTIO
+	default y
+	help
+	  This is the virtual console driver for virtio. It can be used
+	  with QEMU based targets.
+
 config VIRTIO_RNG
 	bool "virtio rng driver"
 	depends on DM_RNG
