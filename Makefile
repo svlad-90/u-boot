@@ -2084,6 +2084,11 @@ CLEAN_FILES += include/bmp_logo.h include/bmp_logo_data.h tools/version.h \
 	       lpc32xx-* bl31.c bl31.elf bl31_*.bin image.map tispl.bin* \
 	       idbloader.img flash.bin flash.log defconfig keep-syms-lto.c
 
+# ANDROID: bl31.elf was checked into Git so it isn't an artifact that needs rm
+ifneq (,$(shell grep '^!bl31.elf$$' "$(srctree)/.gitignore"))
+  CLEAN_FILES := $(filter-out bl31.elf,$(CLEAN_FILES))
+endif
+
 # Directories & files removed with 'make mrproper'
 MRPROPER_DIRS  += include/config include/generated spl tpl \
 		  .tmp_objdiff doc/output
