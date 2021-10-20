@@ -82,6 +82,7 @@
 # CONFIG_SYS_MALLOC_F_LEN is not set
 # CONFIG_SYS_RELOC_GD_ENV_ADDR is not set
 # CONFIG_SYS_WHITE_ON_BLACK is not set
+# CONFIG_TOOLS_LIBCRYPTO is not set
 # CONFIG_USB is not set
 # CONFIG_USB_EHCI_HCD is not set
 # CONFIG_USB_EHCI_PCI is not set
