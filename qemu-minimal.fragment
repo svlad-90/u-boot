@@ -64,6 +64,7 @@
 # CONFIG_FRAMEBUFFER_SET_VESA_MODE is not set
 # CONFIG_FRAMEBUFFER_VESA_MODE is not set
 # CONFIG_FRAMEBUFFER_VESA_MODE_USER is not set
+# CONFIG_I2C is not set
 # CONFIG_INPUT is not set
 # CONFIG_LEGACY_IMAGE_FORMAT is not set
 # CONFIG_MAC_PARTITION is not set
@@ -111,3 +112,6 @@ CONFIG_SYS_CONSOLE_INFO_QUIET=y
 
 # Enable kernel cmdline to be passed in from VM manager
 CONFIG_ARCH_MISC_INIT=y
+
+# Enable block support which is no longer implied after the minimal fragment
+CONFIG_BLK=y
