@@ -51,7 +51,7 @@
 # CONFIG_DM_USB is not set
 # CONFIG_DM_VIDEO is not set
 # CONFIG_E1000 is not set
-# CONFIG_ENV_ADDR it not set
+# CONFIG_ENV_ADDR is not set
 # CONFIG_ENV_IS_IN_FLASH is not set
 # CONFIG_ENV_OVERWRITE is not set
 # CONFIG_ENV_SECT_SIZE is not set
