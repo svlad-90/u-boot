@@ -347,6 +347,7 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 static int do_avb_verify(const char *iface,
 		         const char *devstr,
 		         const char *slot_suffix,
+		         const char *requested_partitions[],
 		         AvbSlotVerifyData **out_data,
 		         char **out_cmdline)
 {
@@ -371,7 +372,12 @@ static int do_avb_verify(const char *iface,
 		 goto out;
 	}
 
-	ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
+	if (requested_partitions == NULL) {
+		ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
+	} else {
+		ret = avb_verify_partitions(ops, slot_suffix, requested_partitions, out_data,
+					    out_cmdline);
+	}
 
 	if (ops != NULL) {
 		avb_ops_free(ops);
@@ -477,9 +483,10 @@ int android_bootloader_boot_flow(const char* iface_str,
 	AvbSlotVerifyData *avb_out_data = NULL;
 	AvbPartitionData *verified_boot_img = NULL;
 	AvbPartitionData *verified_vendor_boot_img = NULL;
+
 	if (verify) {
-		if (do_avb_verify(iface_str, dev_str, slot_suffix, &avb_out_data, &avb_cmdline) ==
-			CMD_RET_FAILURE) {
+		if (do_avb_verify(iface_str, dev_str, slot_suffix, NULL, &avb_out_data,
+				  &avb_cmdline) == CMD_RET_FAILURE) {
 			goto bail;
 		}
 		for (int i = 0; i < avb_out_data->num_loaded_partitions; i++) {
@@ -498,16 +505,13 @@ int android_bootloader_boot_flow(const char* iface_str,
 		}
 	}
 
-	/* Load the kernel from the desired "boot" partition. */
-	boot_part_num =
-	    android_part_get_info_by_name_suffix(dev_desc, boot_partition,
-						 slot_suffix, &boot_part_info);
-	/* Load the vendor boot partition if there is one. */
-	vendor_boot_part_num =
-	    android_part_get_info_by_name_suffix(dev_desc, vendor_boot_partition,
-						 slot_suffix,
-						 &vendor_boot_part_info);
+	// Load device-specific bootconfig if there is any.
+	// CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE and ANDROID_PARTITION_BOOTCONFIG specify the
+	// disk number and the partition name where the bootconfig is. If the bootloader is locked,
+	// the bootconfig is verified using AVB and the verification failure stops the booting.
 	struct disk_partition *bootconfig_part_info_ptr = NULL;
+	AvbSlotVerifyData *avb_out_bootconfig_data = NULL;
+	AvbPartitionData *verified_bootconfig_img = NULL;
 #ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
 	struct disk_partition bootconfig_part_info;
 	const char *bootconfig_partition = ANDROID_PARTITION_BOOTCONFIG;
@@ -520,7 +524,41 @@ int android_bootloader_boot_flow(const char* iface_str,
 	} else {
 		bootconfig_part_info_ptr = &bootconfig_part_info;
 	}
+#ifndef CONFIG_AVB_IS_UNLOCKED
+	if (bootconfig_part_info_ptr != NULL && verify) {
+		char devnum_str[3];
+		sprintf(devnum_str, "%d", persistant_dev_desc->devnum);
+		const char *slot_suffix = NULL;
+		const char *requested_partitions[] = {ANDROID_PARTITION_BOOTCONFIG, NULL};
+		if (do_avb_verify(iface_str, devnum_str, slot_suffix, requested_partitions,
+				  &avb_out_bootconfig_data, NULL) == CMD_RET_FAILURE) {
+			log_err("Failed to verify bootconfig.\n");
+			goto bail;
+		}
+		for (int i = 0; i < avb_out_bootconfig_data->num_loaded_partitions; i++) {
+			AvbPartitionData *p =
+			    &avb_out_bootconfig_data->loaded_partitions[i];
+			if (strcmp(ANDROID_PARTITION_BOOTCONFIG, p->partition_name) == 0) {
+				verified_bootconfig_img = p;
+			}
+		}
+		if (verified_bootconfig_img == NULL) {
+			log_err("Failed to load bootconfig.\n");
+			goto bail;
+		}
+	}
+#endif /* !CONFIG_AVB_IS_UNLOCKED */
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
+
+	/* Load the kernel from the desired "boot" partition. */
+	boot_part_num =
+	    android_part_get_info_by_name_suffix(dev_desc, boot_partition,
+						 slot_suffix, &boot_part_info);
+	/* Load the vendor boot partition if there is one. */
+	vendor_boot_part_num =
+	    android_part_get_info_by_name_suffix(dev_desc, vendor_boot_partition,
+						 slot_suffix,
+						 &vendor_boot_part_info);
 	if (boot_part_num < 0)
 		goto bail;
 	debug("ANDROID: Loading kernel from \"%s\", partition %d.\n",
@@ -566,7 +604,8 @@ int android_bootloader_boot_flow(const char* iface_str,
 				 vendor_boot_part_info_ptr,
 				 kernel_address, slot_suffix, normal_boot, avb_bootconfig,
 				 persistant_dev_desc, bootconfig_part_info_ptr,
-				 verified_boot_img, verified_vendor_boot_img);
+				 verified_boot_img, verified_vendor_boot_img,
+				 verified_bootconfig_img);
 
 	if (!boot_info)
 		goto bail;
@@ -601,6 +640,9 @@ bail:
 	}
 	if (avb_bootconfig != NULL) {
 		free(avb_bootconfig);
+	}
+	if (avb_out_bootconfig_data != NULL) {
+		avb_slot_verify_data_free(avb_out_bootconfig_data);
 	}
 	return -1;
 }

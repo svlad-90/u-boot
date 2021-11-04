@@ -957,6 +957,15 @@ int avb_verify(struct AvbOps *ops,
 	       char **out_cmdline)
 {
 	const char * const requested_partitions[] = {"boot", "vendor_boot", NULL};
+	return avb_verify_partitions(ops, slot_suffix, requested_partitions, out_data, out_cmdline);
+}
+
+int avb_verify_partitions(struct AvbOps *ops,
+	       const char *slot_suffix,
+	       const char *requested_partitions[],
+	       AvbSlotVerifyData **out_data,
+	       char **out_cmdline)
+{
 	AvbSlotVerifyResult slot_result;
 	bool unlocked = false;
 	enum avb_boot_state verified_boot_state = AVB_GREEN;

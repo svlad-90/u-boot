@@ -55,7 +55,19 @@ char *avb_set_enforce_verity(const char *cmdline);
 char *avb_set_ignore_corruption(const char *cmdline);
 
 /**
- * Verifies vbmeta, any chained vbmeta, boot, and vendor_boot partitions.
+ * Verify the requested partitions
+ *
+ * Returns AvbSlotVerifyData and kernel command line parameters as out arguments and either
+ * CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.
+ */
+int avb_verify_partitions(struct AvbOps *ops,
+	       const char *slot_suffix,
+	       const char *requested_partitions[],
+	       AvbSlotVerifyData **out_data,
+	       char **out_cmdline);
+
+/**
+ * Verify vbmeta, any chained vbmeta, boot, and vendor_boot partitions
  *
  * Returns AvbSlotVerifyData and kernel command line parameters as out arguments and either
  * CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.

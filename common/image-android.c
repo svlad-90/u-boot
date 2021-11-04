@@ -313,6 +313,7 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		const char *avb_bootconfig,
 		struct blk_desc *persistent_dev_desc,
 		const struct disk_partition *device_specific_bootconfig_img,
+		const AvbPartitionData *verified_bootconfig_img,
 		const AvbPartitionData *verified_vendor_boot_img) {
 	if (boot_info->vendor_header_version < 4
 		|| boot_info->vendor_bootconfig_size == 0) {
@@ -389,15 +390,23 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		// Add persistent factory information
 		size_t bootconfig_buffer_size =
 			device_specific_bootconfig_img->size * device_specific_bootconfig_img->blksz;
+		if (verified_bootconfig_img != NULL) {
+			bootconfig_buffer_size = verified_bootconfig_img->data_size;
+		}
 		char *bootconfig_buffer = (char*)(malloc(bootconfig_buffer_size));
 		if (!bootconfig_buffer) {
 	  		printf("Failed to allocate memory for bootconfig_buffer.\n");
 			return false;
 		}
-		if (blk_dread(persistent_dev_desc, device_specific_bootconfig_img->start,
-				device_specific_bootconfig_img->size,
-				bootconfig_buffer) != device_specific_bootconfig_img->size) {
-			printf("Failed to read from bootconfig partition\n");
+		size_t offset = 0;
+		size_t size = bootconfig_buffer_size;
+		void *laddr = bootconfig_buffer;
+		if (!android_read_data("device specific bootconfig",
+				       persistent_dev_desc, device_specific_bootconfig_img,
+				       verified_bootconfig_img,
+				       offset, laddr, size)) {
+			free(bootconfig_buffer);
+			return NULL;
 		}
 
 		// blk_dread reads data in block unit (usually 512 bytes). The actual content
@@ -461,7 +470,8 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			struct blk_desc *persistent_dev_desc,
 			const struct disk_partition *device_specific_bootconfig_img,
 			const AvbPartitionData *verified_boot_img,
-			const AvbPartitionData *verified_vendor_boot_img) {
+			const AvbPartitionData *verified_vendor_boot_img,
+			const AvbPartitionData *verified_bootconfig_img) {
 	struct boot_img_hdr_v4 *boot_hdr = NULL;
 	struct vendor_boot_img_hdr_v4 *vboot_hdr = NULL;
 	struct andr_boot_info *boot_info = NULL;
@@ -505,6 +515,7 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 					slot_suffix, normal_boot, avb_bootconfig,
 					persistent_dev_desc,
 					device_specific_bootconfig_img,
+					verified_bootconfig_img,
 					verified_vendor_boot_img)) {
 		goto image_load_exit;
 	}

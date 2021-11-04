@@ -1531,6 +1531,8 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * data should be read from here instead of dev_desc.
  * @verified_vendor_boot_image: vendor_boot partition that is verified. If this
  * is not NULL, data should be read from here instead of dev_desc
+ * @verified_bootconfig_image: bootconfig partition that is verified. If this is
+ * not NULL, data should be read from here instead of dev_desc
  * @return: android boot info struct pointer
  */
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
@@ -1542,7 +1544,8 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			struct blk_desc *persistent_dev_desc,
 			const struct disk_partition *device_specific_bootconfig_img,
 			const AvbPartitionData *verified_boot_img,
-			const AvbPartitionData *verified_vendor_boot_img);
+			const AvbPartitionData *verified_vendor_boot_img,
+			const AvbPartitionData *verified_bootconfig_img);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 #endif /* !USE_HOSTCC */
