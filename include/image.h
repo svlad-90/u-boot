@@ -1517,8 +1517,10 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * Android Image as described in the header size. In case of error reading the
  * image, NULL is returned.
  * @dev_desc:		The device where to read the image from
- * @boot_img_info:	The partition in |dev_desc| to read the kernel and init
- * @device_info:	The partition in |dev_desc| to read device specific
+ * @boot_img_info:	The partition in |dev_desc| to read the kernel and
+ * optionally init
+ * @vendor_boot_info:	The partition in |dev_desc| to read vendor specific
+ * @init_boot_info: The partition in |dev_desc| to read init
  * 			content from. This partition is not expected on devices
  * 			with android boot images version 1 and 2.
  * @load_address:	The address where the image will be loaded
@@ -1533,11 +1535,14 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
  * is not NULL, data should be read from here instead of dev_desc
  * @verified_bootconfig_image: bootconfig partition that is verified. If this is
  * not NULL, data should be read from here instead of dev_desc
+ * @verified_init_boot_image: init_boot partition that is verified. If this is not NULL,
+ * data should be read from here instead of dev_desc.
  * @return: android boot info struct pointer
  */
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img_info,
-			const struct disk_partition *device_info,
+			const struct disk_partition *vendor_boot_info,
+			const struct disk_partition *init_boot_img_info,
 			unsigned long load_address, const char *slot_suffix,
 			const bool normal_boot,
 			const char *avb_bootconfig,
@@ -1545,7 +1550,8 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *device_specific_bootconfig_img,
 			const AvbPartitionData *verified_boot_img,
 			const AvbPartitionData *verified_vendor_boot_img,
-			const AvbPartitionData *verified_bootconfig_img);
+			const AvbPartitionData *verified_bootconfig_img,
+			const AvbPartitionData *verified_init_boot_img);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 #endif /* !USE_HOSTCC */

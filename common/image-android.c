@@ -88,7 +88,9 @@ bool android_image_is_bootconfig_used(const struct andr_boot_info *boot_info) {
 static bool android_read_from_avb_partition(const AvbPartitionData *part,
 				    size_t offset, void *dest, size_t size) {
 	if (offset + size > part->data_size) {
-		debug("attempted to read past the partition boundary");
+		debug("Attempted to read past the %s partition boundary. "
+			"Offset: %d, read size: %d, partition size: %d\n",
+			part->partition_name, offset, size, part->data_size);
 		return false;
 	}
 	memcpy(dest, part->data + offset, size);
@@ -223,10 +225,11 @@ static struct vendor_boot_img_hdr_v4* _extract_vendor_boot_image_header(
 
 static void _populate_boot_info(const struct boot_img_hdr_v4* boot_hdr,
 		const struct vendor_boot_img_hdr_v4* vboot_hdr,
+		const struct boot_img_hdr_v4* init_boot_hdr,
 		const void* load_addr,
 		struct andr_boot_info *boot_info) {
 	boot_info->kernel_size = boot_hdr->kernel_size;
-	boot_info->boot_ramdisk_size = boot_hdr->ramdisk_size;
+	boot_info->boot_ramdisk_size = init_boot_hdr->ramdisk_size ? : boot_hdr->ramdisk_size;
 	boot_info->boot_header_version = boot_hdr->header_version;
 	boot_info->vendor_ramdisk_size = vboot_hdr->vendor_ramdisk_size;
 	boot_info->tags_addr = vboot_hdr->tags_addr;
@@ -442,15 +445,16 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 	return true;
 }
 
-static bool _read_in_boot_ramdisk(struct blk_desc *dev_desc,
+static bool _read_in_ramdisk(struct blk_desc *dev_desc,
 		const struct disk_partition *boot_img,
 		const struct andr_boot_info *boot_info,
-		const AvbPartitionData *verified_boot_img) {
+		const AvbPartitionData *verified_boot_img,
+		size_t aligned_kernel_offset) {
 
 	// Ramdisk is after the kernel
 	size_t offset =
 		ALIGN(ANDR_BOOT_IMG_HDR_SIZE, ANDR_BOOT_IMG_HDR_SIZE) +
-		ALIGN(boot_info->kernel_size, ANDR_BOOT_IMG_HDR_SIZE);
+		aligned_kernel_offset;
 	size_t size = ALIGN(boot_info->boot_ramdisk_size, ANDR_BOOT_IMG_PAGE_SIZE);
 	void *laddr = (void*)boot_info->boot_ramdisk_addr;
 	if (!android_read_data("ramdisk", dev_desc, boot_img, verified_boot_img,
@@ -461,9 +465,31 @@ static bool _read_in_boot_ramdisk(struct blk_desc *dev_desc,
 	return true;
 }
 
+static bool _read_in_boot_ramdisk(struct blk_desc *dev_desc,
+		const struct disk_partition *boot_img,
+		const struct andr_boot_info *boot_info,
+		const AvbPartitionData *verified_boot_img) {
+
+	// Ramdisk is after the kernel
+	size_t aligned_kernel_offset =
+		ALIGN(boot_info->kernel_size, ANDR_BOOT_IMG_HDR_SIZE);
+	return _read_in_ramdisk(dev_desc, boot_img, boot_info, verified_boot_img,
+							aligned_kernel_offset);
+}
+
+static bool _read_in_init_boot_ramdisk(struct blk_desc *dev_desc,
+		const struct disk_partition *boot_img,
+		const struct andr_boot_info *boot_info,
+		const AvbPartitionData *verified_boot_img) {
+	// init_boot does not contain a kernel
+	return _read_in_ramdisk(dev_desc, boot_img, boot_info, verified_boot_img,
+							/* aligned_kernel_offset */ 0);
+}
+
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img,
 			const struct disk_partition *vendor_boot_img,
+			const struct disk_partition *init_boot_img,
 			unsigned long load_address, const char *slot_suffix,
 			const bool normal_boot,
 			const char *avb_bootconfig,
@@ -471,8 +497,10 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *device_specific_bootconfig_img,
 			const AvbPartitionData *verified_boot_img,
 			const AvbPartitionData *verified_vendor_boot_img,
-			const AvbPartitionData *verified_bootconfig_img) {
+			const AvbPartitionData *verified_bootconfig_img,
+			const AvbPartitionData *verified_init_boot_img) {
 	struct boot_img_hdr_v4 *boot_hdr = NULL;
+	struct boot_img_hdr_v4 *init_boot_hdr = NULL;
 	struct vendor_boot_img_hdr_v4 *vboot_hdr = NULL;
 	struct andr_boot_info *boot_info = NULL;
 	void *kernel_rd_addr = NULL;
@@ -481,13 +509,21 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 		debug("Android Image load inputs are invalid.\n");
 		goto image_load_exit;
 	}
+	if(!init_boot_img) {
+		debug("Failed to find init_boot partition.\n");
+	}
 
 	boot_hdr = _extract_boot_image_header(dev_desc, boot_img,
 					      verified_boot_img);
+	init_boot_hdr = _extract_boot_image_header(dev_desc, init_boot_img,
+					      verified_init_boot_img);
 	vboot_hdr = _extract_vendor_boot_image_header(dev_desc, vendor_boot_img,
 						      verified_vendor_boot_img);
 	if(!boot_hdr || !vboot_hdr) {
 		goto image_load_exit;
+	}
+	if(!init_boot_hdr) {
+		debug("Failed to extract init_boot boot header.\n");
 	}
 
 	boot_info = (struct andr_boot_info*)malloc(sizeof(struct andr_boot_info));
@@ -505,12 +541,14 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 		goto image_load_exit;
 	}
 
-	_populate_boot_info(boot_hdr, vboot_hdr, kernel_rd_addr, boot_info);
+	_populate_boot_info(boot_hdr, vboot_hdr, init_boot_hdr, kernel_rd_addr, boot_info);
 	if(!_read_in_kernel(dev_desc, boot_img, boot_info, verified_boot_img)
 		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img,
 					    boot_info, verified_vendor_boot_img)
-		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info,
-					  verified_boot_img)
+		|| !(_read_in_init_boot_ramdisk(dev_desc, init_boot_img, boot_info,
+					  verified_init_boot_img) ||
+			 _read_in_boot_ramdisk(dev_desc, boot_img, boot_info,
+					  verified_boot_img))
 		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info,
 					slot_suffix, normal_boot, avb_bootconfig,
 					persistent_dev_desc,

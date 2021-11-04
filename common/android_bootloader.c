@@ -26,6 +26,7 @@
 #define ANDROID_PARTITION_RECOVERY "recovery"
 #define ANDROID_PARTITION_SYSTEM "system"
 #define ANDROID_PARTITION_BOOTCONFIG "bootconfig"
+#define ANDROID_PARTITION_INIT_BOOT "init_boot"
 
 #define ANDROID_ARG_SLOT_SUFFIX "androidboot.slot_suffix="
 #define ANDROID_ARG_ROOT "root="
@@ -404,7 +405,8 @@ int android_bootloader_boot_flow(const char* iface_str,
 	enum android_boot_mode mode;
 	struct disk_partition boot_part_info;
 	struct disk_partition vendor_boot_part_info;
-	int boot_part_num, vendor_boot_part_num;
+	struct disk_partition init_boot_part_info;
+	int boot_part_num, vendor_boot_part_num, init_boot_part_num;
 	char *command_line;
 	char slot_suffix[3];
 	const char *mode_cmdline = NULL;
@@ -412,6 +414,7 @@ int android_bootloader_boot_flow(const char* iface_str,
 	char *avb_bootconfig = NULL;
 	const char *boot_partition = ANDROID_PARTITION_BOOT;
 	const char *vendor_boot_partition = ANDROID_PARTITION_VENDOR_BOOT;
+	const char *init_boot_partition = ANDROID_PARTITION_INIT_BOOT;
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 	int system_part_num
 	struct disk_partition system_part_info;
@@ -486,6 +489,7 @@ int android_bootloader_boot_flow(const char* iface_str,
 	 * disk again.*/
 	AvbSlotVerifyData *avb_out_data = NULL;
 	AvbPartitionData *verified_boot_img = NULL;
+	AvbPartitionData *verified_init_boot_img = NULL;
 	AvbPartitionData *verified_vendor_boot_img = NULL;
 	AvbSlotVerifyData *avb_out_bootconfig_data = NULL;
 	AvbPartitionData *verified_bootconfig_img = NULL;
@@ -498,14 +502,18 @@ int android_bootloader_boot_flow(const char* iface_str,
 		for (int i = 0; i < avb_out_data->num_loaded_partitions; i++) {
 			AvbPartitionData *p =
 			    &avb_out_data->loaded_partitions[i];
-			if (strcmp("boot", p->partition_name) == 0) {
+			if (strcmp(ANDROID_PARTITION_BOOT, p->partition_name) == 0) {
 				verified_boot_img = p;
 			}
-			if (strcmp("vendor_boot", p->partition_name) == 0) {
+			if (strcmp(ANDROID_PARTITION_INIT_BOOT, p->partition_name) == 0) {
+				verified_init_boot_img = p;
+			}
+			if (strcmp(ANDROID_PARTITION_VENDOR_BOOT, p->partition_name) == 0) {
 				verified_vendor_boot_img = p;
 			}
 		}
-		if (verified_boot_img == NULL || verified_vendor_boot_img == NULL) {
+		if (verified_boot_img == NULL || verified_vendor_boot_img == NULL ||
+				verified_init_boot_img == NULL) {
 			debug("verified partition not found");
 			goto bail;
 		}
@@ -574,15 +582,24 @@ int android_bootloader_boot_flow(const char* iface_str,
 	boot_part_num =
 	    android_part_get_info_by_name_suffix(dev_desc, boot_partition,
 						 slot_suffix, &boot_part_info);
+	init_boot_part_num =
+	    android_part_get_info_by_name_suffix(dev_desc, init_boot_partition,
+						 slot_suffix, &init_boot_part_info);
 	/* Load the vendor boot partition if there is one. */
 	vendor_boot_part_num =
 	    android_part_get_info_by_name_suffix(dev_desc, vendor_boot_partition,
 						 slot_suffix,
 						 &vendor_boot_part_info);
+	if (init_boot_part_num < 0) {
+		log_err("Failed to find init_boot partition");
+		goto bail;
+	}
+	debug("ANDROID: Loading ramdisk from \"%s\", partition %d.\n",
+		init_boot_part_info.name, init_boot_part_num);
 	if (boot_part_num < 0)
 		goto bail;
 	debug("ANDROID: Loading kernel from \"%s\", partition %d.\n",
-	      boot_part_info.name, boot_part_num);
+		boot_part_info.name, boot_part_num);
 
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT
 	system_part_num =
@@ -621,11 +638,12 @@ int android_bootloader_boot_flow(const char* iface_str,
 	}
 
 	struct andr_boot_info* boot_info = android_image_load(dev_desc, &boot_part_info,
-				 vendor_boot_part_info_ptr,
-				 kernel_address, slot_suffix, normal_boot, avb_bootconfig,
-				 persistant_dev_desc, bootconfig_part_info_ptr,
-				 verified_boot_img, verified_vendor_boot_img,
-				 verified_bootconfig_img);
+				vendor_boot_part_info_ptr,
+				&init_boot_part_info,
+				kernel_address, slot_suffix, normal_boot, avb_bootconfig,
+				persistant_dev_desc, bootconfig_part_info_ptr,
+				verified_boot_img, verified_vendor_boot_img,
+				verified_bootconfig_img, verified_init_boot_img);
 
 	if (!boot_info)
 		goto bail;

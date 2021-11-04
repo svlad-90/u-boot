@@ -956,7 +956,7 @@ int avb_verify(struct AvbOps *ops,
 	       AvbSlotVerifyData **out_data,
 	       char **out_cmdline)
 {
-	const char * const requested_partitions[] = {"boot", "vendor_boot", NULL};
+	const char * const requested_partitions[] = {"boot", "vendor_boot", "init_boot", NULL};
 	return avb_verify_partitions(ops, slot_suffix, requested_partitions, out_data, out_cmdline);
 }
 
