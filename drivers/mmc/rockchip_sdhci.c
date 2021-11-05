@@ -394,8 +394,7 @@ static int rockchip_sdhci_probe(struct udevice *dev)
 	}
 
 	host->ops = &rockchip_sdhci_ops;
-	host->quirks = SDHCI_QUIRK_WAIT_SEND_CMD |
-		SDHCI_QUIRK_BROKEN_HISPD_MODE;
+	host->quirks = SDHCI_QUIRK_WAIT_SEND_CMD;
 
 	host->mmc = &plat->mmc;
 	host->mmc->priv = &prv->host;
