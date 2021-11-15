@@ -4,7 +4,11 @@
 LD=
 
 DEFCONFIG=rockpi4_defconfig
-PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/configs/rock-pi-4-rk3399_defconfig ${ROOT_DIR}/${KERNEL_DIR}/rockpi4.fragment"
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}
+    ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r
+    ${ROOT_DIR}/${KERNEL_DIR}/configs/rock-pi-4-rk3399_defconfig
+    ${ROOT_DIR}/${KERNEL_DIR}/rockpi4.fragment
+"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}"
 
 MAKE_GOALS="
