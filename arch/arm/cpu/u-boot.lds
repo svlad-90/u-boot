@@ -234,6 +234,7 @@ SECTIONS
 	.plt : { *(.plt*) }
 	.interp : { *(.interp*) }
 	.gnu.hash : { *(.gnu.hash) }
+	.gnu.version_r : { *(.gnu.version_r) }
 	.gnu : { *(.gnu*) }
 	.ARM.exidx : { *(.ARM.exidx*) }
 	.gnu.linkonce.armexidx : { *(.gnu.linkonce.armexidx.*) }
