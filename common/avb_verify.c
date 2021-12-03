@@ -962,7 +962,7 @@ int avb_verify(struct AvbOps *ops,
 
 int avb_verify_partitions(struct AvbOps *ops,
 	       const char *slot_suffix,
-	       const char *requested_partitions[],
+	       const char * const requested_partitions[],
 	       AvbSlotVerifyData **out_data,
 	       char **out_cmdline)
 {

@@ -483,6 +483,8 @@ int android_bootloader_boot_flow(const char* iface_str,
 	AvbSlotVerifyData *avb_out_data = NULL;
 	AvbPartitionData *verified_boot_img = NULL;
 	AvbPartitionData *verified_vendor_boot_img = NULL;
+	AvbSlotVerifyData *avb_out_bootconfig_data = NULL;
+	AvbPartitionData *verified_bootconfig_img = NULL;
 
 	if (verify) {
 		if (do_avb_verify(iface_str, dev_str, slot_suffix, NULL, &avb_out_data,
@@ -510,8 +512,6 @@ int android_bootloader_boot_flow(const char* iface_str,
 	// disk number and the partition name where the bootconfig is. If the bootloader is locked,
 	// the bootconfig is verified using AVB and the verification failure stops the booting.
 	struct disk_partition *bootconfig_part_info_ptr = NULL;
-	AvbSlotVerifyData *avb_out_bootconfig_data = NULL;
-	AvbPartitionData *verified_bootconfig_img = NULL;
 #ifdef CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE
 	struct disk_partition bootconfig_part_info;
 	const char *bootconfig_partition = ANDROID_PARTITION_BOOTCONFIG;
