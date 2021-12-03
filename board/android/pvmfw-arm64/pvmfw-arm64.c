@@ -22,6 +22,7 @@
  */
 void * __section(".data") fw_dtb_pointer;
 void * __section(".data") fw_kernel_image_pointer;
+size_t __section(".data") fw_kernel_image_size;
 
 #define CROSVM_FDT_MAX_SIZE 0x200000
 #define CROSVM_EXTRA_SUBTRACT 0x10000
@@ -99,6 +100,8 @@ int misc_init_r(void)
 {
 	env_set_hex("fdt_addr", (u64)fw_dtb_pointer);
 	env_set_hex("kernel_image_addr", (u64)fw_kernel_image_pointer);
+	env_set_hex("kernel_image_size", (u64)fw_kernel_image_size);
+
 	return 0;
 }
 

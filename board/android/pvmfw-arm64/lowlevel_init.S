@@ -20,5 +20,8 @@ save_boot_params:
 	adr	x8, fw_kernel_image_pointer
 	str	x1, [x8]
 
+	adr	x8, fw_kernel_image_size
+	str	x2, [x8]
+
 	/* Returns */
 	b	save_boot_params_ret
