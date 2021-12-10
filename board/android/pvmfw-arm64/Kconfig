@@ -1,7 +1,7 @@
 if TARGET_PVMFW_ARM_64BIT
 
 config SYS_TEXT_BASE
-	default 0x00000000
+	default 0x7FE00000
 
 config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
