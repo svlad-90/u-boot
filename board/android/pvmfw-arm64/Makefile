@@ -2,6 +2,7 @@
 
 obj-y += \
 	avb_preloaded.o \
+	boot.o \
 	lowlevel_init.o \
 	pvmfw-arm64.o \
 
