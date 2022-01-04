@@ -93,7 +93,9 @@ static bool android_read_from_avb_partition(const AvbPartitionData *part,
 			part->partition_name, offset, size, part->data_size);
 		return false;
 	}
-	memcpy(dest, part->data + offset, size);
+	// memmove, not memcpy as dest might overlap with the source location in case when the part
+	// is preloaded.
+	memmove(dest, part->data + offset, size);
 	return true;
 }
 
@@ -509,6 +511,49 @@ static bool _read_in_init_boot_ramdisk(struct blk_desc *dev_desc,
 							/* aligned_kernel_offset */ 0);
 }
 
+/* Tests if partition == name + slot_suffix */
+static bool is_same_partition(const char *partition, const char *name, const char *slot_suffix) {
+	const size_t name_len = strlen(name);
+	const size_t slot_suffix_len = strlen(slot_suffix);
+	return strncmp(partition, name, name_len) == 0 &&
+	    strncmp(partition + name_len, slot_suffix, slot_suffix_len) == 0;
+}
+
+AvbIOResult android_get_preloaded_partition(AvbOps *ops,
+                                            const char *partition,
+                                            size_t num_bytes,
+                                            uint8_t **out_pointer,
+                                            size_t *out_num_bytes_preloaded) {
+	struct AvbOpsData *data = (struct AvbOpsData *)(ops->user_data);
+	struct preloaded_partition *preload_info = NULL;
+
+	if (is_same_partition(partition, "boot", data->slot_suffix)) {
+		preload_info = &(data->boot);
+	} else if (is_same_partition(partition, "vendor_boot", data->slot_suffix)) {
+		preload_info = &(data->vendor_boot);
+	} else if (is_same_partition(partition, "init_boot", data->slot_suffix)) {
+		preload_info = &(data->init_boot);
+	}
+	if (preload_info == NULL) {
+		// Nothing to preload is not an error
+		return AVB_IO_RESULT_OK;
+	}
+	debug("preloading %s at %p (size=0x%x)\n", partition, preload_info->addr, num_bytes);
+
+	// If the partition hasn't yet been preloaded, do it now.
+	if (preload_info->size == 0) {
+		AvbIOResult res = ops->read_from_partition(ops, partition, /* offset */ 0,
+							   num_bytes, preload_info->addr,
+							   &(preload_info->size));
+		if (res != AVB_IO_RESULT_OK) {
+			return res;
+		}
+	}
+	*out_pointer = preload_info->addr;
+	*out_num_bytes_preloaded = preload_info->size;
+	return AVB_IO_RESULT_OK;
+}
+
 struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *boot_img,
 			const struct disk_partition *vendor_boot_img,
@@ -565,19 +610,23 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 	}
 
 	_populate_boot_info(boot_hdr, vboot_hdr, init_boot_hdr, kernel_rd_addr, boot_info);
+	// Note: Order is significant here due to preloading. Especially, bootconfig must be read-in
+	// prior to boot_ramdisk. This is because bootconfig was preloaded right next to
+	// vendor_ramdisk, where boot_ramdisk is read-in. Therefore, reading-in boot_ramdisk might
+	// overwrite bootconfig if done before bootconfig is copied to the proper location.
 	if(!_read_in_kernel(dev_desc, boot_img, boot_info, verified_boot_img)
 		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img,
 					    boot_info, verified_vendor_boot_img)
-		|| !(_read_in_init_boot_ramdisk(dev_desc, init_boot_img, boot_info,
-					  verified_init_boot_img) ||
-			 _read_in_boot_ramdisk(dev_desc, boot_img, boot_info,
-					  verified_boot_img))
 		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info,
 					slot_suffix, normal_boot, avb_bootconfig,
 					persistent_dev_desc,
 					device_specific_bootconfig_img,
 					verified_bootconfig_img,
-					verified_vendor_boot_img)) {
+					verified_vendor_boot_img)
+		|| !(_read_in_init_boot_ramdisk(dev_desc, init_boot_img, boot_info,
+					  verified_init_boot_img) ||
+			 _read_in_boot_ramdisk(dev_desc, boot_img, boot_info,
+					  verified_boot_img))) {
 		goto image_load_exit;
 	}
 

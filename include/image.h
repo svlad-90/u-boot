@@ -1510,6 +1510,15 @@ bool android_image_print_dtb_contents(ulong hdr_addr);
 
 #include <avb_verify.h>
 
+/** Android implementation of get_preloaded_partition for avb_ops.h. Currently, it preloads boot and
+ * vendor_boot partitions.
+ */
+AvbIOResult android_get_preloaded_partition(AvbOps *ops,
+                                            const char *partition,
+                                            size_t num_bytes,
+                                            uint8_t **out_pointer,
+                                            size_t *out_num_bytes_preloaded);
+
 /** android_image_load - Load an Android Image from storage.
  *
  * Load an Android Image based on the header size in the storage. Return the

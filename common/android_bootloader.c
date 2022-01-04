@@ -353,6 +353,7 @@ static int do_avb_verify(const char *iface,
 		         const char *devstr,
 		         const char *slot_suffix,
 		         const char *requested_partitions[],
+		         uint8_t *kernel_address,
 		         AvbSlotVerifyData **out_data,
 		         char **out_cmdline)
 {
@@ -376,6 +377,20 @@ static int do_avb_verify(const char *iface,
 		 printf("Failed to initialize avb2\n");
 		 goto out;
 	}
+
+	/* Android-specific extension. */
+	ops->get_preloaded_partition = android_get_preloaded_partition;
+	struct AvbOpsData *data = (struct AvbOpsData *)(ops->user_data);
+	data->slot_suffix = slot_suffix;
+	data->boot.addr = kernel_address;
+	data->boot.size = 0;
+	/* vendor_boot is preloaded next to the boot partition, which can be 64MB at most. */
+	data->vendor_boot.addr = kernel_address + SZ_64M;
+	data->vendor_boot.size = 0;
+	/* init_boot (if exists) is preloaded next to the vendor_boot partition, which also can be
+	 * 64 MB at most */
+	data->init_boot.addr = data->vendor_boot.addr + SZ_64M;
+	data->init_boot.size = 0;
 
 	if (requested_partitions == NULL) {
 		ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
@@ -495,8 +510,8 @@ int android_bootloader_boot_flow(const char* iface_str,
 	AvbPartitionData *verified_bootconfig_img = NULL;
 
 	if (verify) {
-		if (do_avb_verify(iface_str, dev_str, slot_suffix, NULL, &avb_out_data,
-				  &avb_cmdline) == CMD_RET_FAILURE) {
+		if (do_avb_verify(iface_str, dev_str, slot_suffix, NULL, (uint8_t *)kernel_address,
+				  &avb_out_data, &avb_cmdline) == CMD_RET_FAILURE) {
 			goto bail;
 		}
 		for (int i = 0; i < avb_out_data->num_loaded_partitions; i++) {
@@ -558,7 +573,7 @@ int android_bootloader_boot_flow(const char* iface_str,
 		sprintf(devnum_str, "%d", persistant_dev_desc->devnum);
 		const char *slot_suffix = NULL;
 		const char *requested_partitions[] = {ANDROID_PARTITION_BOOTCONFIG, NULL};
-		if (do_avb_verify(iface_str, devnum_str, slot_suffix, requested_partitions,
+		if (do_avb_verify(iface_str, devnum_str, slot_suffix, requested_partitions, 0,
 				  &avb_out_bootconfig_data, NULL) == CMD_RET_FAILURE) {
 			log_err("Failed to verify bootconfig.\n");
 			goto bail;

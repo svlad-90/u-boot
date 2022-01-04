@@ -26,6 +26,11 @@ enum avb_boot_state {
 	AVB_RED,
 };
 
+struct preloaded_partition {
+	uint8_t *addr;
+	size_t size; // 0 means the partition hasn't yet been preloaded
+};
+
 struct AvbOpsData {
 	struct AvbOps ops;
 	const char *iface;
@@ -35,6 +40,10 @@ struct AvbOpsData {
 	struct udevice *tee;
 	u32 session;
 #endif
+	const char *slot_suffix;
+	struct preloaded_partition boot;
+	struct preloaded_partition vendor_boot;
+	struct preloaded_partition init_boot;
 };
 
 struct avb_part {
