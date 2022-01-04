@@ -129,17 +129,40 @@ static bool android_read_data(const char *name,
 			verified_part, offset, dest, size);
 	}
 
-	// Fallback to I/O
+	// Fallback to I/O. Note that this is a block-based I/O, which means we may read data more
+	// than what is requested (i.e. when size is not a multiple of blksz). In that case, the
+	// area that will be overwritten by the extra amount of data is saved to a temporary
+	// buffer. We then do the block I/O, and copy the temporary buffer back to its original
+	// location.
 	ulong blksz = part->blksz;
 	lbaint_t start = part->start + BLK_CNT(offset, blksz);
 	lbaint_t blk_cnt = BLK_CNT(size, blksz);
+	size_t overwritten = (blk_cnt * blksz) - size;
+	void *temp = NULL;
+	if (overwritten > 0) {
+		temp = malloc(overwritten);
+		if (temp == NULL) {
+			debug("Failed to allocate temp buffer while reading partition %s\n", name);
+			goto err;
+		}
+		memcpy(temp, dest + size, overwritten);
+	}
 	unsigned long blks_read  = blk_dread(block_dev, start, blk_cnt, dest);
 	if(blks_read != blk_cnt) {
 		debug("%s blk cnt is %ld and blks read is %ld\n",
 			name, blk_cnt, blks_read);
-		return false;
+		goto err;
+	}
+	if (overwritten > 0) {
+		memcpy(dest + size, temp, overwritten);
+		free(temp);
 	}
 	return true;
+err:
+	if (temp != NULL) {
+		free(temp);
+	}
+	return false;
 }
 
 static struct boot_img_hdr_v4* _extract_boot_image_header(
@@ -281,7 +304,7 @@ static bool _read_in_kernel(struct blk_desc *dev_desc,
 	// kernel is at the block next to the boot header
 	size_t page = boot_info->page_size;
 	size_t offset = ALIGN(ANDR_BOOT_IMG_HDR_SIZE, page);
-	size_t size = ALIGN(boot_info->kernel_size, page);
+	size_t size = boot_info->kernel_size;
 	void *laddr = (void*)boot_info->kernel_addr;
 	if (!android_read_data("kernel", dev_desc, boot_img, verified_boot_img,
 			       offset, laddr, size)) {
@@ -299,7 +322,7 @@ static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 	// Vendor ramdisk is next to the vendor boot header
 	size_t page = boot_info->page_size;
 	size_t offset = ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page);
-	size_t size = ALIGN(boot_info->vendor_ramdisk_size, page);
+	size_t size = boot_info->vendor_ramdisk_size;
 	void *laddr = (void*)boot_info->vendor_ramdisk_addr;
 	if (!android_read_data("vendor ramdisk", dev_desc, vendor_boot_img,
 			       verified_vendor_boot_img, offset, laddr, size)) {
@@ -455,7 +478,7 @@ static bool _read_in_ramdisk(struct blk_desc *dev_desc,
 	size_t offset =
 		ALIGN(ANDR_BOOT_IMG_HDR_SIZE, ANDR_BOOT_IMG_HDR_SIZE) +
 		aligned_kernel_offset;
-	size_t size = ALIGN(boot_info->boot_ramdisk_size, ANDR_BOOT_IMG_PAGE_SIZE);
+	size_t size = boot_info->boot_ramdisk_size;
 	void *laddr = (void*)boot_info->boot_ramdisk_addr;
 	if (!android_read_data("ramdisk", dev_desc, boot_img, verified_boot_img,
 			       offset, laddr, size)) {
