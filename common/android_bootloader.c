@@ -529,24 +529,32 @@ int android_bootloader_boot_flow(const char* iface_str,
 		}
 		if (verified_boot_img == NULL || verified_vendor_boot_img == NULL ||
 				verified_init_boot_img == NULL) {
-			debug("verified partition not found");
+			debug("verified partition not found\n");
 			goto bail;
 		}
 	}
 
 #ifdef CONFIG_ANDROID_BOOTLOADER_KEYMINT_CONSOLE
-	struct udevice* km_console = NULL;
-	static const char km_name[] = "virtio-console#3";
-	if (uclass_get_device_by_name(UCLASS_SERIAL, km_name, &km_console)) {
-		log_err("Failed to find keymint console\n");
-		goto bail;
-	}
-	if (avb_out_data != NULL) {
-		int r = write_avb_to_keymint_console(avb_out_data, km_console);
-		if (r) {
-			log_err("Failed to write to KM console: %d\n", r);
+	// env_get_yesno returns -1 when the env var is not defined. android_keymint_needed should
+	// default to "yes" if CONFIG_ANDROID_BOOTLOADER_KEYMINT_CONSOLE is set. So we demand
+	// keymint unless it is explicitly turned off (returns 0).
+	const bool keymint_needed = env_get_yesno("android_keymint_needed") != 0;
+	if (keymint_needed) {
+		struct udevice* km_console = NULL;
+		static const char km_name[] = "virtio-console#3";
+		if (uclass_get_device_by_name(UCLASS_SERIAL, km_name, &km_console)) {
+			log_err("Failed to find keymint console\n");
 			goto bail;
 		}
+		if (avb_out_data != NULL) {
+			int r = write_avb_to_keymint_console(avb_out_data, km_console);
+			if (r) {
+				log_err("Failed to write to KM console: %d\n", r);
+				goto bail;
+			}
+		}
+	} else {
+		debug("keymint not needed. skipping.\n");
 	}
 #endif
 
