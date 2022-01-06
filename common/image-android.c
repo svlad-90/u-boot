@@ -516,7 +516,8 @@ static bool is_same_partition(const char *partition, const char *name, const cha
 	const size_t name_len = strlen(name);
 	const size_t slot_suffix_len = strlen(slot_suffix);
 	return strncmp(partition, name, name_len) == 0 &&
-	    strncmp(partition + name_len, slot_suffix, slot_suffix_len) == 0;
+	    strncmp(partition + name_len, slot_suffix, slot_suffix_len) == 0 &&
+	    (strlen(partition) == name_len + slot_suffix_len);
 }
 
 AvbIOResult android_get_preloaded_partition(AvbOps *ops,
