@@ -343,6 +343,38 @@ static char *android_assemble_cmdline(const char *slot_suffix,
 	return cmdline;
 }
 
+static char *join_str(const char *a, const char *b) {
+	size_t len = strlen(a) + strlen(b) + 1 /* null term */;
+	char *ret = (char *)malloc(len);
+	if (ret == NULL) {
+		debug("failed to alloc %u\n", len);
+		return NULL;
+	}
+	strcpy(ret, a);
+	strcat(ret, b);
+	return ret;
+}
+
+static size_t get_partition_size(AvbOps *ops, char *name, char *slot_suffix) {
+	uint64_t size = 0;
+	char *partition_name = join_str(name, slot_suffix);
+	if (partition_name == NULL) {
+		goto bail;
+	}
+	AvbIOResult res = ops->get_size_of_partition(ops, partition_name, &size);
+	if (res != AVB_IO_RESULT_OK && res != AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION) {
+		goto bail;
+	}
+	free(partition_name);
+	return size;
+
+bail:
+	debug("failed to determine size for partition %s (slot %s)\n", name, slot_suffix);
+	free(partition_name);
+	return 0;
+}
+
+
 /**
  * Calls avb_verify() with ops allocated for iface and devnum.
  *
@@ -381,15 +413,28 @@ static int do_avb_verify(const char *iface,
 	/* Android-specific extension. */
 	ops->get_preloaded_partition = android_get_preloaded_partition;
 	struct AvbOpsData *data = (struct AvbOpsData *)(ops->user_data);
+	/* Determine where to preload boot, vendor_boot, and init_boot partitions. Specifically,
+	 * the partitions are preloaded to the place where kernel is expected to be loaded.
+	 *
+	 * When the sum of their sizes are less than 64MB - which is the maximum size of the boot
+	 * partition, then the three partitions are loaded next to each other within the 64MB
+	 * region. This is to save RAM requirements and is safe because vendor_boot and init_boot
+	 * will be relocated to "after" the 64MB boundary and the kernel (which is in the boot
+	 * partition) will always be shifted forward (i.e. to the beginning of the partition), and
+	 * never backward.
+	 *
+         * When the sum of their sizes exceed 64MB, each partition is loaded into a dedicated 64MB
+         * region for safe distancing during the relocation. */
+	size_t boot_size = get_partition_size(ops, "boot", slot_suffix);
+	size_t vendor_boot_size = get_partition_size(ops, "vendor_boot", slot_suffix);
+	size_t init_boot_size = get_partition_size(ops, "init_boot", slot_suffix);
+	bool packed = (boot_size + vendor_boot_size + init_boot_size) <= SZ_64M;
 	data->slot_suffix = slot_suffix;
 	data->boot.addr = kernel_address;
-	data->boot.size = 0;
-	/* vendor_boot is preloaded next to the boot partition, which can be 64MB at most. */
-	data->vendor_boot.addr = kernel_address + SZ_64M;
+	data->boot.size = 0; // 0 indicates that it hasn't yet been preloaded.
+	data->vendor_boot.addr = data->boot.addr + (packed ? boot_size : SZ_64M);
 	data->vendor_boot.size = 0;
-	/* init_boot (if exists) is preloaded next to the vendor_boot partition, which also can be
-	 * 64 MB at most */
-	data->init_boot.addr = data->vendor_boot.addr + SZ_64M;
+	data->init_boot.addr = data->vendor_boot.addr + (packed ? vendor_boot_size : SZ_64M);
 	data->init_boot.size = 0;
 
 	if (requested_partitions == NULL) {
