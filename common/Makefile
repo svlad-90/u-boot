@@ -106,7 +106,6 @@ obj-$(CONFIG_$(SPL_TPL_)HASH) += hash.o
 obj-$(CONFIG_ANDROID_AB) += android_ab.o
 obj-$(CONFIG_ANDROID_BOOT_IMAGE) += image-android.o image-android-dt.o
 obj-$(CONFIG_ANDROID_BOOTLOADER) += android_bootloader.o
-obj-$(CONFIG_ANDROID_BOOTLOADER_KEYMINT_CONSOLE) += android_bootloader_keymint.o
 obj-$(CONFIG_$(SPL_TPL_)OF_LIBFDT) += image-fdt.o
 obj-$(CONFIG_$(SPL_TPL_)FIT_SIGNATURE) += fdt_region.o
 obj-$(CONFIG_$(SPL_TPL_)FIT) += image-fit.o

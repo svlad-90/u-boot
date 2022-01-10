@@ -7,18 +7,14 @@
 #include <android_bootloader.h>
 #include <android_bootloader_message.h>
 
-#include <android_bootloader_keymint.h>
 #include <android_ab.h>
 #include <cli.h>
 #include <common.h>
-#include <dm/device.h>
-#include <dm/uclass.h>
 #include <image.h>
 #include <env.h>
 #include <log.h>
 #include <malloc.h>
 #include <part.h>
-#include <serial.h>
 #include <avb_verify.h>
 
 #define ANDROID_PARTITION_BOOT "boot"
@@ -578,30 +574,6 @@ int android_bootloader_boot_flow(const char* iface_str,
 			goto bail;
 		}
 	}
-
-#ifdef CONFIG_ANDROID_BOOTLOADER_KEYMINT_CONSOLE
-	// env_get_yesno returns -1 when the env var is not defined. android_keymint_needed should
-	// default to "yes" if CONFIG_ANDROID_BOOTLOADER_KEYMINT_CONSOLE is set. So we demand
-	// keymint unless it is explicitly turned off (returns 0).
-	const bool keymint_needed = env_get_yesno("android_keymint_needed") != 0;
-	if (keymint_needed) {
-		struct udevice* km_console = NULL;
-		static const char km_name[] = "virtio-console#3";
-		if (uclass_get_device_by_name(UCLASS_SERIAL, km_name, &km_console)) {
-			log_err("Failed to find keymint console\n");
-			goto bail;
-		}
-		if (avb_out_data != NULL) {
-			int r = write_avb_to_keymint_console(avb_out_data, km_console);
-			if (r) {
-				log_err("Failed to write to KM console: %d\n", r);
-				goto bail;
-			}
-		}
-	} else {
-		debug("keymint not needed. skipping.\n");
-	}
-#endif
 
 	// Load device-specific bootconfig if there is any.
 	// CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE and ANDROID_PARTITION_BOOTCONFIG specify the
