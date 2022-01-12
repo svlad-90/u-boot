@@ -419,21 +419,20 @@ static int do_avb_verify(const char *iface,
 	 * partition) will always be shifted forward (i.e. to the beginning of the partition), and
 	 * never backward.
 	 *
-         * When the sum of their sizes exceed 64MB, each partition is loaded into a dedicated 64MB
-         * region for safe distancing during the relocation. */
-	size_t boot_size = get_partition_size(ops, "boot", slot_suffix);
-	size_t vendor_boot_size = get_partition_size(ops, "vendor_boot", slot_suffix);
-	size_t init_boot_size = get_partition_size(ops, "init_boot", slot_suffix);
-	bool packed = (boot_size + vendor_boot_size + init_boot_size) <= SZ_64M;
-	data->slot_suffix = slot_suffix;
-	data->boot.addr = kernel_address;
-	data->boot.size = 0; // 0 indicates that it hasn't yet been preloaded.
-	data->vendor_boot.addr = data->boot.addr + (packed ? boot_size : SZ_64M);
-	data->vendor_boot.size = 0;
-	data->init_boot.addr = data->vendor_boot.addr + (packed ? vendor_boot_size : SZ_64M);
-	data->init_boot.size = 0;
-
+	 * When the sum of their sizes exceed 64MB, each partition is loaded into a dedicated 64MB
+	 * region for safe distancing during the relocation. */
 	if (requested_partitions == NULL) {
+		size_t boot_size = get_partition_size(ops, "boot", slot_suffix);
+		size_t vendor_boot_size = get_partition_size(ops, "vendor_boot", slot_suffix);
+		size_t init_boot_size = get_partition_size(ops, "init_boot", slot_suffix);
+		bool packed = (boot_size + vendor_boot_size + init_boot_size) <= SZ_64M;
+		data->slot_suffix = slot_suffix;
+		data->boot.addr = kernel_address;
+		data->boot.size = 0; // 0 indicates that it hasn't yet been preloaded.
+		data->vendor_boot.addr = data->boot.addr + (packed ? boot_size : SZ_64M);
+		data->vendor_boot.size = 0;
+		data->init_boot.addr = data->vendor_boot.addr + (packed ? vendor_boot_size : SZ_64M);
+		data->init_boot.size = 0;
 		ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
 	} else {
 		ret = avb_verify_partitions(ops, slot_suffix, requested_partitions, out_data,
