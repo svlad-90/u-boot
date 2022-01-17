@@ -94,6 +94,26 @@ static bool psci_is_system_reset2_supported(void)
 	return false;
 }
 
+static void psci_1_x_smccc_bind(struct udevice *dev)
+{
+	int ret, feature;
+	u32 smccc_version = ARM_SMCCC_VERSION_1_0;
+
+	feature = request_psci_features(ARM_SMCCC_VERSION_FUNC_ID);
+	if (feature != PSCI_RET_NOT_SUPPORTED)
+		smccc_version = invoke_psci_fn(ARM_SMCCC_VERSION_FUNC_ID, 0, 0, 0);
+
+	/* Bind any drivers for SMCCC-based firmware services */
+	if (smccc_version >= ARM_SMCCC_VERSION_1_1) {
+		if (psci_method == PSCI_METHOD_HVC) {
+			ret = device_bind_driver(dev, "kvm-hyp-services",
+						 "kvm-hyp-services", NULL);
+			if (ret)
+				pr_debug("KVM hypervisor services were not bound.\n");
+		}
+	}
+}
+
 static int psci_probe(struct udevice *dev)
 {
 	const char *method;
@@ -120,6 +140,9 @@ static int psci_probe(struct udevice *dev)
 
 	if (psci_version >= PSCI_VERSION(0, 2))
 		psci_version = psci_0_2_get_version();
+
+	if (PSCI_VERSION_MAJOR(psci_version) >= 1)
+		psci_1_x_smccc_bind(dev);
 
 	return 0;
 }
