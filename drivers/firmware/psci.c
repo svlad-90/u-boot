@@ -45,6 +45,8 @@ int __efi_runtime_data psci_method;
 int psci_method __section(".data");
 #endif
 
+static u32 psci_version;
+
 unsigned long __efi_runtime invoke_psci_fn
 		(unsigned long function_id, unsigned long arg0,
 		 unsigned long arg1, unsigned long arg2)
@@ -80,11 +82,8 @@ static u32 psci_0_2_get_version(void)
 static bool psci_is_system_reset2_supported(void)
 {
 	int ret;
-	u32 ver;
 
-	ver = psci_0_2_get_version();
-
-	if (PSCI_VERSION_MAJOR(ver) >= 1) {
+	if (PSCI_VERSION_MAJOR(psci_version) >= 1) {
 		ret = request_psci_features(PSCI_FN_NATIVE(1_1,
 							   SYSTEM_RESET2));
 
@@ -119,14 +118,23 @@ static int psci_probe(struct udevice *dev)
 		return -EINVAL;
 	}
 
+	if (psci_version >= PSCI_VERSION(0, 2))
+		psci_version = psci_0_2_get_version();
+
 	return 0;
 }
 
 static int psci_bind(struct udevice *dev)
 {
 	/* No SYSTEM_RESET support for PSCI 0.1 */
-	if (device_is_compatible(dev, "arm,psci-0.2") ||
-	    device_is_compatible(dev, "arm,psci-1.0")) {
+	if (device_is_compatible(dev, "arm,psci-1.0"))
+		psci_version = PSCI_VERSION(1, 0);
+	else if (device_is_compatible(dev, "arm,psci-0.2"))
+		psci_version = PSCI_VERSION(0, 2);
+	else
+		psci_version = PSCI_VERSION(0, 1);
+
+	if (psci_version >= PSCI_VERSION(0, 2)) {
 		int ret;
 
 		/* bind psci-sysreset optionally */
