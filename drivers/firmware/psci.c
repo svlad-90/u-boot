@@ -95,23 +95,6 @@ static bool psci_is_system_reset2_supported(void)
 	return false;
 }
 
-static int psci_bind(struct udevice *dev)
-{
-	/* No SYSTEM_RESET support for PSCI 0.1 */
-	if (device_is_compatible(dev, "arm,psci-0.2") ||
-	    device_is_compatible(dev, "arm,psci-1.0")) {
-		int ret;
-
-		/* bind psci-sysreset optionally */
-		ret = device_bind_driver(dev, "psci-sysreset", "psci-sysreset",
-					 NULL);
-		if (ret)
-			pr_debug("PSCI System Reset was not bound.\n");
-	}
-
-	return 0;
-}
-
 static int psci_probe(struct udevice *dev)
 {
 	const char *method;
@@ -139,22 +122,26 @@ static int psci_probe(struct udevice *dev)
 	return 0;
 }
 
-/**
- * void do_psci_probe() - probe PSCI firmware driver
- *
- * Ensure that psci_method is initialized.
- */
-static void __maybe_unused do_psci_probe(void)
+static int psci_bind(struct udevice *dev)
 {
-	struct udevice *dev;
+	/* No SYSTEM_RESET support for PSCI 0.1 */
+	if (device_is_compatible(dev, "arm,psci-0.2") ||
+	    device_is_compatible(dev, "arm,psci-1.0")) {
+		int ret;
 
-	uclass_get_device_by_name(UCLASS_FIRMWARE, DRIVER_NAME, &dev);
+		/* bind psci-sysreset optionally */
+		ret = device_bind_driver(dev, "psci-sysreset", "psci-sysreset",
+					 NULL);
+		if (ret)
+			pr_debug("PSCI System Reset was not bound.\n");
+	}
+
+	return psci_probe(dev);
 }
 
 #if IS_ENABLED(CONFIG_EFI_LOADER) && IS_ENABLED(CONFIG_PSCI_RESET)
 efi_status_t efi_reset_system_init(void)
 {
-	do_psci_probe();
 	return EFI_SUCCESS;
 }
 
@@ -178,18 +165,13 @@ void __efi_runtime EFIAPI efi_reset_system(enum efi_reset_type reset_type,
 #ifdef CONFIG_PSCI_RESET
 void reset_misc(void)
 {
-	do_psci_probe();
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_RESET, 0, 0, 0);
 }
 #endif /* CONFIG_PSCI_RESET */
 
 void psci_sys_reset(u32 type)
 {
-	bool reset2_supported;
-
-	do_psci_probe();
-
-	reset2_supported = psci_is_system_reset2_supported();
+	bool reset2_supported = psci_is_system_reset2_supported();
 
 	if (type == SYSRESET_WARM && reset2_supported) {
 		/*
@@ -205,16 +187,12 @@ void psci_sys_reset(u32 type)
 
 void psci_sys_poweroff(void)
 {
-	do_psci_probe();
-
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_OFF, 0, 0, 0);
 }
 
 #if IS_ENABLED(CONFIG_CMD_POWEROFF) && !IS_ENABLED(CONFIG_SYSRESET_CMD_POWEROFF)
 int do_poweroff(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	do_psci_probe();
-
 	puts("poweroff ...\n");
 	udelay(50000); /* wait 50 ms */
 
@@ -239,5 +217,4 @@ U_BOOT_DRIVER(psci) = {
 	.id = UCLASS_FIRMWARE,
 	.of_match = psci_of_match,
 	.bind = psci_bind,
-	.probe = psci_probe,
 };
