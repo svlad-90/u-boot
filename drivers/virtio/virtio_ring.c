@@ -27,6 +27,20 @@ static void virtio_free_pages(struct udevice *vdev, void *ptr, u32 npages)
 	free(ptr);
 }
 
+static void virtqueue_attach_desc(struct virtqueue *vq, unsigned int idx,
+				  struct virtio_sg *sg, u16 flags)
+{
+	struct vring_desc *desc = &vq->vring.desc[idx];
+
+	desc->flags	= cpu_to_virtio16(vq->vdev, flags);
+	desc->addr	= cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)sg->addr);
+	desc->len	= cpu_to_virtio32(vq->vdev, sg->length);
+}
+
+static void virtqueue_detach_desc(struct virtqueue *vq, unsigned int idx)
+{
+}
+
 int virtqueue_add(struct virtqueue *vq, struct virtio_sg *sgs[],
 		  unsigned int out_sgs, unsigned int in_sgs)
 {
@@ -57,24 +71,14 @@ int virtqueue_add(struct virtqueue *vq, struct virtio_sg *sgs[],
 	}
 
 	for (n = 0; n < out_sgs; n++) {
-		struct virtio_sg *sg = sgs[n];
-
-		desc[i].flags = cpu_to_virtio16(vq->vdev, VRING_DESC_F_NEXT);
-		desc[i].addr = cpu_to_virtio64(vq->vdev, (u64)(size_t)sg->addr);
-		desc[i].len = cpu_to_virtio32(vq->vdev, sg->length);
-
+		virtqueue_attach_desc(vq, i, sgs[n], VRING_DESC_F_NEXT);
 		prev = i;
 		i = virtio16_to_cpu(vq->vdev, desc[i].next);
 	}
 	for (; n < (out_sgs + in_sgs); n++) {
-		struct virtio_sg *sg = sgs[n];
+		u16 flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
 
-		desc[i].flags = cpu_to_virtio16(vq->vdev, VRING_DESC_F_NEXT |
-						VRING_DESC_F_WRITE);
-		desc[i].addr = cpu_to_virtio64(vq->vdev,
-					       (u64)(uintptr_t)sg->addr);
-		desc[i].len = cpu_to_virtio32(vq->vdev, sg->length);
-
+		virtqueue_attach_desc(vq, i, sgs[n], flags);
 		prev = i;
 		i = virtio16_to_cpu(vq->vdev, desc[i].next);
 	}
@@ -154,10 +158,12 @@ static void detach_buf(struct virtqueue *vq, unsigned int head)
 	i = head;
 
 	while (vq->vring.desc[i].flags & nextflag) {
+		virtqueue_detach_desc(vq, i);
 		i = virtio16_to_cpu(vq->vdev, vq->vring.desc[i].next);
 		vq->num_free++;
 	}
 
+	virtqueue_detach_desc(vq, i);
 	vq->vring.desc[i].next = cpu_to_virtio16(vq->vdev, vq->free_head);
 	vq->free_head = head;
 
