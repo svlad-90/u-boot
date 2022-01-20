@@ -28,18 +28,65 @@ static void virtio_free_pages(struct udevice *vdev, void *ptr, u32 npages)
 	free(ptr);
 }
 
+static int __bb_force_page_align(struct bounce_buffer *state)
+{
+	const ulong align_mask = PAGE_SIZE - 1;
+
+	if ((ulong)state->user_buffer & align_mask)
+		return 0;
+
+	if (state->len != state->len_aligned)
+		return 0;
+
+	return 1;
+}
+
 static void virtqueue_attach_desc(struct virtqueue *vq, unsigned int idx,
 				  struct virtio_sg *sg, u16 flags)
 {
 	struct vring_desc *desc = &vq->vring.desc[idx];
+	void *addr;
+
+	if (IS_ENABLED(CONFIG_BOUNCE_BUFFER) && vq->vring.bouncebufs) {
+		struct bounce_buffer *bb = &vq->vring.bouncebufs[idx];
+		unsigned int bbflags;
+		int ret;
+
+		if (flags & VRING_DESC_F_WRITE)
+			bbflags = GEN_BB_WRITE;
+		else
+			bbflags = GEN_BB_READ;
+
+		ret = bounce_buffer_start_extalign(bb, sg->addr, sg->length,
+						   bbflags, PAGE_SIZE,
+						   __bb_force_page_align);
+		if (ret) {
+			debug("%s: failed to allocate bounce buffer (length 0x%zx)\n",
+			      vq->vdev->name, sg->length);
+			BUG();
+		}
+
+		addr = bb->bounce_buffer;
+	} else {
+		addr = sg->addr;
+	}
 
 	desc->flags	= cpu_to_virtio16(vq->vdev, flags);
-	desc->addr	= cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)sg->addr);
+	desc->addr	= cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)addr);
 	desc->len	= cpu_to_virtio32(vq->vdev, sg->length);
 }
 
 static void virtqueue_detach_desc(struct virtqueue *vq, unsigned int idx)
 {
+	struct vring_desc *desc = &vq->vring.desc[idx];
+	struct bounce_buffer *bb;
+
+	if (!IS_ENABLED(CONFIG_BOUNCE_BUFFER) || !vq->vring.bouncebufs)
+		return;
+
+	bb = &vq->vring.bouncebufs[idx];
+	bounce_buffer_stop(bb);
+	desc->addr = cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)bb->user_buffer);
 }
 
 int virtqueue_add(struct virtqueue *vq, struct virtio_sg *sgs[],
