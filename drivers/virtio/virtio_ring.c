@@ -18,13 +18,55 @@
 #include <linux/compat.h>
 #include <linux/kernel.h>
 
+struct virtio_iommu_platform_ops *virtio_iommu_platform_ops = NULL;
+
+static void virtio_iommu_map_pages(struct udevice *vdev, void *buf, u32 npages)
+{
+	int ret;
+
+	if (!virtio_iommu_platform_ops)
+		return;
+
+	if (!virtio_has_feature(vdev, VIRTIO_F_IOMMU_PLATFORM))
+		return;
+
+	ret = virtio_iommu_platform_ops->map(vdev, buf, npages);
+	if (ret) {
+		debug("%s: failed to map %u pages at %p (%d)\n",
+		      vdev->name, npages, buf, ret);
+	}
+}
+
+static void virtio_iommu_unmap_pages(struct udevice *vdev, void *buf, u32 npages)
+{
+	int ret;
+
+	if (!virtio_iommu_platform_ops)
+		return;
+
+	if (!virtio_has_feature(vdev, VIRTIO_F_IOMMU_PLATFORM))
+		return;
+
+	ret = virtio_iommu_platform_ops->unmap(vdev, buf, npages);
+	if (ret) {
+		debug("%s: failed to unmap %u pages at %p (%d)\n",
+		      vdev->name, npages, buf, ret);
+	}
+}
+
 static void *virtio_alloc_pages(struct udevice *vdev, u32 npages)
 {
-	return memalign(PAGE_SIZE, npages * PAGE_SIZE);
+	void *addr = memalign(PAGE_SIZE, npages * PAGE_SIZE);
+
+	if (addr)
+		virtio_iommu_map_pages(vdev, addr, npages);
+
+	return addr;
 }
 
 static void virtio_free_pages(struct udevice *vdev, void *ptr, u32 npages)
 {
+	virtio_iommu_unmap_pages(vdev, ptr, npages);
 	free(ptr);
 }
 
@@ -67,6 +109,7 @@ static void virtqueue_attach_desc(struct virtqueue *vq, unsigned int idx,
 		}
 
 		addr = bb->bounce_buffer;
+		virtio_iommu_map_pages(vq->vdev, addr, bb->len_aligned / PAGE_SIZE);
 	} else {
 		addr = sg->addr;
 	}
@@ -85,6 +128,8 @@ static void virtqueue_detach_desc(struct virtqueue *vq, unsigned int idx)
 		return;
 
 	bb = &vq->vring.bouncebufs[idx];
+	virtio_iommu_unmap_pages(vq->vdev, bb->bounce_buffer,
+				 bb->len_aligned / PAGE_SIZE);
 	bounce_buffer_stop(bb);
 	desc->addr = cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)bb->user_buffer);
 }
