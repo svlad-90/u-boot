@@ -45,6 +45,8 @@ int __efi_runtime_data psci_method;
 int psci_method __section(".data");
 #endif
 
+static u32 psci_version;
+
 unsigned long __efi_runtime invoke_psci_fn
 		(unsigned long function_id, unsigned long arg0,
 		 unsigned long arg1, unsigned long arg2)
@@ -80,11 +82,8 @@ static u32 psci_0_2_get_version(void)
 static bool psci_is_system_reset2_supported(void)
 {
 	int ret;
-	u32 ver;
 
-	ver = psci_0_2_get_version();
-
-	if (PSCI_VERSION_MAJOR(ver) >= 1) {
+	if (PSCI_VERSION_MAJOR(psci_version) >= 1) {
 		ret = request_psci_features(PSCI_FN_NATIVE(1_1,
 							   SYSTEM_RESET2));
 
@@ -95,21 +94,24 @@ static bool psci_is_system_reset2_supported(void)
 	return false;
 }
 
-static int psci_bind(struct udevice *dev)
+static void psci_1_x_smccc_bind(struct udevice *dev)
 {
-	/* No SYSTEM_RESET support for PSCI 0.1 */
-	if (device_is_compatible(dev, "arm,psci-0.2") ||
-	    device_is_compatible(dev, "arm,psci-1.0")) {
-		int ret;
+	int ret, feature;
+	u32 smccc_version = ARM_SMCCC_VERSION_1_0;
 
-		/* bind psci-sysreset optionally */
-		ret = device_bind_driver(dev, "psci-sysreset", "psci-sysreset",
-					 NULL);
-		if (ret)
-			pr_debug("PSCI System Reset was not bound.\n");
+	feature = request_psci_features(ARM_SMCCC_VERSION_FUNC_ID);
+	if (feature != PSCI_RET_NOT_SUPPORTED)
+		smccc_version = invoke_psci_fn(ARM_SMCCC_VERSION_FUNC_ID, 0, 0, 0);
+
+	/* Bind any drivers for SMCCC-based firmware services */
+	if (smccc_version >= ARM_SMCCC_VERSION_1_1) {
+		if (psci_method == PSCI_METHOD_HVC) {
+			ret = device_bind_driver(dev, "kvm-hyp-services",
+						 "kvm-hyp-services", NULL);
+			if (ret)
+				pr_debug("KVM hypervisor services were not bound.\n");
+		}
 	}
-
-	return 0;
 }
 
 static int psci_probe(struct udevice *dev)
@@ -136,25 +138,41 @@ static int psci_probe(struct udevice *dev)
 		return -EINVAL;
 	}
 
+	if (psci_version >= PSCI_VERSION(0, 2))
+		psci_version = psci_0_2_get_version();
+
+	if (PSCI_VERSION_MAJOR(psci_version) >= 1)
+		psci_1_x_smccc_bind(dev);
+
 	return 0;
 }
 
-/**
- * void do_psci_probe() - probe PSCI firmware driver
- *
- * Ensure that psci_method is initialized.
- */
-static void __maybe_unused do_psci_probe(void)
+static int psci_bind(struct udevice *dev)
 {
-	struct udevice *dev;
+	/* No SYSTEM_RESET support for PSCI 0.1 */
+	if (device_is_compatible(dev, "arm,psci-1.0"))
+		psci_version = PSCI_VERSION(1, 0);
+	else if (device_is_compatible(dev, "arm,psci-0.2"))
+		psci_version = PSCI_VERSION(0, 2);
+	else
+		psci_version = PSCI_VERSION(0, 1);
 
-	uclass_get_device_by_name(UCLASS_FIRMWARE, DRIVER_NAME, &dev);
+	if (psci_version >= PSCI_VERSION(0, 2)) {
+		int ret;
+
+		/* bind psci-sysreset optionally */
+		ret = device_bind_driver(dev, "psci-sysreset", "psci-sysreset",
+					 NULL);
+		if (ret)
+			pr_debug("PSCI System Reset was not bound.\n");
+	}
+
+	return psci_probe(dev);
 }
 
 #if IS_ENABLED(CONFIG_EFI_LOADER) && IS_ENABLED(CONFIG_PSCI_RESET)
 efi_status_t efi_reset_system_init(void)
 {
-	do_psci_probe();
 	return EFI_SUCCESS;
 }
 
@@ -178,18 +196,13 @@ void __efi_runtime EFIAPI efi_reset_system(enum efi_reset_type reset_type,
 #ifdef CONFIG_PSCI_RESET
 void reset_misc(void)
 {
-	do_psci_probe();
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_RESET, 0, 0, 0);
 }
 #endif /* CONFIG_PSCI_RESET */
 
 void psci_sys_reset(u32 type)
 {
-	bool reset2_supported;
-
-	do_psci_probe();
-
-	reset2_supported = psci_is_system_reset2_supported();
+	bool reset2_supported = psci_is_system_reset2_supported();
 
 	if (type == SYSRESET_WARM && reset2_supported) {
 		/*
@@ -205,16 +218,12 @@ void psci_sys_reset(u32 type)
 
 void psci_sys_poweroff(void)
 {
-	do_psci_probe();
-
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_OFF, 0, 0, 0);
 }
 
 #if IS_ENABLED(CONFIG_CMD_POWEROFF) && !IS_ENABLED(CONFIG_SYSRESET_CMD_POWEROFF)
 int do_poweroff(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	do_psci_probe();
-
 	puts("poweroff ...\n");
 	udelay(50000); /* wait 50 ms */
 
@@ -239,5 +248,4 @@ U_BOOT_DRIVER(psci) = {
 	.id = UCLASS_FIRMWARE,
 	.of_match = psci_of_match,
 	.bind = psci_bind,
-	.probe = psci_probe,
 };
