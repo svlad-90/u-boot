@@ -52,8 +52,8 @@ static struct mm_region pvmfw_mem_map[] = {
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
 	}, {
 		/* RAM */
-		.virt = CONFIG_SYS_SDRAM_BASE,
-		.phys = CONFIG_SYS_SDRAM_BASE,
+		.virt = 0x70000000UL,
+		.phys = 0x70000000UL,
 		.size = 255UL * SZ_1G,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
