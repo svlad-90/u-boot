@@ -47,3 +47,8 @@ CONFIG_XBC=y
 
 # Support examining device model state
 CONFIG_CMD_DM=y
+
+# Support Boot Certificate Chain
+CONFIG_BCC=y
+CONFIG_DICE_RMEM=y
+CONFIG_ANDROID_BCC=y
