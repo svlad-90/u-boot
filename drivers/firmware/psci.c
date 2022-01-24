@@ -114,6 +114,9 @@ static void psci_1_x_smccc_bind(struct udevice *dev)
 			if (ret)
 				pr_debug("KVM hypervisor services were not bound.\n");
 		}
+		ret = device_bind_driver(dev, "smccc-trng", "smccc-trng", NULL);
+		if (ret)
+			pr_debug("Support for SMCCC TRNG not found\n");
 	}
 }
 
