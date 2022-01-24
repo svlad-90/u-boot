@@ -8,6 +8,7 @@
 #include <android_bootloader_message.h>
 
 #include <android_ab.h>
+#include <bcc.h>
 #include <cli.h>
 #include <common.h>
 #include <image.h>
@@ -16,6 +17,16 @@
 #include <malloc.h>
 #include <part.h>
 #include <avb_verify.h>
+#include <version.h>
+
+#include <dm/device.h>
+#include <dm/device_compat.h>
+#include <dm/uclass.h>
+#include <dm/read.h>
+#include <linux/ioport.h>
+
+#define OS_VERSION		((U_BOOT_VERSION_NUM << 16) | \
+				 U_BOOT_VERSION_NUM_PATCH)
 
 #define ANDROID_PARTITION_BOOT "boot"
 #define ANDROID_PARTITION_VENDOR_BOOT "vendor_boot"
@@ -370,6 +381,105 @@ bail:
 	return 0;
 }
 
+#ifdef CONFIG_ANDROID_BCC
+struct avb_bcc_context {
+	struct bcc_context *bcc_ctx;
+	uint8_t *handover;
+	size_t handover_size;
+};
+
+static void *find_bcc_handover(size_t *size)
+{
+	struct udevice *dev;
+	struct resource res;
+
+	/* Probe drivers that provide a BCC handover buffer. */
+	for (uclass_first_device(UCLASS_DICE, &dev); dev; uclass_next_device(&dev)) {
+		if (!dev_read_resource(dev, 0, &res)) {
+			*size = resource_size(&res);
+			return (void*)res.start;
+		}
+	}
+
+	return NULL;
+}
+
+static void init_avb_bcc_context(struct avb_bcc_context *out_ctx)
+{
+	out_ctx->handover = find_bcc_handover(&out_ctx->handover_size);
+
+	if (out_ctx->handover && out_ctx->handover_size)
+		out_ctx->bcc_ctx = bcc_context_alloc();
+	else
+		out_ctx->bcc_ctx = NULL;
+}
+
+static void free_avb_bcc_context(struct avb_bcc_context *ctx)
+{
+	if (ctx->handover && ctx->handover_size)
+		bcc_clear_memory(ctx->handover, ctx->handover_size);
+
+	if (ctx->bcc_ctx)
+		kfree(ctx->bcc_ctx);
+}
+
+static int do_bcc_update(struct avb_bcc_context *ctx, AvbSlotVerifyData *data)
+{
+	const uint8_t *pubkey;
+	size_t pubkey_size, i;
+
+	if (!ctx->bcc_ctx)
+		return CMD_RET_SUCCESS;
+
+	if (avb_find_main_pubkey(data, &pubkey, &pubkey_size))
+		return CMD_RET_FAILURE;
+
+	bcc_update_authority_hash(ctx->bcc_ctx, pubkey, pubkey_size);
+	for (i = 0; i < data->num_vbmeta_images; i++) {
+		bcc_update_code_hash(ctx->bcc_ctx,
+				     data->vbmeta_images[i].vbmeta_data,
+				     data->vbmeta_images[i].vbmeta_size);
+	}
+
+	return CMD_RET_SUCCESS;
+}
+
+static int do_avb_bcc_handover(struct avb_bcc_context *ctx,
+			       enum android_boot_mode boot_mode)
+{
+	void *new_handover = NULL;
+	int ret = CMD_RET_FAILURE;
+	enum bcc_mode bcc_mode;
+
+	if (!ctx->bcc_ctx)
+		return CMD_RET_SUCCESS;
+
+	if (CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)) {
+		bcc_mode = (boot_mode == ANDROID_BOOT_MODE_NORMAL)
+				? BCC_MODE_NORMAL : BCC_MODE_MAINTENANCE;
+	} else {
+		bcc_mode = BCC_MODE_DEBUG;
+	}
+
+	new_handover = kzalloc(ctx->handover_size, GFP_KERNEL);
+	if (!new_handover)
+		goto out;
+
+	if (!bcc_handover(ctx->bcc_ctx, "AVB", OS_VERSION, bcc_mode,
+			  ctx->handover, ctx->handover_size, ctx->handover_size,
+			  new_handover, /*out_size=*/NULL)) {
+		memcpy(ctx->handover, new_handover, ctx->handover_size);
+		ret = CMD_RET_SUCCESS;
+	}
+
+out:
+	if (new_handover) {
+		bcc_clear_memory(new_handover, ctx->handover_size);
+		kfree(new_handover);
+	}
+	return ret;
+}
+#endif /* CONFIG_ANDROID_BCC */
 
 /**
  * Calls avb_verify() with ops allocated for iface and devnum.
@@ -474,6 +584,9 @@ int android_bootloader_boot_flow(const char* iface_str,
 	int system_part_num
 	struct disk_partition system_part_info;
 #endif
+#ifdef CONFIG_ANDROID_BCC
+	struct avb_bcc_context bcc_ctx;
+#endif
 
 	/* Determine the boot mode and clear its value for the next boot if
 	 * needed.
@@ -549,11 +662,21 @@ int android_bootloader_boot_flow(const char* iface_str,
 	AvbSlotVerifyData *avb_out_bootconfig_data = NULL;
 	AvbPartitionData *verified_bootconfig_img = NULL;
 
+#ifdef CONFIG_ANDROID_BCC
+	init_avb_bcc_context(&bcc_ctx);
+#endif
+
 	if (verify) {
 		if (do_avb_verify(iface_str, dev_str, slot_suffix, NULL, (uint8_t *)kernel_address,
 				  &avb_out_data, &avb_cmdline) == CMD_RET_FAILURE) {
 			goto bail;
 		}
+#ifdef CONFIG_ANDROID_BCC
+		if (do_bcc_update(&bcc_ctx, avb_out_data) == CMD_RET_FAILURE) {
+			log_err("Failed to do update BCC state with AVB data.\n");
+			goto bail;
+		}
+#endif
 		for (int i = 0; i < avb_out_data->num_loaded_partitions; i++) {
 			AvbPartitionData *p =
 			    &avb_out_data->loaded_partitions[i];
@@ -602,6 +725,12 @@ int android_bootloader_boot_flow(const char* iface_str,
 			log_err("Failed to verify bootconfig.\n");
 			goto bail;
 		}
+#ifdef CONFIG_ANDROID_BCC
+		if (do_bcc_update(&bcc_ctx, avb_out_bootconfig_data) == CMD_RET_FAILURE) {
+			log_err("Failed to do update BCC state with bootconfig AVB data.\n");
+			goto bail;
+		}
+#endif
 		for (int i = 0; i < avb_out_bootconfig_data->num_loaded_partitions; i++) {
 			AvbPartitionData *p =
 			    &avb_out_bootconfig_data->loaded_partitions[i];
@@ -616,6 +745,13 @@ int android_bootloader_boot_flow(const char* iface_str,
 	}
 #endif /* !CONFIG_AVB_IS_UNLOCKED */
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
+
+#ifdef CONFIG_ANDROID_BCC
+	if (do_avb_bcc_handover(&bcc_ctx, mode) == CMD_RET_FAILURE) {
+		log_err("Failed to do BCC handover.\n");
+		goto bail;
+	}
+#endif
 
 	/* Load the kernel from the desired "boot" partition. */
 	boot_part_num =
@@ -721,5 +857,8 @@ bail:
 	if (avb_out_bootconfig_data != NULL) {
 		avb_slot_verify_data_free(avb_out_bootconfig_data);
 	}
+#ifdef CONFIG_ANDROID_BCC
+	free_avb_bcc_context(&bcc_ctx);
+#endif
 	return -1;
 }
