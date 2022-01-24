@@ -137,6 +137,10 @@ obj-$(CONFIG_$(SPL_TPL_)YMODEM_SUPPORT) += xyzModem.o
 
 obj-$(CONFIG_AVB_VERIFY) += avb_verify.o
 
+obj-$(CONFIG_BCC) += bcc.o
+CFLAGS_bcc.o = \
+	-I$(srctree)/lib/open-dice/include/\
+	-I$(srctree)/lib/open-dice/include/dice/config/$(CONFIG_LIB_OPENDICE_CONFIG)/
 
 ###################################################
 # Build avb_pubkey.o from CONFIG_AVB_PUBKEY_FILE

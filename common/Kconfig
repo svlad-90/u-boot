@@ -651,6 +651,18 @@ config AVB_IS_UNLOCKED
 
 endif # AVB_VERIFY
 
+config BCC
+	bool "Support for Boot Certificate Chain derivation"
+	default n
+	select LIB_OPENDICE
+	select LIB_BORINGSSL
+	select SHA256
+	help
+	  This enables support for generating the next entry in Boot Certificate
+	  Chain using Open Profile for DICE derivation. This is a form of
+	  measured boot that can be used for remote attestation and key
+	  provisioning.
+
 config SCP03
 	bool "Build SCP03 - Secure Channel Protocol O3 - controls"
 	depends on OPTEE || SANDBOX
