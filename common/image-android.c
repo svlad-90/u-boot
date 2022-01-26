@@ -89,7 +89,7 @@ static bool android_read_from_avb_partition(const AvbPartitionData *part,
 				    size_t offset, void *dest, size_t size) {
 	if (offset + size > part->data_size) {
 		debug("Attempted to read past the %s partition boundary. "
-			"Offset: %d, read size: %d, partition size: %d\n",
+			"Offset: %zu, read size: %zu partition size: %zu\n",
 			part->partition_name, offset, size, part->data_size);
 		return false;
 	}
@@ -539,7 +539,7 @@ AvbIOResult android_get_preloaded_partition(AvbOps *ops,
 		// Nothing to preload is not an error
 		return AVB_IO_RESULT_OK;
 	}
-	debug("preloading %s at %p (size=0x%x)\n", partition, preload_info->addr, num_bytes);
+	debug("preloading %s at %p (size=0x%zx)\n", partition, preload_info->addr, num_bytes);
 
 	// If the partition hasn't yet been preloaded, do it now.
 	if (preload_info->size == 0) {
