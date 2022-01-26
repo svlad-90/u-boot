@@ -307,7 +307,7 @@ static bool _read_in_kernel(struct blk_desc *dev_desc,
 	size_t page = boot_info->page_size;
 	size_t offset = ALIGN(ANDR_BOOT_IMG_HDR_SIZE, page);
 	size_t size = boot_info->kernel_size;
-	void *laddr = (void*)boot_info->kernel_addr;
+	void *laddr = (void*)(uintptr_t)boot_info->kernel_addr;
 	if (!android_read_data("kernel", dev_desc, boot_img, verified_boot_img,
 			       offset, laddr, size)) {
 	      return false;
@@ -325,7 +325,7 @@ static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
 	size_t page = boot_info->page_size;
 	size_t offset = ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page);
 	size_t size = boot_info->vendor_ramdisk_size;
-	void *laddr = (void*)boot_info->vendor_ramdisk_addr;
+	void *laddr = (void*)(uintptr_t)boot_info->vendor_ramdisk_addr;
 	if (!android_read_data("vendor ramdisk", dev_desc, vendor_boot_img,
 			       verified_vendor_boot_img, offset, laddr, size)) {
 	      return false;
@@ -363,7 +363,7 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		ALIGN(boot_info->dtb_size, page) +
 		ALIGN(boot_info->vendor_ramdisk_table_size, page);
 	size_t size = boot_info->vendor_bootconfig_size;
-	void *laddr = (void*)(boot_info->vendor_bootconfig_addr);
+	void *laddr = (void*)(uintptr_t)boot_info->vendor_bootconfig_addr;
 	if (!android_read_data("vendor bootconfig", dev_desc, vendor_boot_img,
 			       verified_vendor_boot_img, offset, laddr, size)) {
 	      return false;
@@ -481,7 +481,7 @@ static bool _read_in_ramdisk(struct blk_desc *dev_desc,
 		ALIGN(ANDR_BOOT_IMG_HDR_SIZE, ANDR_BOOT_IMG_HDR_SIZE) +
 		aligned_kernel_offset;
 	size_t size = boot_info->boot_ramdisk_size;
-	void *laddr = (void*)boot_info->boot_ramdisk_addr;
+	void *laddr = (void*)(uintptr_t)boot_info->boot_ramdisk_addr;
 	if (!android_read_data("ramdisk", dev_desc, boot_img, verified_boot_img,
 			       offset, laddr, size)) {
 	      return false;
