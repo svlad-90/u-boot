@@ -689,25 +689,10 @@ int part_get_info_by_name(struct blk_desc *dev_desc, const char *name,
 	return part_get_info_by_name_type(dev_desc, name, info, PART_TYPE_ALL);
 }
 
-/**
- * Get partition info from device number and partition name.
- *
- * Parse a device number and partition name string in the form of
- * "devicenum.hwpartnum#partition_name", for example "0.1#misc". devicenum and
- * hwpartnum are both optional, defaulting to 0. If the partition is found,
- * sets dev_desc and part_info accordingly with the information of the
- * partition with the given partition_name.
- *
- * @param[in] dev_iface Device interface
- * @param[in] dev_part_str Input string argument, like "0.1#misc"
- * @param[out] dev_desc Place to store the device description pointer
- * @param[out] part_info Place to store the partition information
- * @return 0 on success, or a negative on error
- */
-static int part_get_info_by_dev_and_name(const char *dev_iface,
-					 const char *dev_part_str,
-					 struct blk_desc **dev_desc,
-					 struct disk_partition *part_info)
+int part_get_info_by_dev_and_name(const char *dev_iface,
+				  const char *dev_part_str,
+				  struct blk_desc **dev_desc,
+				  struct disk_partition *part_info)
 {
 	char *dup_str = NULL;
 	const char *dev_str, *part_str;

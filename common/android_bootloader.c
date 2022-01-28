@@ -457,7 +457,7 @@ int android_bootloader_boot_flow(const char* iface_str,
 				 unsigned long kernel_address,
 				 struct blk_desc *persistant_dev_desc)
 {
-	enum android_boot_mode mode;
+	enum android_boot_mode mode = ANDROID_BOOT_MODE_NORMAL;
 	struct disk_partition boot_part_info;
 	struct disk_partition vendor_boot_part_info;
 	struct disk_partition init_boot_part_info;
@@ -476,14 +476,17 @@ int android_bootloader_boot_flow(const char* iface_str,
 #endif
 
 	/* Determine the boot mode and clear its value for the next boot if
-	 * needed.
+	 * needed. This is only done is a misc partition is specified; if
+	 * there is no misc partition, assume we want the normal boot flow.
 	 */
-	mode = android_bootloader_load_and_clear_mode(dev_desc, misc_part_info);
-	printf("ANDROID: reboot reason: \"%s\"\n", android_boot_mode_str(mode));
-	// TODO (rammuthiah) fastboot isn't suported on cuttlefish yet.
-	// Once it is, these lines can be removed.
-	if (mode == ANDROID_BOOT_MODE_BOOTLOADER) {
-		mode = ANDROID_BOOT_MODE_NORMAL;
+	if (misc_part_info) {
+		mode = android_bootloader_load_and_clear_mode(dev_desc, misc_part_info);
+		printf("ANDROID: reboot reason: \"%s\"\n", android_boot_mode_str(mode));
+		// TODO (rammuthiah) fastboot isn't suported on cuttlefish yet.
+		// Once it is, these lines can be removed.
+		if (mode == ANDROID_BOOT_MODE_BOOTLOADER) {
+			mode = ANDROID_BOOT_MODE_NORMAL;
+		}
 	}
 
 	bool normal_boot = (mode == ANDROID_BOOT_MODE_NORMAL);
@@ -516,26 +519,33 @@ int android_bootloader_boot_flow(const char* iface_str,
 		return android_bootloader_boot_bootloader();
 	}
 
-	/* Look for an optional slot suffix override. */
+	slot_suffix[2] = '\0';
+
+	/* Slot wasn't specified on the command line. Check the environment */
 	if (!slot || !slot[0])
 		slot = env_get("android_slot_suffix");
 
-	slot_suffix[0] = '\0';
-	if (slot && slot[0]) {
-		slot_suffix[0] = '_';
-		slot_suffix[1] = slot[0];
-		slot_suffix[2] = '\0';
-	} else {
+	/* Slot wasn't specified on the command line, or in the environment */
+	if (!slot || !slot[0]) {
+		int slot_num = 0;
 #ifdef CONFIG_ANDROID_AB
-		int slot_num = ab_select_slot(dev_desc, misc_part_info, normal_boot);
-		if (slot_num < 0) {
-			log_err("Could not determine Android boot slot.\n");
-			return -1;
+		/* If U-Boot was built with Android A/B API support, use it to
+		 * check the misc partition for the slot to boot, if specified.
+		 */
+		if (misc_part_info) {
+			slot_num = ab_select_slot(dev_desc, misc_part_info,
+						  normal_boot);
+			if (slot_num < 0) {
+				log_err("Could not determine Android boot slot.\n");
+				slot_num = 0;
+				/* Fall through */
+			}
 		}
+#endif
 		slot_suffix[0] = '_';
 		slot_suffix[1] = BOOT_SLOT_NAME(slot_num);
-		slot_suffix[2] = '\0';
-#endif
+	} else {
+		strncpy(slot_suffix, slot, 2);
 	}
 
 	/* Run AVB if requested. During the verification, the bits from the
