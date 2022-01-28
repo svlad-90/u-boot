@@ -595,7 +595,7 @@ int android_bootloader_boot_flow(const char* iface_str,
 	if (bootconfig_part_info_ptr != NULL && verify) {
 		char devnum_str[3];
 		sprintf(devnum_str, "%d", persistant_dev_desc->devnum);
-		const char *slot_suffix = NULL;
+		const char *slot_suffix = ""; // No slots in this disk. Shouldn't be NULL.
 		const char *requested_partitions[] = {ANDROID_PARTITION_BOOTCONFIG, NULL};
 		if (do_avb_verify(iface_str, devnum_str, slot_suffix, requested_partitions, 0,
 				  &avb_out_bootconfig_data, NULL) == CMD_RET_FAILURE) {
