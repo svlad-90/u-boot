@@ -84,9 +84,9 @@
 /* KVM "vendor specific" services */
 #define ARM_SMCCC_KVM_FUNC_FEATURES		0
 #define ARM_SMCCC_KVM_FUNC_PTP			1
-#define ARM_SMCCC_KVM_FUNC_HYP_MEMINFO          2
-#define ARM_SMCCC_KVM_FUNC_MEM_SHARE            3
-#define ARM_SMCCC_KVM_FUNC_MEM_UNSHARE          4
+#define ARM_SMCCC_KVM_FUNC_HYP_MEMINFO		2
+#define ARM_SMCCC_KVM_FUNC_MEM_SHARE		3
+#define ARM_SMCCC_KVM_FUNC_MEM_UNSHARE		4
 #define ARM_SMCCC_KVM_FUNC_FEATURES_2		127
 #define ARM_SMCCC_KVM_NUM_FUNCS			128
 
@@ -96,23 +96,24 @@
 			   ARM_SMCCC_OWNER_VENDOR_HYP,			\
 			   ARM_SMCCC_KVM_FUNC_FEATURES)
 
-#define ARM_SMCCC_VENDOR_HYP_KVM_HYP_MEMINFO_FUNC_ID                    \
-        ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,                         \
-                           ARM_SMCCC_SMC_64,                            \
-                           ARM_SMCCC_OWNER_VENDOR_HYP,                  \
-                           ARM_SMCCC_KVM_FUNC_HYP_MEMINFO)
 
-#define ARM_SMCCC_VENDOR_HYP_KVM_MEM_SHARE_FUNC_ID                      \
-        ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,                         \
-                           ARM_SMCCC_SMC_64,                            \
-                           ARM_SMCCC_OWNER_VENDOR_HYP,                  \
-                           ARM_SMCCC_KVM_FUNC_MEM_SHARE)
+#define ARM_SMCCC_VENDOR_HYP_KVM_HYP_MEMINFO_FUNC_ID			\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_64,				\
+			   ARM_SMCCC_OWNER_VENDOR_HYP,			\
+			   ARM_SMCCC_KVM_FUNC_HYP_MEMINFO)
 
-#define ARM_SMCCC_VENDOR_HYP_KVM_MEM_UNSHARE_FUNC_ID                    \
-        ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,                         \
-                           ARM_SMCCC_SMC_64,                            \
-                           ARM_SMCCC_OWNER_VENDOR_HYP,                  \
-                           ARM_SMCCC_KVM_FUNC_MEM_UNSHARE)
+#define ARM_SMCCC_VENDOR_HYP_KVM_MEM_SHARE_FUNC_ID			\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_64,				\
+			   ARM_SMCCC_OWNER_VENDOR_HYP,			\
+			   ARM_SMCCC_KVM_FUNC_MEM_SHARE)
+
+#define ARM_SMCCC_VENDOR_HYP_KVM_MEM_UNSHARE_FUNC_ID			\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_64,				\
+			   ARM_SMCCC_OWNER_VENDOR_HYP,			\
+			   ARM_SMCCC_KVM_FUNC_MEM_UNSHARE)
 
 /* TRNG entropy source calls (defined by ARM DEN0098) */
 #define ARM_SMCCC_TRNG_VERSION					\
