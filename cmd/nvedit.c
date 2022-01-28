@@ -43,6 +43,10 @@
 #include <asm/byteorder.h>
 #include <asm/io.h>
 
+#ifdef CONFIG_CMD_ENV_VERIFIED_IMPORT
+#include <avb_verify.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #if	defined(CONFIG_ENV_IS_IN_EEPROM)	|| \
@@ -1207,6 +1211,90 @@ sep_err:
 }
 #endif
 
+#ifdef CONFIG_CMD_ENV_VERIFIED_IMPORT
+/*
+ * env verified_import [-d] <interface> <dev>[#<part>]
+ *	-d:	delete existing environment before importing
+ *		otherwise overwrite / append to existing definitions
+ */
+static int do_env_verified_import(struct cmd_tbl *cmdtp, int flag,
+				  int argc, char *const argv[])
+{
+	int err, ret = CMD_RET_FAILURE;
+
+	bool del = false;
+	while (--argc > 0 && **++argv == '-') {
+		char *arg = *argv;
+		while (*++arg) {
+			switch (*arg) {
+			case 'd':
+				del = true;
+				break;
+			default:
+				return CMD_RET_USAGE;
+			}
+		}
+	}
+
+	if (argc != 2)
+		return CMD_RET_USAGE;
+
+	struct blk_desc *dev_desc = NULL;
+	struct disk_partition info = {};
+	err = part_get_info_by_dev_and_name_or_num(argv[0], argv[1],
+						   &dev_desc, &info, true);
+	if (err < 0) {
+		pr_err("Couldn't find partition\n");
+		goto err_out;
+	}
+
+	struct AvbOps *ops =
+		avb_ops_alloc(argv[0], simple_itoa(dev_desc->devnum));
+	if (!ops) {
+		pr_err("Failed to initialize avb2\n");
+		goto err_out;
+	}
+
+	const char *requested_partitions[] = { info.name, NULL };
+	AvbSlotVerifyData *out_data = NULL;
+	err = avb_verify_partitions(ops, "", requested_partitions,
+				    &out_data, NULL);
+	if (err) {
+		pr_err("Failed to verify environment at %s\n", argv[1]);
+		goto err_avb_ops_free;
+	}
+
+	bool found = false;
+	for (int i = 0; i < out_data->num_loaded_partitions; i++) {
+		AvbPartitionData *p = &out_data->loaded_partitions[i];
+		if (strcmp(info.name, p->partition_name) == 0) {
+			const env_t *env = (const env_t *)p->data;
+			size_t env_size = p->data_size - offsetof(env_t, data);
+			if (!himport_r(&env_htab, env->data, env_size, '\0',
+				       del ? 0 : H_NOCLEAR, false, 0, NULL)) {
+				pr_err("## Error: Environment import failed: "
+				       "errno = %d\n", errno);
+				goto err_avb_slot_verify_data_free;
+			}
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		pr_err("Failed to find verified partition %s\n", argv[1]);
+		goto err_avb_slot_verify_data_free;
+	}
+
+	ret = CMD_RET_SUCCESS;
+err_avb_slot_verify_data_free:
+	avb_slot_verify_data_free(out_data);
+err_avb_ops_free:
+	avb_ops_free(ops);
+err_out:
+	return ret;
+}
+#endif
+
 #if defined(CONFIG_CMD_NVEDIT_INFO)
 /*
  * print_env_info - print environment information
@@ -1370,6 +1458,9 @@ static struct cmd_tbl cmd_env_sub[] = {
 #if defined(CONFIG_CMD_IMPORTENV)
 	U_BOOT_CMD_MKENT(import, 5, 0, do_env_import, "", ""),
 #endif
+#if defined(CONFIG_CMD_ENV_VERIFIED_IMPORT)
+	U_BOOT_CMD_MKENT(verified_import, 4, 0, do_env_verified_import, "", ""),
+#endif
 #if defined(CONFIG_CMD_NVEDIT_INFO)
 	U_BOOT_CMD_MKENT(info, 3, 0, do_env_info, "", ""),
 #endif
@@ -1453,6 +1544,9 @@ static char env_help_text[] =
 #endif
 #if defined(CONFIG_CMD_IMPORTENV)
 	"env import [-d] [-t [-r] | -b | -c] addr [size] [var ...] - import environment\n"
+#endif
+#if defined(CONFIG_CMD_ENV_VERIFIED_IMPORT)
+	"env verified_import [-d] <interface> <dev>[#<part>] - import verified environment\n"
 #endif
 #if defined(CONFIG_CMD_NVEDIT_INFO)
 	"env info - display environment information\n"

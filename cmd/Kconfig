@@ -500,6 +500,12 @@ config CMD_ENV_FLAGS
 	  be deleted. This command shows the variables that have special
 	  flags.
 
+config CMD_ENV_VERIFIED_IMPORT
+	bool "env verified_import - import from device with verification"
+	depends on AVB_VERIFY
+	help
+	  Import environment from a device or partition with an AVB footer.
+
 config CMD_NVEDIT_EFI
 	bool "env [set|print] -e - set/print UEFI variables"
 	depends on EFI_LOADER

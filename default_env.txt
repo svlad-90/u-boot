@@ -1,3 +1,3 @@
-bootcmd=virtio scan && setenv bootargs "$cbootargs" && verified_boot_android virtio 0#misc
+bootcmd=virtio scan && setenv bootargs "$cbootargs" && if env verified_import virtio 1#uboot_env; then echo "Imported supplementary environment"; else echo "No supplementary environment"; fi && verified_boot_android virtio 0#misc
 android_keymint_needed=N
 bootdelay=0
