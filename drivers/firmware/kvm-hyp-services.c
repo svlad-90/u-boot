@@ -3,6 +3,9 @@
  * Copyright (C) 2022 Google LLC
  */
 
+#include <asm/armv8/mmu.h>
+#include <asm/esr.h>
+#include <asm/proc-armv/ptrace.h>
 #include <common.h>
 #include <dm.h>
 #include <malloc.h>
@@ -63,6 +66,46 @@ static int kvm_hyp_memshare_init(unsigned long features)
 		return -ENXIO;
 
 	virtio_iommu_platform_ops = &ops;
+	return 0;
+}
+
+static bool esr_is_external_data_abort(unsigned int esr)
+{
+	return esr == (ESR_ELx_FSC_EXTABT | ESR_ELx_IL |
+		((unsigned int)(ESR_ELx_EC_DABT_CUR) << ESR_ELx_EC_SHIFT));
+}
+
+int handle_synchronous_exception(struct pt_regs *pt_regs, unsigned int esr)
+{
+	struct mm_region *region;
+	u64 far;
+
+	/*
+	 * HACK: Check for an external data abort, symptomatic of an
+	 * injected exception
+	 */
+	if (!esr_is_external_data_abort(esr))
+		return 0;
+
+	asm volatile("mrs %0, far_el1" : "=r" (far));
+
+	for (region = mem_map; region->size; region++) {
+		struct arm_smccc_res res;
+		u64 attrs = region->attrs & PMD_ATTRINDX_MASK;
+		u64 size = region->size;
+		u64 phys = region->phys;
+
+		if (attrs == PTE_BLOCK_MEMTYPE(MT_NORMAL) ||
+		    attrs == PTE_BLOCK_MEMTYPE(MT_NORMAL_NC))
+			continue;
+
+		if (far >= phys && far < (phys + size)) {
+			arm_smccc_hvc(ARM_SMCCC_VENDOR_HYP_KVM_MMIO_GUARD_MAP_FUNC_ID,
+				      (far & PAGE_MASK), attrs, 0, 0, 0, 0, 0, &res);
+			return (res.a0 == SMCCC_RET_SUCCESS);
+		}
+	}
+
 	return 0;
 }
 
