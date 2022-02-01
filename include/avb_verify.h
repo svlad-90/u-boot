@@ -87,6 +87,14 @@ int avb_verify(struct AvbOps *ops,
 	       char **out_cmdline);
 
 /**
+ * Extract public key used to sign partitions in AvbSlotVerifyData.
+ *
+ * Returns CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.
+ */
+int avb_find_main_pubkey(AvbSlotVerifyData *data,
+			 const uint8_t **key, size_t *size);
+
+/**
  * ============================================================================
  * I/O helper inline functions
  * ============================================================================

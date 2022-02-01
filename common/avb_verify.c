@@ -1036,3 +1036,20 @@ success:
 	}
 	return CMD_RET_SUCCESS;
 }
+
+int avb_find_main_pubkey(AvbSlotVerifyData *data,
+			 const uint8_t **key, size_t *size)
+{
+	/*
+	 * The main VBMeta is always at index zero because we never call
+	 * avb_slot_verify with AVB_SLOT_VERIFY_FLAGS_NO_VBMETA_PARTITION.
+	 */
+	if (!data->num_vbmeta_images ||
+	    avb_vbmeta_image_verify(data->vbmeta_images[0].vbmeta_data,
+				    data->vbmeta_images[0].vbmeta_size,
+				    key, size) != AVB_VBMETA_VERIFY_RESULT_OK) {
+		return CMD_RET_FAILURE;
+	}
+
+	return CMD_RET_SUCCESS;
+}
