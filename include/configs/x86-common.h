@@ -53,7 +53,7 @@
  */
 #define CONFIG_SYS_CBSIZE			512
 
-#define CONFIG_SYS_LOAD_ADDR			0x20000000
+#define CONFIG_SYS_LOAD_ADDR			0x02400000
 
 /*-----------------------------------------------------------------------
  * CPU Features
@@ -82,8 +82,8 @@
 #define CONFIG_ROOTPATH		"/opt/nfsroot"
 #define CONFIG_HOSTNAME		"x86"
 #define CONFIG_BOOTFILE		"bzImage"
-#define CONFIG_LOADADDR		0x1000000
-#define CONFIG_RAMDISK_ADDR	0x4000000
+#define CONFIG_LOADADDR		0x2400000
+#define CONFIG_RAMDISK_ADDR	0x6400000
 #if defined(CONFIG_GENERATE_ACPI_TABLE) || defined(CONFIG_EFI_STUB)
 #define CONFIG_OTHBOOTARGS	"othbootargs=\0"
 #else
@@ -110,10 +110,10 @@
 	"consoledev=ttyS0\0"				\
 	CONFIG_OTHBOOTARGS				\
 	FDTFILE						\
-	"scriptaddr=0x7000000\0"			\
-	"kernel_addr_r=0x1000000\0"			\
-	"ramdisk_addr_r=0x4000000\0"			\
-	"fdt_addr_r=0x8000000\0"			\
+	"scriptaddr=0x2000000\0"			\
+	"kernel_addr_r=0x2400000\0"			\
+	"ramdisk_addr_r=0x6400000\0"			\
+	"fdt_addr_r=0x4000000\0"			\
 	"ramdiskfile=initramfs.gz\0"
 
 
