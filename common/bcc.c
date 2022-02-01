@@ -8,6 +8,7 @@
 #include <u-boot/sha256.h>
 
 #include <dice/android/bcc.h>
+#include <dice/cbor_reader.h>
 #include <dice/ops.h>
 
 #include <dm/device.h>
@@ -15,6 +16,9 @@
 #include <dm/uclass.h>
 #include <dm/read.h>
 #include <linux/ioport.h>
+
+#include <openssl/evp.h>
+#include <openssl/hkdf.h>
 
 #define BCC_CONFIG_DESC_SIZE	64
 
@@ -165,4 +169,44 @@ out:
 	bcc_clear_memory(new_handover, bcc_handover_buffer_size);
 	free(new_handover);
 	return ret;
+}
+
+int bcc_get_sealing_key(const uint8_t *info, size_t info_size,
+			uint8_t *out_key, size_t out_key_size)
+{
+	const uint64_t cdi_attest_label = 1;
+	const uint64_t cdi_seal_label = 2;
+	struct CborIn in;
+	int64_t label;
+	size_t item_size;
+	const uint8_t *ptr;
+	int ret;
+
+	/* Make sure initialization is complete. */
+	ret = bcc_init();
+	if (ret)
+		return ret;
+
+	CborInInit(bcc_handover_buffer, bcc_handover_buffer_size, &in);
+	if (CborReadMap(&in, &item_size) != CBOR_READ_RESULT_OK ||
+	    item_size < 3 ||
+	    // Read the attestation CDI.
+	    CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
+	    label != cdi_attest_label ||
+	    CborReadBstr(&in, &item_size, &ptr) != CBOR_READ_RESULT_OK ||
+	    item_size != DICE_CDI_SIZE ||
+	    // Read the sealing CDI.
+	    CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
+	    label != cdi_seal_label ||
+	    CborReadBstr(&in, &item_size, &ptr) != CBOR_READ_RESULT_OK ||
+	    item_size != DICE_CDI_SIZE)
+		return -EINVAL;
+
+	if (!HKDF(out_key, out_key_size, EVP_sha512(),
+		  ptr, DICE_CDI_SIZE, /*salt=*/NULL, /*salt_len=*/0,
+		  info, info_size)) {
+		return -EIO;
+	}
+
+	return 0;
 }
