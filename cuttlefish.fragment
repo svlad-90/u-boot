@@ -51,3 +51,6 @@ CONFIG_CMD_DM=y
 CONFIG_BCC=y
 CONFIG_DICE_RMEM=y
 CONFIG_ANDROID_BCC=y
+
+# Must not use RNG from host.
+# CONFIG_VIRTIO_RNG is not set
