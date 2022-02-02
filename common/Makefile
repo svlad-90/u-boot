@@ -124,6 +124,11 @@ CFLAGS_bcc.o = \
 	-I$(srctree)/lib/open-dice/include/\
 	-I$(srctree)/lib/open-dice/include/dice/config/$(CONFIG_LIB_OPENDICE_CONFIG)/
 
+obj-$(CONFIG_BCC) += vm_instance.o
+CFLAGS_vm_instance.o = \
+	-I$(srctree)/lib/boringssl/include/\
+	-I$(srctree)/lib/boringssl/src/include/
+
 ###################################################
 # Build avb_pubkey.o from CONFIG_AVB_PUBKEY_FILE
 obj-$(CONFIG_AVB_VERIFY) += avb_pubkey.o

@@ -685,6 +685,16 @@ config BCC
 	  measured boot that can be used for remote attestation and key
 	  provisioning.
 
+if BCC
+
+config VM_INSTANCE_PARTITION_NAME
+	string "Partition name of the VM instance image"
+	default "vm-instance"
+	help
+	  The name of the partitions that holds the VM instance image.
+
+endif # BCC
+
 config SCP03
 	bool "Build SCP03 - Secure Channel Protocol O3 - controls"
 	depends on OPTEE || SANDBOX
