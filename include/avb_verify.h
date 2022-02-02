@@ -95,6 +95,13 @@ int avb_find_main_pubkey(const AvbSlotVerifyData *data,
 			 const uint8_t **key, size_t *size);
 
 /**
+ * Verify that a key is trusted by the platform
+ *
+ * Returns CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.
+ */
+int avb_pubkey_is_trusted(const uint8_t *key, size_t size);
+
+/**
  * ============================================================================
  * I/O helper inline functions
  * ============================================================================
