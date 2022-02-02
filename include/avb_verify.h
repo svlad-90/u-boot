@@ -91,7 +91,7 @@ int avb_verify(struct AvbOps *ops,
  *
  * Returns CMD_RET_SUCCESS or CMD_RET_FAILURE as the return value.
  */
-int avb_find_main_pubkey(AvbSlotVerifyData *data,
+int avb_find_main_pubkey(const AvbSlotVerifyData *data,
 			 const uint8_t **key, size_t *size);
 
 /**
