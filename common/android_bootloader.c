@@ -354,7 +354,7 @@ static char *join_str(const char *a, const char *b) {
 	size_t len = strlen(a) + strlen(b) + 1 /* null term */;
 	char *ret = (char *)malloc(len);
 	if (ret == NULL) {
-		debug("failed to alloc %u\n", len);
+		debug("failed to alloc %zu\n", len);
 		return NULL;
 	}
 	strcpy(ret, a);
@@ -362,7 +362,7 @@ static char *join_str(const char *a, const char *b) {
 	return ret;
 }
 
-static size_t get_partition_size(AvbOps *ops, char *name, char *slot_suffix) {
+static size_t get_partition_size(AvbOps *ops, char *name, const char *slot_suffix) {
 	uint64_t size = 0;
 	char *partition_name = join_str(name, slot_suffix);
 	if (partition_name == NULL) {
