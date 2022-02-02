@@ -405,55 +405,13 @@ bail:
 }
 
 #ifdef CONFIG_ANDROID_BCC
-static int do_bcc_update(struct bcc_context *bcc_ctx, const AvbSlotVerifyData *data)
+static int do_avb_bcc_handover(const char *iface_str, int devnum,
+			       enum android_boot_mode boot_mode,
+			       const AvbSlotVerifyData *code_data,
+			       const AvbSlotVerifyData *config_data)
 {
-	const uint8_t *pubkey;
-	size_t pubkey_size, i;
-
-	if (avb_find_main_pubkey(data, &pubkey, &pubkey_size) == CMD_RET_FAILURE)
-		return CMD_RET_FAILURE;
-
-	bcc_update_authority_hash(bcc_ctx, pubkey, pubkey_size);
-	for (i = 0; i < data->num_vbmeta_images; i++) {
-		bcc_update_code_hash(bcc_ctx,
-				     data->vbmeta_images[i].vbmeta_data,
-				     data->vbmeta_images[i].vbmeta_size);
-	}
-
-	return CMD_RET_SUCCESS;
-}
-
-static int do_avb_bcc_handover(enum android_boot_mode boot_mode,
-			       const AvbSlotVerifyData *boot_partitions_data,
-			       const AvbSlotVerifyData *bootconfig_data)
-{
-	struct bcc_context *bcc_ctx;
+	const char *instance_uuid = "7e8221e7-03e6-4969-948b-73a4c809a4f2";
 	enum bcc_mode bcc_mode;
-	int ret = CMD_RET_FAILURE;
-	int res;
-
-	/* Continue without the BCC if it wasn't found. */
-	res = bcc_init();
-	if (res == -ENOENT)
-		return CMD_RET_SUCCESS;
-	if (res)
-		return CMD_RET_FAILURE;
-
-	bcc_ctx = bcc_context_alloc();
-	if (!bcc_ctx)
-		return CMD_RET_FAILURE;
-
-	if (do_bcc_update(bcc_ctx, boot_partitions_data) == CMD_RET_FAILURE) {
-		log_err("Failed to do update BCC state with AVB data.\n");
-		goto out;
-	}
-
-	if (bootconfig_data) {
-		if (do_bcc_update(bcc_ctx, bootconfig_data) == CMD_RET_FAILURE) {
-			log_err("Failed to do update BCC state with bootconfig AVB data.\n");
-			goto out;
-		}
-	}
 
 	if (CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)) {
 		bcc_mode = BCC_MODE_DEBUG;
@@ -462,12 +420,8 @@ static int do_avb_bcc_handover(enum android_boot_mode boot_mode,
 				? BCC_MODE_NORMAL : BCC_MODE_MAINTENANCE;
 	}
 
-	if (bcc_handover(bcc_ctx, "AVB", bcc_mode) == 0)
-		ret = CMD_RET_SUCCESS;
-
-out:
-	free(bcc_ctx);
-	return ret;
+	return bcc_vm_instance_handover(iface_str, devnum, instance_uuid, "AVB",
+					bcc_mode, code_data, config_data, NULL, 0);
 }
 #endif /* CONFIG_ANDROID_BCC */
 
@@ -728,8 +682,8 @@ int android_bootloader_boot_flow(const char* iface_str,
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 
 #ifdef CONFIG_ANDROID_BCC
-	if (do_avb_bcc_handover(mode, avb_out_data, avb_out_bootconfig_data)
-			== CMD_RET_FAILURE) {
+	if (do_avb_bcc_handover(iface_str, persistant_dev_desc->devnum, mode,
+				avb_out_data, avb_out_bootconfig_data)) {
 		log_err("Failed to do BCC handover.\n");
 		goto bail;
 	}
