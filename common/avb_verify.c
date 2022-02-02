@@ -509,7 +509,7 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 
 	*out_key_is_trusted = false;
 	if (public_key_length != root_pubkey_size)
-		return AVB_IO_RESULT_ERROR_IO;
+		return AVB_IO_RESULT_OK;
 
 	if (memcmp(&_binary_common_avb_pubkey_start, public_key_data, public_key_length) == 0)
 		*out_key_is_trusted = true;
