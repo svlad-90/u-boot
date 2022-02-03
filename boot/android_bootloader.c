@@ -19,12 +19,6 @@
 #include <avb_verify.h>
 #include <version.h>
 
-#include <dm/device.h>
-#include <dm/device_compat.h>
-#include <dm/uclass.h>
-#include <dm/read.h>
-#include <linux/ioport.h>
-
 #define OS_VERSION		((U_BOOT_VERSION_NUM << 16) | \
 				 U_BOOT_VERSION_NUM_PATCH)
 
@@ -417,31 +411,11 @@ bail:
 #ifdef CONFIG_ANDROID_BCC
 struct avb_bcc_context {
 	struct bcc_context *bcc_ctx;
-	uint8_t *handover;
-	size_t handover_size;
 };
-
-static void *find_bcc_handover(size_t *size)
-{
-	struct udevice *dev;
-	struct resource res;
-
-	/* Probe drivers that provide a BCC handover buffer. */
-	for (uclass_first_device(UCLASS_DICE, &dev); dev; uclass_next_device(&dev)) {
-		if (!dev_read_resource(dev, 0, &res)) {
-			*size = resource_size(&res);
-			return (void*)res.start;
-		}
-	}
-
-	return NULL;
-}
 
 static void init_avb_bcc_context(struct avb_bcc_context *out_ctx)
 {
-	out_ctx->handover = find_bcc_handover(&out_ctx->handover_size);
-
-	if (out_ctx->handover && out_ctx->handover_size)
+	if (bcc_init() == 0)
 		out_ctx->bcc_ctx = bcc_context_alloc();
 	else
 		out_ctx->bcc_ctx = NULL;
@@ -449,11 +423,8 @@ static void init_avb_bcc_context(struct avb_bcc_context *out_ctx)
 
 static void free_avb_bcc_context(struct avb_bcc_context *ctx)
 {
-	if (ctx->handover && ctx->handover_size)
-		bcc_clear_memory(ctx->handover, ctx->handover_size);
-
 	if (ctx->bcc_ctx)
-		kfree(ctx->bcc_ctx);
+		free(ctx->bcc_ctx);
 }
 
 static int do_bcc_update(struct avb_bcc_context *ctx, AvbSlotVerifyData *data)
@@ -480,8 +451,6 @@ static int do_bcc_update(struct avb_bcc_context *ctx, AvbSlotVerifyData *data)
 static int do_avb_bcc_handover(struct avb_bcc_context *ctx,
 			       enum android_boot_mode boot_mode)
 {
-	void *new_handover = NULL;
-	int ret = CMD_RET_FAILURE;
 	enum bcc_mode bcc_mode;
 
 	if (!ctx->bcc_ctx)
@@ -494,23 +463,10 @@ static int do_avb_bcc_handover(struct avb_bcc_context *ctx,
 				? BCC_MODE_NORMAL : BCC_MODE_MAINTENANCE;
 	}
 
-	new_handover = kzalloc(ctx->handover_size, GFP_KERNEL);
-	if (!new_handover)
-		goto out;
+	if (bcc_handover(ctx->bcc_ctx, "AVB", OS_VERSION, bcc_mode) == 0)
+		return CMD_RET_SUCCESS;
 
-	if (!bcc_handover(ctx->bcc_ctx, "AVB", OS_VERSION, bcc_mode,
-			  ctx->handover, ctx->handover_size, ctx->handover_size,
-			  new_handover, /*out_size=*/NULL)) {
-		memcpy(ctx->handover, new_handover, ctx->handover_size);
-		ret = CMD_RET_SUCCESS;
-	}
-
-out:
-	if (new_handover) {
-		bcc_clear_memory(new_handover, ctx->handover_size);
-		kfree(new_handover);
-	}
-	return ret;
+	return CMD_RET_FAILURE;
 }
 #endif /* CONFIG_ANDROID_BCC */
 

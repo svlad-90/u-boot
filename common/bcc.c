@@ -10,7 +10,16 @@
 #include <dice/android/bcc.h>
 #include <dice/ops.h>
 
+#include <dm/device.h>
+#include <dm/device_compat.h>
+#include <dm/uclass.h>
+#include <dm/read.h>
+#include <linux/ioport.h>
+
 #define BCC_CONFIG_DESC_SIZE	64
+
+static uint8_t *bcc_handover_buffer;
+static size_t bcc_handover_buffer_size;
 
 static const DiceMode bcc_to_dice_mode[] = {
 	[BCC_MODE_NORMAL] = kDiceModeNormal,
@@ -21,6 +30,34 @@ static const DiceMode bcc_to_dice_mode[] = {
 struct bcc_context {
 	sha256_context auth_hash, code_hash, hidden_hash;
 };
+
+static void *find_bcc_handover(size_t *size)
+{
+	struct udevice *dev;
+	struct resource res;
+
+	/* Probe drivers that provide a BCC handover buffer. */
+	for (uclass_first_device(UCLASS_DICE, &dev); dev; uclass_next_device(&dev)) {
+		if (!dev_read_resource(dev, 0, &res)) {
+			*size = resource_size(&res);
+			return (void *)res.start;
+		}
+	}
+
+	return NULL;
+}
+
+int bcc_init(void)
+{
+	/* Idempotent initialization to allow indepedent client modules. */
+	if (bcc_handover_buffer && bcc_handover_buffer_size)
+		return 0;
+	/* If a BCC handover wasn't already set, look for a driver. */
+	bcc_handover_buffer = find_bcc_handover(&bcc_handover_buffer_size);
+	if (!bcc_handover_buffer || !bcc_handover_buffer_size)
+		return -ENOENT;
+	return 0;
+}
 
 void bcc_clear_memory(void *data, size_t size)
 {
@@ -73,15 +110,20 @@ int bcc_update_code_hash(struct bcc_context *ctx,
 }
 
 int bcc_handover(struct bcc_context *ctx, const char *component_name,
-		 uint32_t component_version, enum bcc_mode mode,
-		 uint8_t *in_handover, size_t in_handover_size,
-		 size_t buffer_size, uint8_t *buffer, size_t *out_size)
+		 uint32_t component_version, enum bcc_mode mode)
 {
+	uint8_t *new_handover;
 	uint8_t cfg_desc[BCC_CONFIG_DESC_SIZE];
 	size_t cfg_desc_size;
 	BccConfigValues cfg_vals;
 	DiceInputValues input_vals;
 	DiceResult res;
+	int ret;
+
+	/* Make sure initialization is complete. */
+	ret = bcc_init();
+	if (ret)
+		return ret;
 
 	cfg_vals = (BccConfigValues){
 		.inputs = BCC_INPUT_COMPONENT_NAME |
@@ -106,8 +148,23 @@ int bcc_handover(struct bcc_context *ctx, const char *component_name,
 	bcc_finish_hash(&ctx->code_hash, input_vals.code_hash, DICE_HASH_SIZE);
 	bcc_finish_hash(&ctx->hidden_hash, input_vals.hidden, DICE_HIDDEN_SIZE);
 
-	res = BccHandoverMainFlow(/*context=*/NULL, in_handover,
-				  in_handover_size, &input_vals,
-				  buffer_size, buffer, out_size);
-	return (res == kDiceResultOk) ? 0 : -EINVAL;
+	new_handover = calloc(1, bcc_handover_buffer_size);
+	if (!new_handover)
+		return -ENOMEM;
+
+	res = BccHandoverMainFlow(/*context=*/NULL, bcc_handover_buffer,
+				  bcc_handover_buffer_size, &input_vals,
+				  bcc_handover_buffer_size, new_handover, NULL);
+	if (res != kDiceResultOk) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	/* Update the handover buffer with the new data. */
+	memcpy(bcc_handover_buffer, new_handover, bcc_handover_buffer_size);
+
+out:
+	bcc_clear_memory(new_handover, bcc_handover_buffer_size);
+	free(new_handover);
+	return ret;
 }
