@@ -431,7 +431,7 @@ static int do_bcc_update(struct avb_bcc_context *ctx, AvbSlotVerifyData *data)
 	if (!ctx->bcc_ctx)
 		return CMD_RET_SUCCESS;
 
-	if (avb_find_main_pubkey(data, &pubkey, &pubkey_size))
+	if (avb_find_main_pubkey(data, &pubkey, &pubkey_size) == CMD_RET_FAILURE)
 		return CMD_RET_FAILURE;
 
 	bcc_update_authority_hash(ctx->bcc_ctx, pubkey, pubkey_size);
