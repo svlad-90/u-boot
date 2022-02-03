@@ -455,10 +455,10 @@ static int do_avb_bcc_handover(struct avb_bcc_context *ctx,
 		return CMD_RET_SUCCESS;
 
 	if (CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)) {
+		bcc_mode = BCC_MODE_DEBUG;
+	} else {
 		bcc_mode = (boot_mode == ANDROID_BOOT_MODE_NORMAL)
 				? BCC_MODE_NORMAL : BCC_MODE_MAINTENANCE;
-	} else {
-		bcc_mode = BCC_MODE_DEBUG;
 	}
 
 	new_handover = kzalloc(ctx->handover_size, GFP_KERNEL);
