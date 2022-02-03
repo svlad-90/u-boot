@@ -21,7 +21,8 @@
 #define CONFIG_SYS_HZ                       1000
 
 /* Environment options */
-#define CONFIG_EXTRA_ENV_SETTINGS "distro_bootcmd=booti ${kernel_image_addr} - ${fdt_addr}\0"
+#define CONFIG_BOOTCOMMAND \
+	"booti ${kernel_image_addr} - ${fdt_addr}"
 
 #define CONFIG_SYS_CBSIZE 512
 
