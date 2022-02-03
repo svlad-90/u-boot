@@ -9,7 +9,7 @@ NM=llvm-nm
 
 # b/162850629
 # py3-cmd distutils is broken; use clang's copy
-LIBUFDT_PREBUILTS_BIN=build/build-tools/path/linux-x86
+LIBUFDT_PREBUILTS_BIN=build/kernel/build-tools/path/linux-x86
 BUILDTOOLS_PREBUILT_BIN=${CLANG_PREBUILT_BIN}/../python3/bin
 
 # Hack to avoid using incompatible host bfd
