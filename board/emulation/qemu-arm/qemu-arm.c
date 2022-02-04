@@ -11,6 +11,7 @@
 #include <log.h>
 #include <virtio_types.h>
 #include <virtio.h>
+#include <env.h>
 
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
@@ -70,6 +71,8 @@ int board_init(void)
 
 int board_late_init(void)
 {
+	env_set_hex("fdtaddr", (ulong)board_fdt_blob_setup());
+
 	/*
 	 * Make sure virtio bus is enumerated so that peripherals
 	 * on the virtio bus can be discovered by their drivers
