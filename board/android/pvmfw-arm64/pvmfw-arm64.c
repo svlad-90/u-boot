@@ -65,6 +65,16 @@ static struct mm_region pvmfw_mem_map[] = {
 
 struct mm_region *mem_map = pvmfw_mem_map;
 
+int board_run_command(const char *cmdline)
+{
+	void (*entry)(void *fdt_addr, void *res0, void *res1, void *res2) =
+		fw_kernel_image_pointer;
+
+	cleanup_before_linux();
+	entry(fw_dtb_pointer, 0, 0, 0);
+	__builtin_unreachable();
+}
+
 int board_init(void)
 {
 	/*

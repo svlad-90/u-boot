@@ -20,10 +20,6 @@
 /* ARMv7/ARMv8 architected timer */
 #define CONFIG_SYS_HZ                       1000
 
-/* Environment options */
-#define CONFIG_BOOTCOMMAND \
-	"booti ${kernel_image_addr} - ${fdt_addr}"
-
 #define CONFIG_SYS_CBSIZE 512
 
 #define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
