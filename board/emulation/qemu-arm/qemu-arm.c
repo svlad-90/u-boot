@@ -72,7 +72,8 @@ int board_init(void)
 
 int board_late_init(void)
 {
-	ulong fdtaddr = (ulong)board_fdt_blob_setup();
+	int err;
+	ulong fdtaddr = (ulong)board_fdt_blob_setup(&err);
 
 	env_set_hex("fdtaddr", fdtaddr);
 
@@ -115,8 +116,9 @@ int dram_init_banksize(void)
 	return 0;
 }
 
-void *board_fdt_blob_setup(void)
+void *board_fdt_blob_setup(int *err)
 {
+	*err = 0;
 	/* QEMU loads a generated DTB for us at the start of RAM. */
 	return (void *)CONFIG_SYS_SDRAM_BASE;
 }

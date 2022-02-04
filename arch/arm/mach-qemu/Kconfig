@@ -21,29 +21,23 @@ config SYS_FDT_ADDR
 	help
 	  The default FDT load address.
 
+config SYS_RAMDISK_ADDR_R
+	hex "Ramdisk load address"
+	default 0x44200000
+	help
+	  The default initramfs load address.
+
 config SYS_SCRIPT_ADDR
 	hex "Script load address"
-	default 0x40200000
+	default 0x44300000
 	help
 	  The default script load address.
 
 config SYS_PXEFILE_ADDR_R
 	hex "PXEfile load address"
-	default 0x40300000
-	help
-	  The default PXEfile load address.
-
-config SYS_KERNEL_ADDR_R
-	hex "Kernel load address"
-	default 0x40400000
-	help
-	  The default kernel load address.
-
-config SYS_RAMDISK_ADDR_R
-	hex "Ramdisk load address"
 	default 0x44400000
 	help
-	  The default initramfs load address.
+	  The default PXEfile load address.
 
 choice
 	prompt "QEMU ARM architecture"

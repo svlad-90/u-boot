@@ -47,6 +47,7 @@
 # CONFIG_DFU_TFTP is not set
 # CONFIG_DFU_RAM is not set
 # CONFIG_DFU_MTD is not set
+# CONFIG_DM_ETH is not set
 # CONFIG_DM_GPIO is not set
 # CONFIG_DM_KEYBOARD is not set
 # CONFIG_DM_MMC is not set
@@ -68,6 +69,7 @@
 # CONFIG_FRAMEBUFFER_SET_VESA_MODE is not set
 # CONFIG_FRAMEBUFFER_VESA_MODE is not set
 # CONFIG_FRAMEBUFFER_VESA_MODE_USER is not set
+# CONFIG_GPIO is not set
 # CONFIG_I2C is not set
 # CONFIG_INPUT is not set
 # CONFIG_LEGACY_IMAGE_FORMAT is not set
@@ -77,10 +79,12 @@
 # CONFIG_MMC is not set
 # CONFIG_NETDEVICES is not set
 # CONFIG_NVME is not set
+# CONFIG_POWER is not set
 # CONFIG_RANDOM_UUID is not set
 # CONFIG_SCSI_AHCI is not set
 # CONFIG_SCSI is not set
 # CONFIG_SHOW_BOOT_PROGRESS is not set
+# CONFIG_SMBIOS_PARSER is not set
 # CONFIG_SPI is not set
 # CONFIG_SYS_FLASH_CFI is not set
 # CONFIG_SYS_FLASH_USE_BUFFER_WRITE is not set
@@ -88,6 +92,7 @@
 # CONFIG_SYS_RELOC_GD_ENV_ADDR is not set
 # CONFIG_SYS_WHITE_ON_BLACK is not set
 # CONFIG_TOOLS_LIBCRYPTO is not set
+# CONFIG_TPM is not set
 # CONFIG_USB is not set
 # CONFIG_USB_EHCI_HCD is not set
 # CONFIG_USB_EHCI_PCI is not set
