@@ -68,7 +68,6 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
-	"fdtaddr=" __stringify(FDT_ADDR) "\0" \
 	"fdt_addr=" __stringify(FDT_ADDR) "\0" \
 	"scriptaddr=" __stringify(SCRIPT_ADDR) "\0" \
 	"pxefile_addr_r=" __stringify(PXEFILE_ADDR_R) "\0" \
