@@ -57,6 +57,9 @@ void main_loop(void)
 	if (IS_ENABLED(CONFIG_EFI_CAPSULE_ON_DISK_EARLY))
 		efi_launch_capsules();
 
+	if (CONFIG_IS_ENABLED(FORCE_SECURE_BOOT))
+		cli_secure_boot_cmd(CONFIG_BOOTCOMMAND);
+
 	s = bootdelay_process();
 	if (cli_process_fdt(&s))
 		cli_secure_boot_cmd(s);

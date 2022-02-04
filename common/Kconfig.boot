@@ -971,6 +971,13 @@ config BOOTCOMMAND
 	  This is the string of commands that will be used as bootcmd and if
 	  AUTOBOOT is set, automatically run.
 
+config FORCE_SECURE_BOOT
+	bool "Force secure CLI boot"
+	imply USE_BOOTCOMMAND
+	help
+	  Instead of relying on a DTB containing the 'secureboot' attribute,
+	  force the boot to take place in secure CLI with the BOOTCOMMAND.
+
 config USE_PREBOOT
 	bool "Enable preboot"
 	help
