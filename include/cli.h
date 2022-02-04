@@ -124,6 +124,12 @@ int cli_simple_parse_line(char *line, char *argv[]);
  * @return true to execute securely, else false
  */
 bool cli_process_fdt(const char **cmdp);
+#else
+static inline bool cli_process_fdt(const char **cmdp)
+{
+	return false;
+}
+#endif /* CONFIG_OF_CONTROL */
 
 /** cli_secure_boot_cmd() - execute a command as securely as possible
  *
@@ -131,16 +137,6 @@ bool cli_process_fdt(const char **cmdp);
  * smallest amount of code. Parameters are not supported.
  */
 void cli_secure_boot_cmd(const char *cmd);
-#else
-static inline bool cli_process_fdt(const char **cmdp)
-{
-	return false;
-}
-
-static inline void cli_secure_boot_cmd(const char *cmd)
-{
-}
-#endif /* CONFIG_OF_CONTROL */
 
 /**
  * Go into the command loop

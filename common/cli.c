@@ -167,6 +167,7 @@ bool cli_process_fdt(const char **cmdp)
 	 */
 	return fdtdec_get_config_int(gd->fdt_blob, "bootsecure", 0) != 0;
 }
+#endif /* CONFIG_IS_ENABLED(OF_CONTROL) */
 
 /*
  * Runs the given boot command securely.  Specifically:
@@ -221,7 +222,6 @@ err:
 	 */
 	hang();
 }
-#endif /* CONFIG_IS_ENABLED(OF_CONTROL) */
 
 void cli_loop(void)
 {
