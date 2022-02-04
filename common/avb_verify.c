@@ -1037,7 +1037,7 @@ success:
 	return CMD_RET_SUCCESS;
 }
 
-int avb_find_main_pubkey(AvbSlotVerifyData *data,
+int avb_find_main_pubkey(const AvbSlotVerifyData *data,
 			 const uint8_t **key, size_t *size)
 {
 	/*
