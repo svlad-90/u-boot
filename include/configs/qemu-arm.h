@@ -75,6 +75,8 @@
 	"ramdisk_addr_r=" __stringify(RAMDISK_ADDR_R) "\0" \
 	BOOTENV
 
+#define CONFIG_ENV_FLAGS_LIST_STATIC "fdtaddr:xo"
+
 #define CONFIG_SYS_CBSIZE 512
 
 #define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
