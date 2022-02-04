@@ -12,6 +12,7 @@
 #include <virtio_types.h>
 #include <virtio.h>
 #include <env.h>
+#include <mapmem.h>
 
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
@@ -71,7 +72,24 @@ int board_init(void)
 
 int board_late_init(void)
 {
-	env_set_hex("fdtaddr", (ulong)board_fdt_blob_setup());
+	ulong fdtaddr = (ulong)board_fdt_blob_setup();
+
+	env_set_hex("fdtaddr", fdtaddr);
+
+	/*
+	 * If the in-memory FDT blob defines /chosen bootargs, back them
+	 * up so that the boot script can use them to define bootargs.
+	 */
+	void *fdt = map_sysmem(fdtaddr, 0);
+	int nodeoffset = fdt_path_offset(fdt, "/chosen");
+	if (nodeoffset >= 0) {
+		int bootargs_len;
+		const void *nodep = fdt_getprop(fdt, nodeoffset, "bootargs",
+						&bootargs_len);
+		if (nodep && bootargs_len > 0)
+			env_set("cbootargs", (void *)nodep);
+	}
+	unmap_sysmem(fdt);
 
 	/*
 	 * Make sure virtio bus is enumerated so that peripherals
