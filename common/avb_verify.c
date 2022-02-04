@@ -1045,16 +1045,9 @@ int avb_find_main_pubkey(const AvbSlotVerifyData *data,
 
 int avb_pubkey_is_trusted(const uint8_t *key, size_t size)
 {
-	/**
-	 * Location of the root public key.
-	 * These symbols are declared at the start and end of region where
-	 * the content of the file CONFIG_AVB_PUBKEY_FILE is imported into.
-	 */
-	extern const unsigned char _binary_common_avb_pubkey_start;
-	extern const unsigned char _binary_common_avb_pubkey_end;
-	size_t avb_pubkey_size = (size_t)&_binary_common_avb_pubkey_end -
-		(size_t)&_binary_common_avb_pubkey_start;
-	const void *avb_pubkey = &_binary_common_avb_pubkey_start;
+	/* These variables are generated from CONFIG_AVB_PUBKEY_FILE by bin2c */
+	extern const char avb_pubkey[];
+	extern const size_t avb_pubkey_size;
 
 	if (size != avb_pubkey_size || memcmp(avb_pubkey, key, size))
 		return CMD_RET_FAILURE;

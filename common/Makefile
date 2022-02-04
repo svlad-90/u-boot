@@ -3,6 +3,10 @@
 # (C) Copyright 2004-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
+# Commands for 'cmd' from scripts/Kbuild.include
+quiet_cmd_bin2c = BIN2C   $@
+      cmd_bin2c = scripts/bin2c $2 < $< > $@
+
 # core
 ifndef CONFIG_SPL_BUILD
 obj-y += init/
@@ -145,42 +149,8 @@ CFLAGS_bcc.o = \
 ###################################################
 # Build avb_pubkey.o from CONFIG_AVB_PUBKEY_FILE
 obj-$(CONFIG_AVB_VERIFY) += avb_pubkey.o
-
-
-# Workaround: ARM linker (bfd) has a bug that segfault occurs when trying to
-# parse a binary file as an input. That issue is fixed in GCC 6.2 [1] but we
-# are using GCC 4.9 and it doesn't look like we are going to upgrade to the
-# recent version. Fortunately, the gold linker doesn't have the problem. So,
-# forcibely use the gold linker when building the avb_pubkey.o.  U-boot has
-# been using bfd linker [2] for features (like OVERLAY), but that matters only
-# for the final linking. Gold linker is okay for converting the binary key file
-# into an ELF object file.
-# [1] https://sourceware.org/legacy-ml/binutils-cvs/2016-10/msg00110.html
-# [2] https://u-boot.denx.narkive.com/5JODsok5/patch-config-always-use-gnu-ld
-ld_for_avbpubkey := $(LD)
-ifneq ($(findstring arm-,$(LD)),)
-    ifeq ($(shell $(LD) -v | grep "GNU gold" 2> /dev/null),)
-        ld_for_avbpubkey := arm-linux-androideabi-ld.gold
-    endif
-endif
-ifneq ($(findstring ld.lld,$(LD)),)
-    ifdef CONFIG_ARM64
-        ld_for_avbpubkey += -maarch64elf
-    else ifdef CONFIG_ARM
-        ld_for_avbpubkey += -marmelf
-    endif
-endif
-
-# The content of the file which CONFIG_AVB_PUBKEY_FILE refers to is imported
-# as binary. Copying to a temporary file `avb_pubkey` is necessary to keep the
-# name of the auto-generated symbols which are defined around the imported
-# region the same. The symbol names follow the path of the input file.
-$(obj)/avb_pubkey.o: PRIVATE_LD := $(ld_for_avbpubkey)
-ld_for_avbpubkey :=
-$(obj)/avb_pubkey.o: $(srctree)/$(subst $(quote),,$(CONFIG_AVB_PUBKEY_FILE))
-	cp $< $(obj)/avb_pubkey
-	$(PRIVATE_LD) $(KBUILD_LDFLAGS) -r -b binary $(obj)/avb_pubkey -o $@
-	rm $(obj)/avb_pubkey
+$(obj)/avb_pubkey.c: $(srctree)/$(subst $(quote),,$(CONFIG_AVB_PUBKEY_FILE))
+	$(call cmd,bin2c,avb_pubkey)
 
 obj-$(CONFIG_$(SPL_TPL_)STACKPROTECTOR) += stackprot.o
 obj-$(CONFIG_SCP03) += scp03.o
