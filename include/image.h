@@ -1467,7 +1467,7 @@ AvbIOResult android_get_preloaded_partition(AvbOps *ops,
  * @load_address:	The address where the image will be loaded
  * @slot_suffix: 	The slot to boot from
  * @normal_boot:	Force a normal boot and skip recovery if true
- * @avb_bootconfig:	Additional bootconfig params from AVB
+ * @extra_bootconfig:	Additional bootconfig params
  * @persistent_dev_desc:	The device to read persistent data from
  * @device_specific_bootconfig_img:	device specific bootconfig partition
  * @verified_boot_image: boot partition that is verified. If this is not NULL,
@@ -1486,7 +1486,7 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *init_boot_img_info,
 			unsigned long load_address, const char *slot_suffix,
 			const bool normal_boot,
-			const char *avb_bootconfig,
+			const char *extra_bootconfig,
 			struct blk_desc *persistent_dev_desc,
 			const struct disk_partition *device_specific_bootconfig_img,
 			const AvbPartitionData *verified_boot_img,

@@ -238,6 +238,39 @@ __weak int android_bootloader_boot_kernel(const struct andr_boot_info* boot_info
 	return -1;
 }
 
+/** android_assemble_bootconfig - Assemble the extra bootconfig parameters
+ * @return a newly allocated string or NULL if no extra bootconfig
+ */
+static char *android_assemble_bootconfig(const char *avb_cmdline)
+{
+	char *bootconfig;
+	size_t len = 0;
+	size_t avb_len = 0;
+
+	/* +1 for the trailing '\n' in the bootconfig. */
+	if (avb_cmdline)
+		avb_len = strlen(avb_cmdline) + 1;
+
+	len = avb_len;
+	if (len == 0)
+		return NULL;
+	bootconfig = malloc(len + 1);
+	bootconfig[len] = '\0';
+
+	/* Copy cmdline, including null terminators. */
+	if (avb_cmdline)
+		strncpy(bootconfig, avb_cmdline, avb_len);
+
+	/* Replace the cmdline spaces and null terminators with '\n'. */
+	while (len--) {
+		char c = bootconfig[len];
+		if (c == ' ' || c == '\0')
+			bootconfig[len] = '\n';
+	}
+
+	return bootconfig;
+}
+
 static char *strjoin(const char **chunks, char separator)
 {
 	int len, joined_len = 0;
@@ -576,7 +609,7 @@ int android_bootloader_boot_flow(const char* iface_str,
 	char slot_suffix[3];
 	const char *mode_cmdline = NULL;
 	char *avb_cmdline = NULL;
-	char *avb_bootconfig = NULL;
+	char *extra_bootconfig = NULL;
 	const char *boot_partition = ANDROID_PARTITION_BOOT;
 	const char *vendor_boot_partition = ANDROID_PARTITION_VENDOR_BOOT;
 	const char *init_boot_partition = ANDROID_PARTITION_INIT_BOOT;
@@ -807,25 +840,12 @@ int android_bootloader_boot_flow(const char* iface_str,
 		       vendor_boot_part_num);
 	}
 
-	// convert avb_cmdline into avb_bootconfig by replacing ' ' with '\n'.
-	if (avb_cmdline != NULL) {
-		size_t len = strlen(avb_cmdline);
-		// Why +2? One byte is for the last '\n', one another byte is
-		// for the null terminator
-		size_t newlen = len + 2;
-		avb_bootconfig = (char *)malloc(newlen);
-		strncpy(avb_bootconfig, avb_cmdline, len);
-		for (char *p = avb_bootconfig; *p; p++) {
-			if (*p == ' ') *p = '\n';
-		}
-		avb_bootconfig[len] = '\n';
-		avb_bootconfig[len + 1] = 0;
-	}
+	extra_bootconfig = android_assemble_bootconfig(avb_cmdline);
 
 	struct andr_boot_info* boot_info = android_image_load(dev_desc, &boot_part_info,
 				vendor_boot_part_info_ptr,
 				&init_boot_part_info,
-				kernel_address, slot_suffix, normal_boot, avb_bootconfig,
+				kernel_address, slot_suffix, normal_boot, extra_bootconfig,
 				persistant_dev_desc, bootconfig_part_info_ptr,
 				verified_boot_img, verified_vendor_boot_img,
 				verified_bootconfig_img, verified_init_boot_img);
@@ -861,8 +881,8 @@ bail:
 	if (avb_cmdline != NULL) {
 		free(avb_cmdline);
 	}
-	if (avb_bootconfig != NULL) {
-		free(avb_bootconfig);
+	if (extra_bootconfig != NULL) {
+		free(extra_bootconfig);
 	}
 	if (avb_out_bootconfig_data != NULL) {
 		avb_slot_verify_data_free(avb_out_bootconfig_data);
