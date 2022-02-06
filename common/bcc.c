@@ -110,7 +110,7 @@ int bcc_update_code_hash(struct bcc_context *ctx,
 }
 
 int bcc_handover(struct bcc_context *ctx, const char *component_name,
-		 uint32_t component_version, enum bcc_mode mode)
+		 enum bcc_mode mode)
 {
 	uint8_t *new_handover;
 	uint8_t cfg_desc[BCC_CONFIG_DESC_SIZE];
@@ -126,10 +126,8 @@ int bcc_handover(struct bcc_context *ctx, const char *component_name,
 		return ret;
 
 	cfg_vals = (BccConfigValues){
-		.inputs = BCC_INPUT_COMPONENT_NAME |
-			  BCC_INPUT_COMPONENT_VERSION,
+		.inputs = BCC_INPUT_COMPONENT_NAME,
 		.component_name = component_name,
-		.component_version = component_version,
 	};
 
 	res = BccFormatConfigDescriptor(&cfg_vals, BCC_CONFIG_DESC_SIZE,

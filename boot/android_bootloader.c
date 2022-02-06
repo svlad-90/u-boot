@@ -17,10 +17,6 @@
 #include <malloc.h>
 #include <part.h>
 #include <avb_verify.h>
-#include <version.h>
-
-#define OS_VERSION		((U_BOOT_VERSION_NUM << 16) | \
-				 U_BOOT_VERSION_NUM_PATCH)
 
 #define ANDROID_PARTITION_BOOT "boot"
 #define ANDROID_PARTITION_VENDOR_BOOT "vendor_boot"
@@ -463,7 +459,7 @@ static int do_avb_bcc_handover(struct avb_bcc_context *ctx,
 				? BCC_MODE_NORMAL : BCC_MODE_MAINTENANCE;
 	}
 
-	if (bcc_handover(ctx->bcc_ctx, "AVB", OS_VERSION, bcc_mode) == 0)
+	if (bcc_handover(ctx->bcc_ctx, "AVB", bcc_mode) == 0)
 		return CMD_RET_SUCCESS;
 
 	return CMD_RET_FAILURE;

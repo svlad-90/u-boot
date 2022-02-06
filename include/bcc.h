@@ -31,8 +31,7 @@ int bcc_update_authority_hash(struct bcc_context *ctx, const uint8_t *buffer, si
  * boot stage, and generates the outgoing BCC handover for the next stage.
  * Returns zero if successful, a negative error code otherwise.
  */
-int bcc_handover(struct bcc_context *ctx, const char *component_name,
-		 uint32_t component_version, enum bcc_mode mode);
+int bcc_handover(struct bcc_context *ctx, const char *component_name, enum bcc_mode mode);
 
 /**
  * Zero given memory buffer and flush dcache
