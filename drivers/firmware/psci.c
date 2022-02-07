@@ -24,9 +24,6 @@
 
 #define DRIVER_NAME "psci"
 
-#define PSCI_METHOD_HVC 1
-#define PSCI_METHOD_SMC 2
-
 /*
  * While a 64-bit OS can make calls with SMC32 calling conventions, for some
  * calls it is necessary to use SMC64 to pass or return 64-bit values.
@@ -40,10 +37,16 @@
 #endif
 
 #if CONFIG_IS_ENABLED(EFI_LOADER)
-int __efi_runtime_data psci_method;
+#define __smccc_conduit_section		__efi_runtime_data
 #else
-int psci_method __section(".data");
+#define __smccc_conduit_section		__section(".data")
 #endif
+enum arm_smccc_conduit __smccc_conduit_section smccc_conduit;
+
+enum arm_smccc_conduit arm_smccc_1_1_get_conduit(void)
+{
+	return smccc_conduit;
+}
 
 static u32 psci_version;
 
@@ -59,9 +62,9 @@ unsigned long __efi_runtime invoke_psci_fn
 	 * tables are not correctly relocated when SetVirtualAddressMap is
 	 * called.
 	 */
-	if (psci_method == PSCI_METHOD_SMC)
+	if (smccc_conduit == SMCCC_CONDUIT_SMC)
 		arm_smccc_smc(function_id, arg0, arg1, arg2, 0, 0, 0, 0, &res);
-	else if (psci_method == PSCI_METHOD_HVC)
+	else if (smccc_conduit == SMCCC_CONDUIT_HVC)
 		arm_smccc_hvc(function_id, arg0, arg1, arg2, 0, 0, 0, 0, &res);
 	else
 		res.a0 = PSCI_RET_DISABLED;
@@ -105,7 +108,7 @@ static void psci_1_x_smccc_bind(struct udevice *dev)
 
 	/* Bind any drivers for SMCCC-based firmware services */
 	if (smccc_version >= ARM_SMCCC_VERSION_1_1) {
-		if (psci_method == PSCI_METHOD_HVC) {
+		if (smccc_conduit == SMCCC_CONDUIT_HVC) {
 			ret = device_bind_driver(dev, "kvm-hyp-services",
 						 "kvm-hyp-services", NULL);
 			if (ret)
@@ -130,9 +133,9 @@ static int psci_probe(struct udevice *dev)
 	}
 
 	if (!strcmp("hvc", method)) {
-		psci_method = PSCI_METHOD_HVC;
+		smccc_conduit = SMCCC_CONDUIT_HVC;
 	} else if (!strcmp("smc", method)) {
-		psci_method = PSCI_METHOD_SMC;
+		smccc_conduit = SMCCC_CONDUIT_SMC;
 	} else {
 		pr_warn("invalid \"method\" property: %s\n", method);
 		return -EINVAL;
