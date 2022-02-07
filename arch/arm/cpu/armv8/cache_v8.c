@@ -280,7 +280,7 @@ static void map_range(u64 virt, u64 phys, u64 size, int level,
 	for (i = idx; size; i++) {
 		u64 next_size, *next_table;
 
-		if (level >= 1 &&
+		if (level >= gd->arch.first_block_level &&
 		    size >= map_size && !(virt & (map_size - 1))) {
 			if (level == 3)
 				table[i] = phys | attrs | PTE_TYPE_PAGE;
@@ -319,6 +319,9 @@ static void add_map(struct mm_region *map)
 	if (va_bits < 39)
 		level = 1;
 
+	if (!gd->arch.first_block_level)
+		gd->arch.first_block_level = 1;
+
 	if (gd->arch.has_hafdbs)
 		attrs |= PTE_DBM | PTE_RDONLY;
 
@@ -335,7 +338,7 @@ static void count_range(u64 virt, u64 size, int level, int *cntp)
 	for (i = idx; size; i++) {
 		u64 next_size;
 
-		if (level >= 1 &&
+		if (level >= gd->arch.first_block_level &&
 		    size >= map_size && !(virt & (map_size - 1))) {
 			virt += map_size;
 			size -= map_size;
@@ -378,8 +381,10 @@ __weak u64 get_page_table_size(void)
 	asm volatile("mrs %0, id_aa64mmfr1_el1" : "=r" (mmfr1));
 	if ((mmfr1 & 0xf) == 2) {
 		gd->arch.has_hafdbs = true;
+		gd->arch.first_block_level = 2;
 	} else {
 		gd->arch.has_hafdbs = false;
+		gd->arch.first_block_level = 1;
 	}
 
 	/* Account for all page tables we would need to cover our memory map */
