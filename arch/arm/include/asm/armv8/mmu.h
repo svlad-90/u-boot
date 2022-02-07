@@ -49,6 +49,9 @@
 #define PTE_TYPE_BLOCK		(1 << 0)
 #define PTE_TYPE_VALID		(1 << 0)
 
+#define PTE_RDONLY		(1 << 7)
+#define PTE_DBM			(1UL << 51)
+
 #define PTE_TABLE_PXN		(1UL << 59)
 #define PTE_TABLE_XN		(1UL << 60)
 #define PTE_TABLE_AP		(1UL << 61)
@@ -98,6 +101,9 @@
 #define TCR_TG0_64K		(1 << 14)
 #define TCR_TG0_16K		(2 << 14)
 #define TCR_EPD1_DISABLE	(1 << 23)
+
+#define TCR_HA			(1UL << 39)
+#define TCR_HD			(1UL << 40)
 
 #define TCR_EL1_RSVD		(1 << 31)
 #define TCR_EL2_RSVD		(1 << 31 | 1 << 23)
