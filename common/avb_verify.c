@@ -13,12 +13,6 @@
 #include <tee.h>
 #include <tee/optee_ta_avb.h>
 
-/** Location of the root public key. These symbols are declared at the start
- * and end of region where the content of the file CONFIG_AVB_PUBKEY_FILE is
- * imported into. */
-extern const unsigned char _binary_common_avb_pubkey_start;
-extern const unsigned char _binary_common_avb_pubkey_end;
-
 /**
  * ============================================================================
  * Boot states support (GREEN, YELLOW, ORANGE, RED) and dm_verity
@@ -502,17 +496,12 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 					      public_key_metadata_length,
 					      bool *out_key_is_trusted)
 {
-	size_t root_pubkey_size = (size_t)&_binary_common_avb_pubkey_end -
-			(size_t)&_binary_common_avb_pubkey_start;
 	if (!public_key_length || !public_key_data || !out_key_is_trusted)
 		return AVB_IO_RESULT_ERROR_IO;
 
-	*out_key_is_trusted = false;
-	if (public_key_length != root_pubkey_size)
-		return AVB_IO_RESULT_OK;
-
-	if (memcmp(&_binary_common_avb_pubkey_start, public_key_data, public_key_length) == 0)
-		*out_key_is_trusted = true;
+	*out_key_is_trusted = (avb_pubkey_is_trusted(public_key_data,
+						     public_key_length)
+			       == CMD_RET_SUCCESS);
 
 	return AVB_IO_RESULT_OK;
 }
@@ -1050,6 +1039,25 @@ int avb_find_main_pubkey(const AvbSlotVerifyData *data,
 				    key, size) != AVB_VBMETA_VERIFY_RESULT_OK) {
 		return CMD_RET_FAILURE;
 	}
+
+	return CMD_RET_SUCCESS;
+}
+
+int avb_pubkey_is_trusted(const uint8_t *key, size_t size)
+{
+	/**
+	 * Location of the root public key.
+	 * These symbols are declared at the start and end of region where
+	 * the content of the file CONFIG_AVB_PUBKEY_FILE is imported into.
+	 */
+	extern const unsigned char _binary_common_avb_pubkey_start;
+	extern const unsigned char _binary_common_avb_pubkey_end;
+	size_t avb_pubkey_size = (size_t)&_binary_common_avb_pubkey_end -
+		(size_t)&_binary_common_avb_pubkey_start;
+	const void *avb_pubkey = &_binary_common_avb_pubkey_start;
+
+	if (size != avb_pubkey_size || memcmp(avb_pubkey, key, size))
+		return CMD_RET_FAILURE;
 
 	return CMD_RET_SUCCESS;
 }
