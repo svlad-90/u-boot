@@ -53,4 +53,4 @@ int i8254_enable_beep(uint frequency_hz);
  */
 void i8254_disable_beep(void);
 
-#endif /* _ASMI386_I8954_H_ */
+#endif /* _ASMI386_I8254_H_ */
