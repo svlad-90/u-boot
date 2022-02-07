@@ -648,8 +648,16 @@ config AVB_BUF_SIZE
 	  AVB requires a buffer for memory transactions. This variable defines the
 	  buffer size.
 
+config AVB_VERIFY_PUBKEY
+	bool "AVB public key verification"
+	default y
+	select BUILD_BIN2C
+	help
+	  AVB public keys will be verified against CONFIG_AVB_PUBKEY_FILE.
+
 config AVB_PUBKEY_FILE
 	string "Path to the root public key file"
+	depends on AVB_VERIFY_PUBKEY
 	default "default.avbpubkey"
 	help
 	  This specifies the path to file having the public key that u-boot
