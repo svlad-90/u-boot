@@ -16,6 +16,8 @@ enum bcc_mode {
 	BCC_MODE_MAINTENANCE,
 };
 
+int bcc_init(void);
+
 struct bcc_context *bcc_context_alloc(void);
 
 int bcc_update_hidden_hash(struct bcc_context *ctx, const uint8_t *buffer, size_t size);
@@ -29,10 +31,18 @@ int bcc_update_authority_hash(struct bcc_context *ctx, const uint8_t *buffer, si
  * boot stage, and generates the outgoing BCC handover for the next stage.
  * Returns zero if successful, a negative error code otherwise.
  */
-int bcc_handover(struct bcc_context *ctx, const char *component_name,
-		 uint32_t component_version, enum bcc_mode mode,
-		 uint8_t *in_handover, size_t in_handover_size,
-		 size_t buffer_size, uint8_t *buffer, size_t *out_size);
+int bcc_handover(struct bcc_context *ctx, const char *component_name, enum bcc_mode mode);
+
+/**
+ * Get a sealing key derived from the sealing CDI.
+ *
+ * The sealing CDI should not be used directly as a key but should have keys
+ * derived from it. This functions deterministically derives keys from the
+ * sealing CDI based on the info parameter. Returns zero if successful, a
+ * negative error code otherwise.
+ */
+int bcc_get_sealing_key(const uint8_t *info, size_t info_size,
+			uint8_t *out_key, size_t out_key_size);
 
 /**
  * Zero given memory buffer and flush dcache

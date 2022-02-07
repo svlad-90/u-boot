@@ -119,6 +119,8 @@ obj-$(CONFIG_AVB_VERIFY) += avb_verify.o
 
 obj-$(CONFIG_BCC) += bcc.o
 CFLAGS_bcc.o = \
+	-I$(srctree)/lib/boringssl/include/\
+	-I$(srctree)/lib/boringssl/src/include/\
 	-I$(srctree)/lib/open-dice/include/\
 	-I$(srctree)/lib/open-dice/include/dice/config/$(CONFIG_LIB_OPENDICE_CONFIG)/
 

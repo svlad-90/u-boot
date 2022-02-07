@@ -338,7 +338,7 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		const struct disk_partition *vendor_boot_img,
 		struct andr_boot_info *boot_info, const char *slot_suffix,
 		const bool normal_boot,
-		const char *avb_bootconfig,
+		const char *extra_bootconfig,
 		struct blk_desc *persistent_dev_desc,
 		const struct disk_partition *device_specific_bootconfig_img,
 		const AvbPartitionData *verified_bootconfig_img,
@@ -454,11 +454,11 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 	}
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 
-	if (avb_bootconfig) {
-		ret = addBootConfigParameters(avb_bootconfig, strlen(avb_bootconfig),
+	if (extra_bootconfig) {
+		ret = addBootConfigParameters(extra_bootconfig, strlen(extra_bootconfig),
 					      bootconfig_start_addr, bootconfig_size);
 		if (ret <= 0) {
-			debug("Failed to apply avb bootconfig params\n");
+			debug("Failed to apply extra bootconfig params\n");
 		} else {
 		  bootconfig_size += ret;
 		}
@@ -561,7 +561,7 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 			const struct disk_partition *init_boot_img,
 			unsigned long load_address, const char *slot_suffix,
 			const bool normal_boot,
-			const char *avb_bootconfig,
+			const char *extra_bootconfig,
 			struct blk_desc *persistent_dev_desc,
 			const struct disk_partition *device_specific_bootconfig_img,
 			const AvbPartitionData *verified_boot_img,
@@ -619,7 +619,7 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img,
 					    boot_info, verified_vendor_boot_img)
 		|| !_read_in_bootconfig(dev_desc, vendor_boot_img, boot_info,
-					slot_suffix, normal_boot, avb_bootconfig,
+					slot_suffix, normal_boot, extra_bootconfig,
 					persistent_dev_desc,
 					device_specific_bootconfig_img,
 					verified_bootconfig_img,
