@@ -16,6 +16,8 @@
 
 #include <asm/armv8/mmu.h>
 
+int pvmfw_boot_flow(void *fdt, void *image, size_t size);
+
 /* Assigned in lowlevel_init.S
  * Push the variable into the .data section so that it
  * does not get cleared later.
@@ -64,8 +66,17 @@ struct mm_region *mem_map = pvmfw_mem_map;
 
 int board_run_command(const char *cmdline)
 {
+	int err;
 	void (*entry)(void *fdt_addr, void *res0, void *res1, void *res2) =
 		fw_kernel_image_pointer;
+
+	err = pvmfw_boot_flow(fw_dtb_pointer,
+			      fw_kernel_image_pointer,
+			      fw_kernel_image_size);
+	if (err) {
+		panic("pvmfw boot failed: %d", err);
+		__builtin_unreachable();
+	}
 
 	cleanup_before_linux();
 	entry(fw_dtb_pointer, 0, 0, 0);

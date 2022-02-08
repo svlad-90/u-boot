@@ -17,6 +17,7 @@ enum bcc_mode {
 };
 
 int bcc_init(void);
+void bcc_set_handover(void *handover, size_t handover_size) ;
 
 struct bcc_context *bcc_context_alloc(void);
 
