@@ -88,7 +88,8 @@ struct bcc_context *bcc_context_alloc(void)
 	return ctx;
 }
 
-static int bcc_update_hash(sha256_context *ctx, const uint8_t *input, size_t size)
+static int bcc_update_hash(sha256_context *ctx, const uint8_t *input,
+			   size_t size)
 {
 	sha256_update(ctx, input, size);
 	return 0;
@@ -101,20 +102,20 @@ static int bcc_finish_hash(sha256_context *ctx, void *digest, size_t size)
 	return 0;
 }
 
-int bcc_update_hidden_hash(struct bcc_context *ctx,
-			   const uint8_t *input, size_t size)
+int bcc_update_hidden_hash(struct bcc_context *ctx, const uint8_t *input,
+			   size_t size)
 {
 	return bcc_update_hash(&ctx->hidden_hash, input, size);
 }
 
-int bcc_update_authority_hash(struct bcc_context *ctx,
-			      const uint8_t *input, size_t size)
+int bcc_update_authority_hash(struct bcc_context *ctx, const uint8_t *input,
+			      size_t size)
 {
 	return bcc_update_hash(&ctx->auth_hash, input, size);
 }
 
-int bcc_update_code_hash(struct bcc_context *ctx,
-			 const uint8_t *input, size_t size)
+int bcc_update_code_hash(struct bcc_context *ctx, const uint8_t *input,
+			 size_t size)
 {
 	return bcc_update_hash(&ctx->code_hash, input, size);
 }
