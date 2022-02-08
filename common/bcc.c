@@ -63,6 +63,12 @@ int bcc_init(void)
 	return 0;
 }
 
+void bcc_set_handover(void *handover, size_t handover_size)
+{
+	bcc_handover_buffer = handover;
+	bcc_handover_buffer_size = handover_size;
+}
+
 void bcc_clear_memory(void *data, size_t size)
 {
 	DiceClearMemory(NULL, size, data);
