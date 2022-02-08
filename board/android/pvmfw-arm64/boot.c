@@ -214,11 +214,8 @@ int pvmfw_boot_flow(void *fdt, void *image, size_t size)
 	int ret;
 	struct bcc_context *bcc_ctx = NULL;
 	const uintptr_t pvmfw_end = (uintptr_t)_end - gd->reloc_off;
-	const uintptr_t pvmfw_max_end =
-		(((uintptr_t)_start - gd->reloc_off) + CROSVM_PVMFW_MAX_SIZE);
 	uint8_t *bcc = (void *)ALIGN(pvmfw_end, PAGE_SIZE);
-	const size_t bcc_size = ALIGN_DOWN(pvmfw_max_end - (uintptr_t)bcc,
-					   PAGE_SIZE);
+	const size_t bcc_size = PAGE_SIZE;
 
 	if (!size || !is_valid_ram_region(image, size) || !is_valid_ram(fdt)) {
 		ret = -EPERM;
