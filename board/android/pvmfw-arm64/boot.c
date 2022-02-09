@@ -154,22 +154,20 @@ free_ops:
 	return NULL;
 }
 
-static int update_bcc_with_verified_image(struct bcc_context *bcc_ctx,
-					  void *image, size_t size)
+static int verify_image(void *image, size_t size, void *fdt)
 {
+	const char *instance_uuid = "90d2174a-038a-4bc6-adf3-824848fc5825";
+	const char *iface_str = "virtio";
+	const int devnum = 1;
 	int ret = 0;
 	const char *parts[] = { "boot", NULL };
 	AvbSlotVerifyData *data = NULL;
 	struct AvbOps *ops = NULL;
-	uint8_t digest[AVB_SHA256_DIGEST_SIZE];
-	const uint8_t *pubkey;
-	size_t pubkey_size;
 
 	ops = alloc_avb_ops(image, size);
 	if (!ops)
 		return -ENOMEM;
 
-	/* We trust that libavb will sanity check the VBMeta header fields. */
 	ret = avb_slot_verify(ops, parts, /*slot_suffix=*/"",
 			      AVB_SLOT_VERIFY_FLAGS_NONE,
 			      AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE,
@@ -179,26 +177,9 @@ static int update_bcc_with_verified_image(struct bcc_context *bcc_ctx,
 		goto err;
 	}
 
-	avb_slot_verify_data_calculate_vbmeta_digest(data,
-						     AVB_DIGEST_TYPE_SHA256,
-						     digest);
-
-	if (data->num_vbmeta_images != 1) {
-		ret = -EIO;
-		goto err;
-	}
-
-	/* Thanks to avb_preloaded, we know which vbmeta to use. */
-	ret = avb_vbmeta_image_verify(data->vbmeta_images[0].vbmeta_data,
-				      data->vbmeta_images[0].vbmeta_size,
-				      &pubkey, &pubkey_size);
-	if (ret != AVB_VBMETA_VERIFY_RESULT_OK) {
-		ret = -EIO;
-		goto err;
-	}
-
-	bcc_update_code_hash(bcc_ctx, digest, sizeof(digest));
-	bcc_update_authority_hash(bcc_ctx, pubkey, pubkey_size);
+	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
+				       "vm_entry", BCC_MODE_NORMAL, data, NULL,
+				       fdt, fdt_totalsize(fdt));
 
 err:
 	if (data)
@@ -212,7 +193,6 @@ err:
 int pvmfw_boot_flow(void *fdt, void *image, size_t size)
 {
 	int ret;
-	struct bcc_context *bcc_ctx = NULL;
 	const uintptr_t pvmfw_end = (uintptr_t)_end - gd->reloc_off;
 	uint8_t *bcc = (void *)ALIGN(pvmfw_end, PAGE_SIZE);
 	const size_t bcc_size = PAGE_SIZE;
@@ -222,20 +202,12 @@ int pvmfw_boot_flow(void *fdt, void *image, size_t size)
 		goto err;
 	}
 
-	bcc_ctx = bcc_context_alloc();
-	if (!bcc_ctx) {
-		ret = -ENOMEM;
-		goto err;
-	}
-
 	bcc_set_handover(bcc, bcc_size);
 
 	if (!pvmfw_fdt_is_valid(fdt)) {
 		ret = -EINVAL;
 		goto err;
 	}
-
-	bcc_update_code_hash(bcc_ctx, fdt, fdt_totalsize(fdt));
 
 	/*
 	 * We inject the node in the DT before verifying the images
@@ -247,16 +219,11 @@ int pvmfw_boot_flow(void *fdt, void *image, size_t size)
 		goto err;
 	}
 
-	ret = update_bcc_with_verified_image(bcc_ctx, image, size);
-	if (ret)
-		goto err;
+	ret = verify_image(image, size, fdt);
 
-	ret = bcc_handover(bcc_ctx, "vm_entry", BCC_MODE_NORMAL);
 err:
 	if (ret)
 		bcc_clear_memory(bcc, bcc_size);
-	if (bcc_ctx)
-		free(bcc_ctx);
 
 	return ret;
 }
