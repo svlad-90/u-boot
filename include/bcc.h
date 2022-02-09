@@ -69,6 +69,15 @@ int bcc_update_authority_hash(struct bcc_context *ctx, const uint8_t *buffer,
 int bcc_handover(struct bcc_context *ctx, const char *component_name,
 		 enum bcc_mode mode);
 
+int bcc_vm_instance_handover(const char *iface_str, int devnum,
+			     const char *instance_uuid,
+			     const char *component_name,
+			     enum bcc_mode boot_mode,
+			     const AvbSlotVerifyData *code_data,
+			     const AvbSlotVerifyData *config_data,
+			     const void *unverified_config,
+			     size_t unverified_config_size);
+
 /**
  * Get a sealing key derived from the sealing CDI.
  *
