@@ -82,6 +82,15 @@ void bcc_clear_memory(void *data, size_t size)
 	DiceClearMemory(NULL, size, data);
 }
 
+static void sha256(const void *data, size_t data_size, uint8_t digest[AVB_SHA256_DIGEST_SIZE])
+{
+	sha256_context ctx;
+
+	sha256_starts(&ctx);
+	sha256_update(&ctx, data, data_size);
+	sha256_finish(&ctx, digest);
+}
+
 struct bcc_context *bcc_context_alloc(void)
 {
 	struct bcc_context *ctx;
@@ -366,19 +375,47 @@ out:
 static int boot_measurement_from_avb_data(const AvbSlotVerifyData *data,
 					  struct boot_measurement *measurement)
 {
+	const char *partition_name;
+	size_t n;
+
 	/*
-	 * Use the top-level vbmeta public key as the authority. Any chained
-	 * partitions will have their public key captures in the vbmeta digest.
+	 * Use the public key of the top-level vbmeta as the authority as this
+	 * cannot change. The authority of any chained partitions will be
+	 * captured in the vbmeta digest.
 	 */
 	if (avb_find_main_pubkey(data, &measurement->public_key,
 				 &measurement->public_key_size)
 			== CMD_RET_FAILURE)
 		return -EINVAL;
 
-	avb_slot_verify_data_calculate_vbmeta_digest(data,
-						     AVB_DIGEST_TYPE_SHA256,
-						     measurement->digest);
-	return 0;
+	/*
+	 * Assuming we're only trying to load one thing, a top-level vbmeta with
+	 * no chained partitions or a single partition that was chained from a
+	 * top-level vbmeta.
+	 *
+	 * Calculate a hash that captures just the code we're interested in
+	 * loading and will match:
+	 *
+	 *    avbtool calculate_vbmeta_digest --image <vbmeta|partition>.img
+	 */
+	if (data->num_vbmeta_images == 1)
+		partition_name = data->vbmeta_images[0].partition_name;
+	else if (data->num_loaded_partitions == 1)
+		partition_name = data->loaded_partitions[0].partition_name;
+	else
+		return -EINVAL;
+
+	for (n = 0; n < data->num_vbmeta_images; ++n) {
+		AvbVBMetaData *vbmeta = &data->vbmeta_images[n];
+
+		if (strcmp(partition_name, vbmeta->partition_name) == 0) {
+			sha256(vbmeta->vbmeta_data, vbmeta->vbmeta_size,
+			       measurement->digest);
+			return 0;
+		}
+	}
+
+	return -EINVAL;
 }
 
 int bcc_vm_instance_handover(const char *iface_str, int devnum,
