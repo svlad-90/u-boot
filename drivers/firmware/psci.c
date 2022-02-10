@@ -41,7 +41,8 @@
 #else
 #define __smccc_conduit_section		__section(".data")
 #endif
-enum arm_smccc_conduit __smccc_conduit_section smccc_conduit;
+__smccc_conduit_section
+enum arm_smccc_conduit smccc_conduit = SMCCC_CONDUIT_NONE;
 
 enum arm_smccc_conduit arm_smccc_1_1_get_conduit(void)
 {
