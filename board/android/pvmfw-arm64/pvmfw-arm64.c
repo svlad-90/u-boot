@@ -28,31 +28,24 @@ size_t __section(".data") fw_kernel_image_size;
 
 static struct mm_region pvmfw_mem_map[] = {
 	{
-		/* Map NULL
-		 * TODO: figure out what's using low addresses, make it stop,
-		 * and remove this mapping.
-		 * Currently there are a few parts that dereference low
-		 * addresses. One that consistently crashes is in
-		 * pci-uclass.c:pci_generic_mmap_read_config, where
-		 * `*valuep = readw(address);` dereferences 0x10000
+		/*
+		 * Emulated I/O: 0x0000_0000-0x0001_0000
+		 * PCI (virtio): 0x0001_0000-0x1110_0000
+		 * GIC region  : 0x????_????-0x4000_0000
 		 */
 		.virt = 0x00000000UL,
 		.phys = 0x00000000UL,
-		.size = 0x00020000UL,
-		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
-			 PTE_BLOCK_INNER_SHARE
-	}, {
-		/* Lowmem peripherals */
-		.virt = 0x08000000UL,
-		.phys = 0x08000000UL,
-		.size = 0x38000000,
+		.size = SZ_1G,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
-	}, {
-		/* RAM */
-		.virt = 0x70000000UL,
-		.phys = 0x70000000UL,
+	}, /* 0x4000_0000-0x7000_0000: RESERVED */ {
+		/*
+		 * Firmware region: 0x7000_0000-0x8000_0000
+		 *      RAM region: 0x8000_0000-0x????_????
+		 */
+		.virt = 0x70000000,
+		.phys = 0x70000000,
 		.size = 255UL * SZ_1G,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
