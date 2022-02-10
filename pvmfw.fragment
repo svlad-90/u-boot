@@ -12,6 +12,8 @@ CONFIG_LIBAVB=y
 CONFIG_BCC=y
 CONFIG_AVB_BUF_SIZE=0
 CONFIG_AVB_VERIFY=y
+CONFIG_PARTITIONS=y
+CONFIG_EFI_PARTITION=y
 
 # Default overrides that ARCH_QEMU is using in upper-level Kconfigs.
 # CONFIG_INIT_SP_RELATIVE is not set
