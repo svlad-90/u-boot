@@ -78,6 +78,11 @@ int board_run_command(const char *cmdline)
 
 int board_init(void)
 {
+	return 0;
+}
+
+int board_late_init(void)
+{
 	/*
 	 * Make sure virtio bus is enumerated so that peripherals
 	 * on the virtio bus can be discovered by their drivers
