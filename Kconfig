@@ -166,11 +166,15 @@ config DISTRO_DEFAULTS
 	select CMD_BOOTZ if ARM && !ARM64
 	select CMD_DHCP if CMD_NET
 	select CMD_ENV_EXISTS
+	select CMD_EXT2
+	select CMD_EXT4
 	select CMD_FAT
 	select CMD_FS_GENERIC
 	select CMD_PART if PARTITIONS
 	select CMD_PING if CMD_NET
 	select CMD_PXE if NET
+	select CMD_SYSBOOT
+	select ENV_VARS_UBOOT_CONFIG
 	select HUSH_PARSER
 	select SUPPORT_RAW_INITRD
 	select SYS_LONGHELP

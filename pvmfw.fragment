@@ -2,30 +2,15 @@ CONFIG_ARCH_PVMFW=y
 # CONFIG_ARCH_QEMU is not set
 CONFIG_MISC_INIT_R=y
 # CONFIG_SYS_TEXT_BASE is not set
-# CONFIG_DISTRO_DEFAULTS is not set
-# CONFIG_CMDLINE is not set
-# CONFIG_AUTOBOOT is not set
 CONFIG_FORCE_SECURE_BOOT=y
-CONFIG_BOOTCOMMAND=""
 CONFIG_ANDROID_BOOT_IMAGE=y
 CONFIG_LIBAVB=y
 CONFIG_BCC=y
 CONFIG_AVB_BUF_SIZE=0
 CONFIG_AVB_VERIFY=y
-CONFIG_PARTITIONS=y
-CONFIG_EFI_PARTITION=y
 
 # Default overrides that ARCH_QEMU is using in upper-level Kconfigs.
 # CONFIG_INIT_SP_RELATIVE is not set
 CONFIG_SYS_MALLOC_F_LEN=0x2000
 CONFIG_SYS_LOAD_ADDR=0x80200000
 CONFIG_SYS_MALLOC_LEN=0x4000000
-
-# Borrowed from cuttlefish.fragment
-
-# crosvm's virtio-net implementation gets "stuck" when initialization is
-# attempted by u-boot -- probably a combination of bugs in crosvm and u-boot.
-# CONFIG_VIRTIO_NET is not set
-
-# Disable the NET core so we can simplify CONFIG_DISTRO_DEFAULTS
-# CONFIG_NET is not set

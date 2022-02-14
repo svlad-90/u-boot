@@ -1,6 +1,8 @@
 # Disable many drivers that we don't need for "minimal" QEMU support
 # CONFIG_AHCI is not set
 # CONFIG_AHCI_PCI is not set
+# CONFIG_AUTOBOOT is not set
+# CONFIG_AUTO_COMPLETE is not set
 # CONFIG_BOOTARGS is not set
 # CONFIG_BOOTM_NETBSD is not set
 # CONFIG_BOOTM_PLAN9 is not set
@@ -20,6 +22,7 @@
 # CONFIG_CMD_ELF is not set
 # CONFIG_CMD_EXPORTENV is not set
 # CONFIG_CMD_EXT4_WRITE is not set
+# CONFIG_CMD_FDT is not set
 # CONFIG_CMD_GETTIME is not set
 # CONFIG_CMD_GO is not set
 # CONFIG_CMD_IDE is not set
@@ -35,6 +38,7 @@
 # CONFIG_CMD_MTDPARTS is not set
 # CONFIG_CMD_NFS is not set
 # CONFIG_CMD_NVEDIT_EFI is not set
+# CONFIG_CMD_PCI is not set
 # CONFIG_CMD_QFW is not set
 # CONFIG_CMD_SAVEENV is not set
 # CONFIG_CMD_SPI is not set
@@ -43,10 +47,13 @@
 # CONFIG_CMD_UNZIP is not set
 # CONFIG_CMD_USB is not set
 # CONFIG_CMD_XIMG is not set
+# CONFIG_CMDLINE is not set
+# CONFIG_CMDLINE_EDITING is not set
 # CONFIG_CONSOLE_SCROLL_LINES is not set
 # CONFIG_DFU_TFTP is not set
 # CONFIG_DFU_RAM is not set
 # CONFIG_DFU_MTD is not set
+# CONFIG_DISTRO_DEFAULTS is not set
 # CONFIG_DM_ETH is not set
 # CONFIG_DM_GPIO is not set
 # CONFIG_DM_KEYBOARD is not set
@@ -57,6 +64,7 @@
 # CONFIG_DM_VIDEO is not set
 # CONFIG_E1000 is not set
 # CONFIG_ENV_ADDR is not set
+# CONFIG_ENV_EXISTS is not set
 # CONFIG_ENV_IS_IN_FLASH is not set
 # CONFIG_ENV_OVERWRITE is not set
 # CONFIG_ENV_SECT_SIZE is not set
@@ -77,6 +85,7 @@
 # CONFIG_MTD is not set
 # CONFIG_MTD_NOR_FLASH is not set
 # CONFIG_MMC is not set
+# CONFIG_NET is not set
 # CONFIG_NETDEVICES is not set
 # CONFIG_NVME is not set
 # CONFIG_POWER is not set
@@ -88,6 +97,7 @@
 # CONFIG_SPI is not set
 # CONFIG_SYS_FLASH_CFI is not set
 # CONFIG_SYS_FLASH_USE_BUFFER_WRITE is not set
+# CONFIG_SYS_LONGHELP is not set
 # CONFIG_SYS_MALLOC_F_LEN is not set
 # CONFIG_SYS_RELOC_GD_ENV_ADDR is not set
 # CONFIG_SYS_WHITE_ON_BLACK is not set
@@ -100,6 +110,7 @@
 # CONFIG_USE_BOOTARGS is not set
 # CONFIG_USE_PREBOOT is not set
 # CONFIG_VIDEO_VESA is not set
+# CONFIG_VIRTIO_NET is not set
 
 # Bring back CONFIG_QFW; disabling it mysteriously breaks x86_64 boot
 CONFIG_QFW=y
@@ -124,3 +135,6 @@ CONFIG_ARCH_MISC_INIT=y
 
 # Enable block support which is no longer implied after the minimal fragment
 CONFIG_BLK=y
+
+# Enable EFI partition type, required by all builds
+CONFIG_EFI_PARTITION=y
