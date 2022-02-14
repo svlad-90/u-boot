@@ -182,20 +182,6 @@ static void __cmo_on_leaves(void (*cmo_fn)(unsigned long, unsigned long),
 
 		end = va + BIT(level2shift(level)) - 1;
 
-		/* No intersection with RAM? */
-		if (end < gd->ram_base ||
-		    va >= (gd->ram_base + gd->ram_size))
-			continue;
-
-		/*
-		 * OK, we have a partial RAM mapping. However, this
-		 * can cover *more* than the RAM. Yes, u-boot is
-		 * *that* braindead. Compute the intersection we care
-		 * about, and not a byte more.
-		 */
-		va = max(va, (u64)gd->ram_base);
-		end = min(end, gd->ram_base + gd->ram_size);
-
 		debug("Flush PTE %llx at level %d: %llx-%llx\n",
 		      pte, level, va, end);
 		cmo_fn(va, end);
