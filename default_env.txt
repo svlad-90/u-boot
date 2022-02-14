@@ -2,4 +2,3 @@ bootcmd=virtio scan && if part number virtio 1 uboot_env uboot_env_part; then if
 bootcmd_android=verified_boot_android virtio 0#misc
 uenvcmd=run bootcmd_android
 android_keymint_needed=N
-bootdelay=0
