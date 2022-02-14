@@ -28,8 +28,14 @@ void * __section(".data") fw_dtb_pointer;
 void * __section(".data") fw_kernel_image_pointer;
 size_t __section(".data") fw_kernel_image_size;
 
+enum pvmfw_mem_map_idx {
+	PVMFW_MEM_MAP_MMIO,
+	PVMFW_MEM_MAP_DICE,
+	PVMFW_MEM_MAP_SDRAM,
+};
+
 static struct mm_region pvmfw_mem_map[] = {
-	{
+	[PVMFW_MEM_MAP_MMIO] = {
 		/*
 		 * Emulated I/O: 0x0000_0000-0x0001_0000
 		 * PCI (virtio): 0x0001_0000-0x1110_0000
@@ -41,13 +47,18 @@ static struct mm_region pvmfw_mem_map[] = {
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
-	}, /* 0x4000_0000-0x7000_0000: RESERVED */ {
-		/*
-		 * Firmware region: 0x7000_0000-0x8000_0000
-		 *      RAM region: 0x8000_0000-0x????_????
-		 */
-		.virt = 0x70000000,
-		.phys = 0x70000000,
+	},
+	/* 0x4000_0000-0x7000_0000: RESERVED */
+	[PVMFW_MEM_MAP_DICE] = {
+		/* DICE region */
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	},
+	[PVMFW_MEM_MAP_SDRAM] = {
+		 /* RAM region */
+		.virt = CONFIG_SYS_SDRAM_BASE,
+		.phys = CONFIG_SYS_SDRAM_BASE,
 		.size = 255UL * SZ_1G,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
@@ -105,6 +116,13 @@ int board_late_init(void)
 
 int dram_init(void)
 {
+	size_t bcc_size;
+	uintptr_t bcc = (uintptr_t)locate_bcc(&bcc_size);
+
+	pvmfw_mem_map[PVMFW_MEM_MAP_DICE].phys = bcc;
+	pvmfw_mem_map[PVMFW_MEM_MAP_DICE].virt = bcc;
+	pvmfw_mem_map[PVMFW_MEM_MAP_DICE].size = bcc_size;
+
 	if (fdtdec_setup_mem_size_base() != 0)
 		return -EINVAL;
 
