@@ -59,7 +59,6 @@ static struct mm_region pvmfw_mem_map[] = {
 		 /* RAM region */
 		.virt = CONFIG_SYS_SDRAM_BASE,
 		.phys = CONFIG_SYS_SDRAM_BASE,
-		.size = 255UL * SZ_1G,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
 	}, {
@@ -125,6 +124,8 @@ int dram_init(void)
 
 	if (fdtdec_setup_mem_size_base() != 0)
 		return -EINVAL;
+
+	pvmfw_mem_map[PVMFW_MEM_MAP_SDRAM].size = gd->ram_size;
 
 	return 0;
 }
