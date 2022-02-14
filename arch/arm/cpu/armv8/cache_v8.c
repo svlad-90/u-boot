@@ -196,7 +196,7 @@ static void __cmo_on_leaves(void (*cmo_fn)(unsigned long, unsigned long),
 		va = max(va, (u64)gd->ram_base);
 		end = min(end, gd->ram_base + gd->ram_size);
 
-		printf("Flush PTE %llx at level %d: %llx-%llx\n",
+		debug("Flush PTE %llx at level %d: %llx-%llx\n",
 		      pte, level, va, end);
 		cmo_fn(va, end);
 	}
