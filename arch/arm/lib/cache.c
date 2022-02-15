@@ -159,6 +159,14 @@ __weak int arm_reserve_mmu(void)
 	 */
 	gd->arch.tlb_allocated = gd->arch.tlb_addr;
 #endif
+
+#if CONFIG_IS_ENABLED(CMO_BY_VA_ONLY)
+	/*
+	 * As invalidate_dcache_all() will be called before mmu_setup(),
+	 * we should make sure that the PTs are already in a valid state.
+	 */
+	memset((void *)gd->arch.tlb_addr, 0, gd->arch.tlb_size);
+#endif
 #endif
 
 	return 0;
