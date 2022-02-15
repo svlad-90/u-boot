@@ -9,6 +9,7 @@
 #include <cpu_func.h>
 #include <image.h>
 #include <linux/bug.h>
+#include <linux/string.h>
 #include <malloc.h>
 #include <part.h>
 #include <tee.h>
@@ -722,18 +723,15 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 						 size_t guid_buf_size)
 {
 	struct avb_part *part;
-	size_t uuid_size;
+
+	if (guid_buf_size <= UUID_STR_LEN)
+		return AVB_IO_RESULT_ERROR_IO;
 
 	part = get_partition(ops, partition);
 	if (!part)
 		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
 
-	uuid_size = sizeof(part->info.uuid);
-	if (uuid_size > guid_buf_size)
-		return AVB_IO_RESULT_ERROR_IO;
-
-	memcpy(guid_buf, part->info.uuid, uuid_size);
-	guid_buf[uuid_size - 1] = 0;
+	strlcpy(guid_buf, part->info.uuid, UUID_STR_LEN + 1);
 
 	return AVB_IO_RESULT_OK;
 }
