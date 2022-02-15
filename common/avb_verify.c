@@ -268,15 +268,15 @@ static struct avb_part *get_partition(AvbOps *ops, const char *partition)
 	size_t dev_part_str_len;
 	char *dev_part_str;
 
-	part = malloc(sizeof(struct avb_part));
-	if (!part)
-		return NULL;
-
 	if (!ops)
 		return NULL;
 
 	data = ops->user_data;
 	if (!data)
+		return NULL;
+
+	part = malloc(sizeof(*part));
+	if (!part)
 		return NULL;
 
 	// format is "<devnum>#<partition>\0"
@@ -419,6 +419,7 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 		*out_num_read = io_cnt;
 
 err:
+	free(part);
 	return res;
 }
 
@@ -733,6 +734,7 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 
 	strlcpy(guid_buf, part->info.uuid, UUID_STR_LEN + 1);
 
+	free(part);
 	return AVB_IO_RESULT_OK;
 }
 
@@ -764,6 +766,7 @@ static AvbIOResult get_size_of_partition(AvbOps *ops,
 
 	*out_size_num_bytes = part->info.blksz * part->info.size;
 
+	free(part);
 	return AVB_IO_RESULT_OK;
 }
 
