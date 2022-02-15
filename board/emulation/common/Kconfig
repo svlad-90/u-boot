@@ -13,3 +13,9 @@ config MTDPARTS_NOR1
 	help
 	  This define the partition of nor1 used to build mtparts dynamically
 	  for the u-boot env stored on nor1.
+
+config CROSVM_MEM_MAP
+	bool "Use CrosVM memory layout"
+	help
+	  Replace the standard QEMU memory layout with the one from CrosVM
+	  during MMU initialization.

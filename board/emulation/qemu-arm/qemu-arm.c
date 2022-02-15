@@ -17,6 +17,46 @@
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
 
+#if CONFIG_IS_ENABLED(CROSVM_MEM_MAP)
+
+static struct mm_region crosvm_arm64_mem_map[] = {
+	{
+		/*
+		 * Emulated I/O: 0x0000_0000-0x0001_0000
+		 * PCI (virtio): 0x0001_0000-0x1110_0000
+		 * GIC region  : 0x????_????-0x4000_0000
+		 */
+		.virt = 0x00000000UL,
+		.phys = 0x00000000UL,
+		.size = SZ_1G,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	}, /* 0x4000_0000-0x7000_0000: RESERVED */ {
+		/* Firmware region */
+		.virt = CONFIG_SYS_SDRAM_BASE - SZ_256M,
+		.phys = CONFIG_SYS_SDRAM_BASE - SZ_256M,
+		.size = SZ_256M,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	}, {
+		 /* RAM region */
+		.virt = CONFIG_SYS_SDRAM_BASE,
+		.phys = CONFIG_SYS_SDRAM_BASE,
+		.size = 255UL * SZ_1G,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_INNER_SHARE
+	}, {
+		/* List terminator */
+		0,
+	}
+};
+
+struct mm_region *mem_map = crosvm_arm64_mem_map;
+
+#else
+
 static struct mm_region qemu_arm64_mem_map[] = {
 	{
 		/* Flash */
@@ -63,6 +103,8 @@ static struct mm_region qemu_arm64_mem_map[] = {
 };
 
 struct mm_region *mem_map = qemu_arm64_mem_map;
+
+#endif
 #endif
 
 int board_init(void)
