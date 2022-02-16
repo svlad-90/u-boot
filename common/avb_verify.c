@@ -8,6 +8,7 @@
 #include <blk.h>
 #include <cpu_func.h>
 #include <image.h>
+#include <linux/bug.h>
 #include <malloc.h>
 #include <part.h>
 #include <tee.h>
@@ -152,6 +153,7 @@ char *avb_set_enforce_verity(const char *cmdline)
 #if !defined(CONFIG_AVB_BUF_ADDR) || (CONFIG_AVB_BUF_ADDR == 0)
 __attribute__((aligned(ALLOWED_BUF_ALIGN)))
 static char sector_buf[CONFIG_AVB_BUF_SIZE];
+static_assert(CONFIG_AVB_BUF_SIZE != 0);
 
 static void *get_sector_buf(void)
 {
