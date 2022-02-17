@@ -4,6 +4,7 @@
  * Copyright (C) 2021 Google LLC
  */
 
+#include <asm/sections.h>
 #include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
@@ -16,7 +17,8 @@
 
 #include <asm/armv8/mmu.h>
 
-int pvmfw_boot_flow(void *fdt, void *image, size_t size);
+int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
+		    size_t bcc_size);
 
 /* Assigned in lowlevel_init.S
  * Push the variable into the .data section so that it
@@ -57,15 +59,24 @@ static struct mm_region pvmfw_mem_map[] = {
 
 struct mm_region *mem_map = pvmfw_mem_map;
 
+static void *locate_bcc(size_t *size)
+{
+	if (size)
+		*size = PAGE_SIZE;
+
+	return (void *)ALIGN((uintptr_t)_end - gd->reloc_off, PAGE_SIZE);
+}
+
 int board_run_command(const char *cmdline)
 {
 	int err;
+	size_t bcc_size;
+	void *bcc = locate_bcc(&bcc_size);
 	void (*entry)(void *fdt_addr, void *res0, void *res1, void *res2) =
 		fw_kernel_image_pointer;
 
-	err = pvmfw_boot_flow(fw_dtb_pointer,
-			      fw_kernel_image_pointer,
-			      fw_kernel_image_size);
+	err = pvmfw_boot_flow(fw_dtb_pointer, fw_kernel_image_pointer,
+			      fw_kernel_image_size, bcc, bcc_size);
 	if (err) {
 		panic("pvmfw boot failed: %d", err);
 		__builtin_unreachable();

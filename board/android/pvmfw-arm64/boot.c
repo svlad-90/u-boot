@@ -4,7 +4,6 @@
  */
 
 #include <asm/global_data.h>
-#include <asm/sections.h>
 
 #include <android_bootloader.h>
 #include <android_image.h>
@@ -190,12 +189,10 @@ err:
 	return ret;
 }
 
-int pvmfw_boot_flow(void *fdt, void *image, size_t size)
+int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
+		    size_t bcc_size)
 {
 	int ret;
-	const uintptr_t pvmfw_end = (uintptr_t)_end - gd->reloc_off;
-	uint8_t *bcc = (void *)ALIGN(pvmfw_end, PAGE_SIZE);
-	const size_t bcc_size = PAGE_SIZE;
 
 	if (!size || !is_valid_ram_region(image, size) || !is_valid_ram(fdt)) {
 		ret = -EPERM;
