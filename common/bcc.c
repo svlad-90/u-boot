@@ -387,6 +387,13 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 	struct bcc_context *bcc_ctx;
 	int ret;
 
+	/* Continue without the BCC if it wasn't found. */
+	ret = bcc_init();
+	if (ret == -ENOENT)
+		return 0;
+	if (ret)
+		return ret;
+
 	ret = boot_measurement_from_avb_data(code_data, &code);
 	if (ret)
 		return ret;
@@ -396,13 +403,6 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 		if (ret)
 			return ret;
 	}
-
-	/* Continue without the BCC if it wasn't found. */
-	ret = bcc_init();
-	if (ret == -ENOENT)
-		return 0;
-	if (ret)
-		return ret;
 
 	bcc_ctx = bcc_context_alloc();
 	if (!bcc_ctx)
