@@ -1,6 +1,7 @@
 # Disable many drivers that we don't need for "minimal" QEMU support
 # CONFIG_AHCI is not set
 # CONFIG_AHCI_PCI is not set
+# CONFIG_ARCH_FIXUP_FDT_MEMORY is not set
 # CONFIG_AUTOBOOT is not set
 # CONFIG_AUTO_COMPLETE is not set
 # CONFIG_BOOTARGS is not set
@@ -10,6 +11,7 @@
 # CONFIG_BOOTM_VXWORKS is not set
 # CONFIG_BOOTSTAGE is not set
 # CONFIG_BOOTSTAGE_REPORT is not set
+# CONFIG_CAAM_64BIT is not set
 # CONFIG_CFI_FLASH is not set
 # CONFIG_CMD_BDI is not set
 # CONFIG_CMD_BLOCK_CACHE is not set
@@ -68,6 +70,7 @@
 # CONFIG_ENV_IS_IN_FLASH is not set
 # CONFIG_ENV_OVERWRITE is not set
 # CONFIG_ENV_SECT_SIZE is not set
+# CONFIG_ETH is not set
 # CONFIG_FIT is not set
 # CONFIG_FIT_SIGNATURE is not set
 # CONFIG_FIT_VERBOSE is not set
@@ -93,6 +96,7 @@
 # CONFIG_SCSI_AHCI is not set
 # CONFIG_SCSI is not set
 # CONFIG_SHOW_BOOT_PROGRESS is not set
+# CONFIG_SIMPLE_BUS is not set
 # CONFIG_SMBIOS_PARSER is not set
 # CONFIG_SPI is not set
 # CONFIG_SYS_FLASH_CFI is not set
