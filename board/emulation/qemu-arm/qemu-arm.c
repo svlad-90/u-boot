@@ -76,6 +76,7 @@ static struct mm_region qemu_arm64_mem_map[] = {
 		/* RAM */
 		.virt = 0x40000000UL,
 		.phys = 0x40000000UL,
+		.size = 255UL * SZ_1G,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
 	}, {
@@ -145,15 +146,6 @@ int dram_init(void)
 {
 	if (fdtdec_setup_mem_size_base() != 0)
 		return -EINVAL;
-
-#if CONFIG_IS_ENABLED(CROSVM_MEM_MAP) && CONFIG_IS_ENABLED(ARM64)
-	for (struct mm_region *map = mem_map; map->phys || map->size; map++) {
-		if (map->phys == gd->ram_base) {
-			map->size = gd->ram_size;
-			break;
-		}
-	}
-#endif
 
 	return 0;
 }
