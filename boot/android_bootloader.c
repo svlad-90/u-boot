@@ -543,6 +543,10 @@ int android_bootloader_boot_flow(const char* iface_str,
 		}
 	}
 
+	if (!verify) {
+		printf("ANDROID: BOOTING UNVERIFIED");
+	}
+
 	bool normal_boot = (mode == ANDROID_BOOT_MODE_NORMAL);
 	switch (mode) {
 	case ANDROID_BOOT_MODE_NORMAL:
