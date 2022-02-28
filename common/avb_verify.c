@@ -713,8 +713,8 @@ static AvbIOResult read_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
  *
  * @return:
  *      AVB_IO_RESULT_OK, on success (GUID found)
- *      AVB_IO_RESULT_ERROR_IO, if incorrect buffer size (@guid_buf_size) was
- *             provided
+ *      AVB_IO_RESULT_ERROR_INSUFFICIENT_SPACE, if incorrect buffer size
+ *             (@guid_buf_size) was provided
  *      AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION, if partition was not found
  */
 static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
@@ -725,7 +725,7 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 	struct avb_part *part;
 
 	if (guid_buf_size <= UUID_STR_LEN)
-		return AVB_IO_RESULT_ERROR_IO;
+		return AVB_IO_RESULT_ERROR_INSUFFICIENT_SPACE;
 
 	part = get_partition(ops, partition);
 	if (!part)
