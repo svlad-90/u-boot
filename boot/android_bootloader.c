@@ -548,7 +548,11 @@ int android_bootloader_boot_flow(const char* iface_str,
 	}
 
 	if (!verify) {
-		printf("ANDROID: BOOTING UNVERIFIED");
+		printf("ANDROID: Booting Unverified!!\n");
+	}
+
+	if (verify && CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)) {
+		printf("ANDROID: Booting Unlocked!!\n");
 	}
 
 	bool normal_boot = (mode == ANDROID_BOOT_MODE_NORMAL);
@@ -687,7 +691,7 @@ int android_bootloader_boot_flow(const char* iface_str,
 	} else {
 		bootconfig_part_info_ptr = &bootconfig_part_info;
 	}
-#ifndef CONFIG_AVB_IS_UNLOCKED
+
 	if (bootconfig_part_info_ptr != NULL && verify) {
 		char devnum_str[3];
 		sprintf(devnum_str, "%d", persistant_dev_desc->devnum);
@@ -710,7 +714,6 @@ int android_bootloader_boot_flow(const char* iface_str,
 			goto bail;
 		}
 	}
-#endif /* !CONFIG_AVB_IS_UNLOCKED */
 #endif /* CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE */
 
 #ifdef CONFIG_ANDROID_BCC
