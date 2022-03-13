@@ -255,6 +255,7 @@ static int vm_instance_format(const struct boot_measurement *code,
  */
 static int vm_instance_verify(const char *iface_str, int devnum,
 			      const char *instance_uuid,
+			      bool must_exist,
 			      struct bcc_context *bcc_ctx,
 			      const struct boot_measurement *code,
 			      const struct boot_measurement *config)
@@ -326,7 +327,13 @@ static int vm_instance_verify(const char *iface_str, int devnum,
 			ret = -EINVAL;
 			goto out;
 		}
+		ret = BCC_VM_INSTANCE_FOUND;
 	} else if (ret == -ENOENT) {
+		if (must_exist) {
+			log_err("VM instance data not found.\n");
+			goto out;
+		}
+
 		/* No previous entry so create a fresh one. */
 		printf("Creating new VM instance.\n");
 
@@ -341,6 +348,7 @@ static int vm_instance_verify(const char *iface_str, int devnum,
 			log_err("Failed to create VM instance.\n");
 			goto out;
 		}
+		ret = BCC_VM_INSTANCE_CREATED;
 	}
 
 	bcc_update_hidden_hash(bcc_ctx, record_salt, VM_INSTANCE_SALT_SIZE);
@@ -375,6 +383,7 @@ static int boot_measurement_from_avb_data(const AvbSlotVerifyData *data,
 
 int bcc_vm_instance_handover(const char *iface_str, int devnum,
 			     const char *instance_uuid,
+			     bool must_exist,
 			     const char *component_name,
 			     enum bcc_mode bcc_mode,
 			     const AvbSlotVerifyData *code_data,
@@ -385,7 +394,7 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 	struct boot_measurement code;
 	struct boot_measurement config;
 	struct bcc_context *bcc_ctx;
-	int ret;
+	int instance_ret, ret;
 
 	/* Continue without the BCC if it wasn't found. */
 	ret = bcc_init();
@@ -408,9 +417,11 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 	if (!bcc_ctx)
 		return -ENOMEM;
 
-	ret = vm_instance_verify(iface_str, devnum, instance_uuid, bcc_ctx,
-				 &code, config_data ? &config : NULL);
-	if (ret) {
+	instance_ret = vm_instance_verify(iface_str, devnum, instance_uuid,
+					  must_exist, bcc_ctx, &code,
+					  config_data ? &config : NULL);
+	if (instance_ret < 0) {
+		ret = instance_ret;
 		log_err("Failed to validate instance.\n");
 		goto out;
 	}
@@ -430,7 +441,44 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 
 out:
 	free(bcc_ctx);
-	return ret;
+	return ret ? ret : instance_ret;
+}
+
+int bcc_vm_instance_avf_boot_state(bool *strict_boot, bool *new_instance)
+{
+	const void *fdt;
+	int chosen, len;
+
+	fdt = (const void *)env_get_hex("fdtaddr", 0);
+	if (!fdt)
+		return -EINVAL;
+
+	chosen = fdt_path_offset(fdt, "/chosen");
+	if (chosen == -FDT_ERR_NOTFOUND) {
+		*strict_boot = false;
+		*new_instance = false;
+		return 0;
+	}
+	if (chosen < 0)
+		return -EINVAL;
+
+	fdt_getprop(fdt, chosen, "avf,strict-boot", &len);
+	if (len >= 0)
+		*strict_boot = true;
+	else if (len == -FDT_ERR_NOTFOUND)
+		*strict_boot = false;
+	else
+		return -EINVAL;
+
+	fdt_getprop(fdt, chosen, "avf,new-instance", &len);
+	if (len >= 0)
+		*new_instance = true;
+	else if (len == -FDT_ERR_NOTFOUND)
+		*new_instance = false;
+	else
+		return -EINVAL;
+
+	return 0;
 }
 
 int bcc_get_sealing_key(const uint8_t *info, size_t info_size,
