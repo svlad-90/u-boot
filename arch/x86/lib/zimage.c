@@ -413,7 +413,7 @@ static int do_zboot_start(struct cmd_tbl *cmdtp, int flag, int argc,
 		state.initrd_addr = hextoul(argv[3], NULL);
 	if (argc >= 5)
 		state.initrd_size = hextoul(argv[4], NULL);
-	if (argc >= 6) {
+	if (argc >= 6 && *argv[5] != '-') {
 		/*
 		 * When the base_ptr is passed in, we assume that the image is
 		 * already loaded at the address given by argv[1] and therefore
@@ -796,7 +796,8 @@ int android_bootloader_boot_kernel(const struct andr_boot_info *boot_info)
 	ulong ramdisk_address, ramdisk_len;
 	char kernel_addr_str[12], ramdisk_addr_str[12], ramdisk_len_str[12];
 	char *zboot_args[] = {
-		"zboot", kernel_addr_str, "0", ramdisk_addr_str, ramdisk_len_str, NULL };
+		"zboot", kernel_addr_str, "0", ramdisk_addr_str,
+			 ramdisk_len_str, "-", "bootargs" };
 	int repeatable = 0;
 
 	if (android_image_get_kernel(boot_info, images.verify, NULL, NULL))
@@ -812,7 +813,7 @@ int android_bootloader_boot_kernel(const struct andr_boot_info *boot_info)
 	printf("Booting kernel at %s with fdt at %s ramdisk %s (%s bytes)...\n\n\n",
 		kernel_addr_str, env_get("fdtaddr"), ramdisk_addr_str, ramdisk_len_str);
 
-	do_zboot_parent(NULL, 0, 5, zboot_args, &repeatable);
+	do_zboot_parent(NULL, 0, 7, zboot_args, &repeatable);
 
 	return -1;
 }
