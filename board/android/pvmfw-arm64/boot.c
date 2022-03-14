@@ -101,15 +101,15 @@ static int add_dice_fdt_mem_rsv(void *fdt, void *addr, size_t size)
 
 	err = fdt_appendprop_addrrange(fdt, mem, dice, "reg",
 				       (uint64_t)addr, size);
-	if (err < 0)
+	if (err)
 		return err;
 
 	err = fdt_appendprop(fdt, dice, "no-map", NULL, 0);
-	if (err < 0)
+	if (err)
 		return err;
 
 	err = fdt_appendprop_string(fdt, dice, "compatible", COMPAT_DICE);
-	if (err < 0)
+	if (err)
 		return err;
 
 	return dice;
