@@ -25,5 +25,6 @@
 #define CONFIG_SYS_MAX_FLASH_SECT	256 /* Sector: 256K, Bank: 64M */
 
 #define CROSVM_PVMFW_MAX_SIZE		SZ_2M
+#define CROSVM_FDT_MAX_SIZE		SZ_2M
 
 #endif /* __CONFIG_H */

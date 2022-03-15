@@ -17,8 +17,8 @@
 
 #include <asm/armv8/mmu.h>
 
-int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
-		    size_t bcc_size);
+int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
+		    void *bcc, size_t bcc_size);
 
 /* Assigned in lowlevel_init.S
  * Push the variable into the .data section so that it
@@ -85,8 +85,9 @@ int board_run_command(const char *cmdline)
 	void (*entry)(void *fdt_addr, void *res0, void *res1, void *res2) =
 		fw_kernel_image_pointer;
 
-	err = pvmfw_boot_flow(fw_dtb_pointer, fw_kernel_image_pointer,
-			      fw_kernel_image_size, bcc, bcc_size);
+	err = pvmfw_boot_flow(fw_dtb_pointer, CROSVM_FDT_MAX_SIZE,
+			      fw_kernel_image_pointer, fw_kernel_image_size,
+			      bcc, bcc_size);
 	if (err) {
 		panic("pvmfw boot failed: %d", err);
 		__builtin_unreachable();

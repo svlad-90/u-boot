@@ -17,6 +17,7 @@
 #include <linux/err.h>
 
 #include "avb_preloaded.h"
+#include "generate_fdt.h"
 
 /* This assumes reserved-memory#address-cells/size-cells <= 2 */
 #define DICE_NODE_SIZE			96
@@ -194,7 +195,8 @@ free_ops:
 	return NULL;
 }
 
-static int verify_image(void *image, size_t size, void *fdt)
+static int verify_image(void *image, size_t size, void* fdt,
+			struct boot_config *cfg)
 {
 	const char *instance_uuid = "90d2174a-038a-4bc6-adf3-824848fc5825";
 	const char *iface_str = "virtio";
@@ -220,7 +222,7 @@ static int verify_image(void *image, size_t size, void *fdt)
 	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
 				       /*must_exist=*/false, "vm_entry",
 				       BCC_MODE_NORMAL, data, NULL,
-				       fdt, fdt_totalsize(fdt));
+				       cfg, sizeof(*cfg));
 	if (ret < 0)
 		goto err;
 
@@ -239,10 +241,11 @@ err:
 	return ret;
 }
 
-int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
-		    size_t bcc_size)
+int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
+		    void *bcc, size_t bcc_size)
 {
 	int ret;
+	struct boot_config cfg;
 
 	if (!size || !is_valid_ram_region(image, size)) {
 		ret = -EPERM;
@@ -256,17 +259,26 @@ int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
 
 	bcc_set_handover(bcc, bcc_size);
 
-	/*
-	 * We inject the node in the DT before verifying the images
-	 * to detect their potential corruption from this operation.
-	 */
+	ret = parse_input_fdt(fdt, &cfg);
+	if (ret)
+		goto err;
+
+	/* Transferring template here so that verify_image() can update it */
+	ret = transfer_fdt_template(fdt, fdt_max_size);
+	if (ret)
+		goto err;
+
 	ret = add_dice_fdt_mem_rsv(fdt, bcc, bcc_size);
 	if (ret < 0) {
 		ret = -EIO;
 		goto err;
 	}
 
-	ret = verify_image(image, size, fdt);
+	ret = verify_image(image, size, fdt, &cfg);
+	if (ret)
+		goto err;
+
+	ret = patch_output_fdt(fdt, &cfg);
 
 err:
 	if (ret)
