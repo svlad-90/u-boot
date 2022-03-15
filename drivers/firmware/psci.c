@@ -255,4 +255,5 @@ U_BOOT_DRIVER(psci) = {
 	.id = UCLASS_FIRMWARE,
 	.of_match = psci_of_match,
 	.bind = psci_bind,
+	.flags = DM_FLAG_PRE_RELOC,
 };
