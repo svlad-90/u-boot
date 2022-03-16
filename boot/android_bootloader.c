@@ -416,6 +416,12 @@ static int do_avb_bcc_handover(const char *iface_str, int devnum,
 {
 	const char *instance_uuid = "7e8221e7-03e6-4969-948b-73a4c809a4f2";
 	enum bcc_mode bcc_mode;
+	bool strict_boot, new_instance, must_exist;
+	int ret;
+
+	ret = bcc_vm_instance_avf_boot_state(&strict_boot, &new_instance);
+	if (ret)
+		return ret;
 
 	if (CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)) {
 		bcc_mode = BCC_MODE_DEBUG;
@@ -424,8 +430,17 @@ static int do_avb_bcc_handover(const char *iface_str, int devnum,
 				? BCC_MODE_NORMAL : BCC_MODE_MAINTENANCE;
 	}
 
-	return bcc_vm_instance_handover(iface_str, devnum, instance_uuid, "AVB",
-					bcc_mode, code_data, config_data, NULL, 0);
+	must_exist = strict_boot && !new_instance;
+	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
+				       must_exist, "AVB", bcc_mode, code_data,
+				       config_data, NULL, 0);
+	if (ret < 0)
+		return ret;
+
+	if (strict_boot && new_instance && ret != BCC_VM_INSTANCE_CREATED)
+		return -EEXIST;
+
+	return 0;
 }
 #endif /* CONFIG_ANDROID_BCC */
 

@@ -1031,13 +1031,26 @@ static int env_verified_import_bcc_handover(const char *iface_str, int devnum,
 {
 	const char *instance_uuid = "0ab72d30-86ae-4d05-81b2-c1760be2b1f9";
 	enum bcc_mode bcc_mode;
+	bool strict_boot, new_instance, must_exist;
+	int ret;
+
+	ret = bcc_vm_instance_avf_boot_state(&strict_boot, &new_instance);
+	if (ret)
+		return ret;
 
 	bcc_mode = CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)
 		? BCC_MODE_DEBUG : BCC_MODE_NORMAL;
+	must_exist = strict_boot && !new_instance;
+	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
+				       must_exist, "U-boot env", bcc_mode, data,
+				       NULL, NULL, 0);
+	if (ret < 0)
+		return ret;
 
-	return bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
-					"U-boot env", bcc_mode, data, NULL,
-					NULL, 0);
+	if (strict_boot && new_instance && ret != BCC_VM_INSTANCE_CREATED)
+		return -EEXIST;
+
+	return 0;
 }
 #endif
 

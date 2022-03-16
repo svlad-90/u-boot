@@ -23,6 +23,8 @@
 #define RSV_MEM_SIZE			(DICE_NODE_SIZE + 128)
 #define COMPAT_DICE			"google,open-dice"
 
+#define CHOSEN_MEM_SIZE			64
+
 /* Taken from libavb/avb_slot_verify.c */
 #define VBMETA_MAX_SIZE			SZ_64K
 
@@ -115,6 +117,35 @@ static int add_dice_fdt_mem_rsv(void *fdt, void *addr, size_t size)
 	return dice;
 }
 
+static int add_avf_fdt_chosen_properties(void *fdt, bool new_instance)
+{
+	int chosen, err;
+
+	chosen = find_or_alloc_subnode(fdt, 0, "chosen", CHOSEN_MEM_SIZE);
+	if (chosen < 0)
+		return chosen;
+
+	err = fdt_increase_size(fdt, CHOSEN_MEM_SIZE);
+	if (err)
+		return err;
+
+	err = fdt_appendprop(fdt, chosen, "avf,strict-boot", NULL, 0);
+	if (err)
+		return err;
+
+	if (new_instance) {
+		err = fdt_appendprop(fdt, chosen, "avf,new-instance", NULL, 0);
+		if (err)
+			return err;
+	} else {
+		err = fdt_delprop(fdt, chosen, "avf,new-instance");
+		if (err && err != -FDT_ERR_NOTFOUND)
+			return err;
+	}
+
+	return 0;
+}
+
 static struct AvbOps *alloc_avb_ops(void *image, size_t size)
 {
 	int error;
@@ -177,8 +208,17 @@ static int verify_image(void *image, size_t size, void *fdt)
 	}
 
 	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
-				       "vm_entry", BCC_MODE_NORMAL, data, NULL,
+				       /*must_exist=*/false, "vm_entry",
+				       BCC_MODE_NORMAL, data, NULL,
 				       fdt, fdt_totalsize(fdt));
+	if (ret < 0)
+		goto err;
+
+	ret = add_avf_fdt_chosen_properties(fdt, ret == BCC_VM_INSTANCE_CREATED);
+	if (ret) {
+		ret = -EIO;
+		goto err;
+	}
 
 err:
 	if (data)
