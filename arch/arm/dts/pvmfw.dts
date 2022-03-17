@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2022 Google LLC
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/dts-v1/;
+
+/ {
+	interrupt-parent = <&intc>;
+	compatible = "linux,dummy-virt";
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	chosen {
+		stdout-path = "/uart0@3f8";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x00 0x80000000 0x00 0x8000000>; /* size=128MB */
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,arm-v8";
+			enable-method = "psci";
+			reg = <0>;
+		};
+	};
+
+	intc: intc {
+		compatible = "arm,gic-v3";
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		reg = <0x00 0x3fff0000 0x00  0x10000>,
+		      <0x00 0x3fef0000 0x00 0x100000>;
+	};
+
+	uart0@3f8 {
+		compatible = "ns16550a";
+		reg = <0x00 0x3f8 0x00 0x08>;
+		clock-frequency = <0x1c2000>;
+		interrupts = <GIC_SPI 0 IRQ_TYPE_EDGE_RISING>;
+	};
+
+	psci {
+		compatible = "arm,psci-1.1", "arm,psci-0.2";
+		method = "hvc";
+	};
+
+	pci {
+		compatible = "pci-host-cam-generic";
+		device_type = "pci";
+		ranges = <0x3000000 0x00  0x1010000 0x00  0x1010000 0x00   0x100000>;
+		bus-range = <0x00 0x00>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+		reg = <0x00 0x10000 0x00 0x1000000>;
+		dma-coherent;
+	};
+};
