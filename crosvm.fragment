@@ -2,6 +2,7 @@
 # various ways. This tells U-Boot to inherit -- but not touch -- the existing
 # PCI config space.
 CONFIG_PCI_ENUM_ONLY=y
+# CONFIG_PCI_PNP is not set
 # Crosvm is responsible for cleaning RAM's contents, so this is unneeded.
 # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
 CONFIG_BOUNCE_BUFFER=y
