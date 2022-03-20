@@ -1439,6 +1439,36 @@ phys_addr_t dm_pci_bus_to_phys(struct udevice *dev, pci_addr_t bus_addr,
 	return phys_addr;
 }
 
+phys_addr_t dm_pci_bus_range_to_phys(struct udevice *dev, pci_addr_t bus_addr,
+				     size_t size, unsigned long mask,
+				     unsigned long flags)
+{
+	struct udevice *ctlr = pci_get_controller(dev);
+	struct pci_controller *hose = dev_get_uclass_priv(ctlr);
+	struct pci_region *res;
+	size_t offset;
+	int i;
+
+	for (i = 0; i < hose->region_count; i++) {
+		res = &hose->regions[i];
+
+		if ((res->flags & mask) != flags)
+			continue;
+
+		if (bus_addr < res->bus_start)
+			continue;
+
+		offset = bus_addr - res->bus_start;
+		if (offset >= res->size || size > res->size - offset)
+			continue;
+
+		return res->phys_start + offset;
+	}
+
+	puts("pci_bus_range_to_phys: invalid address range\n");
+	return 0;
+}
+
 static int _dm_pci_phys_to_bus(struct udevice *dev, phys_addr_t phys_addr,
 			       unsigned long flags, unsigned long skip_mask,
 			       pci_addr_t *ba)
