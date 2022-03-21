@@ -486,6 +486,12 @@ int bcc_vm_instance_avf_boot_state(bool *strict_boot, bool *new_instance)
 	const void *fdt;
 	int chosen, len;
 
+	if (!CONFIG_IS_ENABLED(ARM64)) {
+		*strict_boot = false;
+		*new_instance = false;
+		return 0;
+	}
+
 	fdt = (const void *)env_get_hex("fdtaddr", 0);
 	if (!fdt)
 		return -EINVAL;
