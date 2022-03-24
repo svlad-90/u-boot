@@ -39,10 +39,6 @@ static const DiceMode bcc_to_dice_mode[] = {
 	[BCC_MODE_DEBUG] = kDiceModeDebug,
 };
 
-struct bcc_context {
-	sha256_context auth_hash, code_hash, hidden_hash;
-};
-
 static void *find_bcc_handover(size_t *size)
 {
 	struct udevice *dev;
@@ -89,110 +85,6 @@ static void sha256(const void *data, size_t data_size, uint8_t digest[AVB_SHA256
 	sha256_starts(&ctx);
 	sha256_update(&ctx, data, data_size);
 	sha256_finish(&ctx, digest);
-}
-
-struct bcc_context *bcc_context_alloc(void)
-{
-	struct bcc_context *ctx;
-
-	ctx = calloc(1, sizeof(*ctx));
-	if (ctx) {
-		sha256_starts(&ctx->hidden_hash);
-		sha256_starts(&ctx->code_hash);
-		sha256_starts(&ctx->auth_hash);
-	}
-
-	return ctx;
-}
-
-static int bcc_update_hash(sha256_context *ctx, const uint8_t *input,
-			   size_t size)
-{
-	sha256_update(ctx, input, size);
-	return 0;
-}
-
-static int bcc_finish_hash(sha256_context *ctx, void *digest, size_t size)
-{
-	memset(digest, 0, size);
-	sha256_finish(ctx, digest);
-	return 0;
-}
-
-int bcc_update_hidden_hash(struct bcc_context *ctx, const uint8_t *input,
-			   size_t size)
-{
-	return bcc_update_hash(&ctx->hidden_hash, input, size);
-}
-
-int bcc_update_authority_hash(struct bcc_context *ctx, const uint8_t *input,
-			      size_t size)
-{
-	return bcc_update_hash(&ctx->auth_hash, input, size);
-}
-
-int bcc_update_code_hash(struct bcc_context *ctx, const uint8_t *input,
-			 size_t size)
-{
-	return bcc_update_hash(&ctx->code_hash, input, size);
-}
-
-int bcc_handover(struct bcc_context *ctx, const char *component_name,
-		 enum bcc_mode mode)
-{
-	uint8_t *new_handover;
-	uint8_t cfg_desc[BCC_CONFIG_DESC_SIZE];
-	size_t cfg_desc_size;
-	BccConfigValues cfg_vals;
-	DiceInputValues input_vals;
-	DiceResult res;
-	int ret;
-
-	/* Make sure initialization is complete. */
-	ret = bcc_init();
-	if (ret)
-		return ret;
-
-	cfg_vals = (BccConfigValues){
-		.inputs = BCC_INPUT_COMPONENT_NAME,
-		.component_name = component_name,
-	};
-
-	res = BccFormatConfigDescriptor(&cfg_vals, BCC_CONFIG_DESC_SIZE,
-					cfg_desc, &cfg_desc_size);
-	if (res != kDiceResultOk)
-		return -EINVAL;
-
-	input_vals = (DiceInputValues){
-		.config_type = kDiceConfigTypeDescriptor,
-		.config_descriptor = cfg_desc,
-		.config_descriptor_size = cfg_desc_size,
-		.mode = bcc_to_dice_mode[mode],
-	};
-
-	bcc_finish_hash(&ctx->auth_hash, input_vals.authority_hash, DICE_HASH_SIZE);
-	bcc_finish_hash(&ctx->code_hash, input_vals.code_hash, DICE_HASH_SIZE);
-	bcc_finish_hash(&ctx->hidden_hash, input_vals.hidden, DICE_HIDDEN_SIZE);
-
-	new_handover = calloc(1, bcc_handover_buffer_size);
-	if (!new_handover)
-		return -ENOMEM;
-
-	res = BccHandoverMainFlow(/*context=*/NULL, bcc_handover_buffer,
-				  bcc_handover_buffer_size, &input_vals,
-				  bcc_handover_buffer_size, new_handover, NULL);
-	if (res != kDiceResultOk) {
-		ret = -EINVAL;
-		goto out;
-	}
-
-	/* Update the handover buffer with the new data. */
-	memcpy(bcc_handover_buffer, new_handover, bcc_handover_buffer_size);
-
-out:
-	bcc_clear_memory(new_handover, bcc_handover_buffer_size);
-	free(new_handover);
-	return ret;
 }
 
 /**
@@ -258,16 +150,15 @@ static int vm_instance_format(const struct boot_measurement *code,
  * Verify the measurements are the same as previously recorded for the VM
  * instance or create a new VM instance with the measurements.
  *
- * The salt tha is saved with the instance data is added as a hidden input to
+ * The salt that is saved with the instance data is added as a hidden input to
  * bcc_ctx if the measurements don't conflict with the previously recorded
  * measurements.
  */
 static int vm_instance_verify(const char *iface_str, int devnum,
-			      const char *instance_uuid,
-			      bool must_exist,
-			      struct bcc_context *bcc_ctx,
+			      const char *instance_uuid, bool must_exist,
 			      const struct boot_measurement *code,
-			      const struct boot_measurement *config)
+			      const struct boot_measurement *config,
+			      uint8_t out_hidden[VM_INSTANCE_SALT_SIZE])
 {
 	const uint8_t key_info[] = {
 			'v', 'm', '-', 'i', 'n', 's', 't', 'a', 'n', 'c', 'e' };
@@ -360,15 +251,15 @@ static int vm_instance_verify(const char *iface_str, int devnum,
 		ret = BCC_VM_INSTANCE_CREATED;
 	}
 
-	bcc_update_hidden_hash(bcc_ctx, record_salt, VM_INSTANCE_SALT_SIZE);
+	memcpy(out_hidden, record_salt, VM_INSTANCE_SALT_SIZE);
 
 out:
 	avb_ops_free(ops);
 	bcc_clear_memory(sealing_key, sizeof(sealing_key));
 	bcc_clear_memory(record, record_size);
 	bcc_clear_memory(saved_record, record_size);
-	free(saved_record);
 	free(record);
+	free(saved_record);
 	return ret;
 }
 
@@ -418,9 +309,40 @@ static int boot_measurement_from_avb_data(const AvbSlotVerifyData *data,
 	return -EINVAL;
 }
 
+/*
+ * Format a config descriptor conformaing to the BCC specification.
+ *
+ * BccConfigDescriptor = {
+ *   ? -70002 : tstr,		; component name
+ *   ? -70003 : int,		; component version
+ *   ? -70004 : null,		; resettable
+ *   ; Extension fields
+ *   -71000: bstr .size 32;	; config digest
+ * }
+ */
+DiceResult format_config_descriptor(const char *component_name,
+				    const uint8_t config_digest[AVB_SHA256_DIGEST_SIZE],
+				    size_t buffer_size, uint8_t *buffer,
+				    size_t *actual_size)
+{
+	const int64_t component_name_label = -70002;
+	const int64_t config_digest_label = -71000;
+	struct CborOut out;
+
+	CborOutInit(buffer, buffer_size, &out);
+	CborWriteMap(config_digest ? 2 : 1, &out);
+	CborWriteInt(component_name_label, &out);
+	CborWriteTstr(component_name, &out);
+	if (config_digest) {
+		CborWriteInt(config_digest_label, &out);
+		CborWriteBstr(AVB_SHA256_DIGEST_SIZE, config_digest, &out);
+	}
+	*actual_size = CborOutSize(&out);
+	return CborOutOverflowed(&out) ? -E2BIG : 0;
+}
+
 int bcc_vm_instance_handover(const char *iface_str, int devnum,
-			     const char *instance_uuid,
-			     bool must_exist,
+			     const char *instance_uuid, bool must_exist,
 			     const char *component_name,
 			     enum bcc_mode bcc_mode,
 			     const AvbSlotVerifyData *code_data,
@@ -428,9 +350,12 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 			     const void *unverified_config,
 			     size_t unverified_config_size)
 {
+	uint8_t config_desc[BCC_CONFIG_DESC_SIZE];
 	struct boot_measurement code;
-	struct boot_measurement config;
-	struct bcc_context *bcc_ctx;
+	struct boot_measurement config = {};
+	uint8_t *new_handover = NULL;
+	DiceInputValues input_vals;
+	DiceResult res;
 	int instance_ret, ret;
 
 	/* Continue without the BCC if it wasn't found. */
@@ -440,6 +365,10 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 	if (ret)
 		return ret;
 
+	/* For now, only allow one config source. */
+	if (config_data && unverified_config)
+		return -EINVAL;
+
 	ret = boot_measurement_from_avb_data(code_data, &code);
 	if (ret)
 		return ret;
@@ -448,15 +377,35 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 		ret = boot_measurement_from_avb_data(config_data, &config);
 		if (ret)
 			return ret;
+
+		/* For now, require the same authority. */
+		if (config.public_key_size != code.public_key_size ||
+		    memcmp(config.public_key, code.public_key,
+			   code.public_key_size) != 0)
+			return -EINVAL;
+	} else if (unverified_config) {
+		sha256(unverified_config, unverified_config_size,
+		       config.digest);
 	}
 
-	bcc_ctx = bcc_context_alloc();
-	if (!bcc_ctx)
-		return -ENOMEM;
+	input_vals = (DiceInputValues){
+		.config_type = kDiceConfigTypeDescriptor,
+		.config_descriptor = config_desc,
+		.mode = bcc_to_dice_mode[bcc_mode],
+	};
+
+	memcpy(input_vals.code_hash, code.digest, AVB_SHA256_DIGEST_SIZE);
+	sha256(code.public_key, code.public_key_size, input_vals.authority_hash);
+	ret = format_config_descriptor(component_name, config.digest,
+				       sizeof(config_desc), config_desc,
+				       &input_vals.config_descriptor_size);
+	if (ret)
+		return ret;
 
 	instance_ret = vm_instance_verify(iface_str, devnum, instance_uuid,
-					  must_exist, bcc_ctx, &code,
-					  config_data ? &config : NULL);
+					  must_exist, &code,
+					  config_data ? &config : NULL,
+					  input_vals.hidden);
 	if (instance_ret < 0) {
 		ret = instance_ret;
 		log_err("Failed to validate instance.\n");
@@ -464,20 +413,27 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 	}
 	printf("Booting VM instance.\n");
 
-	/* TODO: format details nicely/usefully for BCC and use the config input */
-	bcc_update_authority_hash(bcc_ctx, code.public_key, code.public_key_size);
-	bcc_update_code_hash(bcc_ctx, code.digest, AVB_SHA256_DIGEST_SIZE);
-	if (config_data) {
-		bcc_update_authority_hash(bcc_ctx, config.public_key, config.public_key_size);
-		bcc_update_code_hash(bcc_ctx, config.digest, AVB_SHA256_DIGEST_SIZE);
-	}
-	if (unverified_config)
-		bcc_update_code_hash(bcc_ctx, unverified_config, unverified_config_size);
+	new_handover = calloc(1, bcc_handover_buffer_size);
+	if (!new_handover)
+		return -ENOMEM;
 
-	ret = bcc_handover(bcc_ctx, component_name, bcc_mode);
+	res = BccHandoverMainFlow(/*context=*/NULL, bcc_handover_buffer,
+				  bcc_handover_buffer_size, &input_vals,
+				  bcc_handover_buffer_size, new_handover, NULL);
+	if (res != kDiceResultOk) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	/* Update the handover buffer with the new data. */
+	memcpy(bcc_handover_buffer, new_handover, bcc_handover_buffer_size);
 
 out:
-	free(bcc_ctx);
+	if (new_handover) {
+		bcc_clear_memory(new_handover, bcc_handover_buffer_size);
+		free(new_handover);
+	}
+	bcc_clear_memory(&input_vals, sizeof(input_vals));
 	return ret ? ret : instance_ret;
 }
 

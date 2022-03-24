@@ -19,55 +19,6 @@ enum bcc_mode {
 int bcc_init(void);
 void bcc_set_handover(void *handover, size_t handover_size) ;
 
-/**
- * Allocate and initialize a bcc_context
- *
- * Returns NULL on failure.
- */
-struct bcc_context *bcc_context_alloc(void);
-
-/**
- * Update the temporary hidden hash with arbitrary data
- *
- * Makes the final hidden hash used during BCC handover depend on the
- * provided data. Note that if this function is called more than once, the
- * resulting hash will also depend on the relative order of those calls.
- * Returns zero if successful, a negative error code otherwise.
- */
-int bcc_update_hidden_hash(struct bcc_context *ctx, const uint8_t *buffer,
-			   size_t size);
-
-/**
- * Update the temporary code hash with arbitrary data
- *
- * Makes the final code hash used during BCC handover depend on the
- * provided data. Note that if this function is called more than once, the
- * resulting hash will also depend on the relative order of those calls.
- * Returns zero if successful, a negative error code otherwise.
- */
-int bcc_update_code_hash(struct bcc_context *ctx, const uint8_t *buffer,
-			 size_t size);
-
-/**
- * Update the temporary authority hash with arbitrary data
- *
- * Makes the final authority hash used during BCC handover depend on the
- * provided data. Note that if this function is called more than once, the
- * resulting hash will also depend on the relative order of those calls.
- * Returns zero if successful, a negative error code otherwise.
- */
-int bcc_update_authority_hash(struct bcc_context *ctx, const uint8_t *buffer,
-			      size_t size);
-
-/**
- * Perform a Boot Certificate Chain handover
- *
- * Takes the input BCC handover and measurement of all inputs loaded at this
- * boot stage, and generates the outgoing BCC handover for the next stage.
- * Returns zero if successful, a negative error code otherwise.
- */
-int bcc_handover(struct bcc_context *ctx, const char *component_name,
-		 enum bcc_mode mode);
 
 enum bcc_vm_instance_result {
 	BCC_VM_INSTANCE_FOUND,
@@ -75,8 +26,7 @@ enum bcc_vm_instance_result {
 };
 
 int bcc_vm_instance_handover(const char *iface_str, int devnum,
-			     const char *instance_uuid,
-			     bool must_exist,
+			     const char *instance_uuid, bool must_exist,
 			     const char *component_name,
 			     enum bcc_mode boot_mode,
 			     const AvbSlotVerifyData *code_data,
