@@ -115,6 +115,7 @@
 # CONFIG_USE_PREBOOT is not set
 # CONFIG_VIDEO_VESA is not set
 # CONFIG_VIRTIO_NET is not set
+# CONFIG_VIRTIO_PCI_LEGACY is not set
 
 # Bring back CONFIG_QFW; disabling it mysteriously breaks x86_64 boot
 CONFIG_QFW=y
