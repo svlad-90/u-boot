@@ -111,11 +111,19 @@ void do_bad_error(struct pt_regs *pt_regs, unsigned int esr)
 	panic("Resetting CPU ...\n");
 }
 
+int __weak handle_synchronous_exception(struct pt_regs *pt_regs,
+					unsigned int esr)
+{
+	return 0;
+}
+
 /*
  * do_sync handles the Synchronous Abort exception.
  */
 void do_sync(struct pt_regs *pt_regs, unsigned int esr)
 {
+	if (handle_synchronous_exception(pt_regs, esr))
+		return;
 	efi_restore_gd();
 	printf("\"Synchronous Abort\" handler, esr 0x%08x\n", esr);
 	show_regs(pt_regs);
