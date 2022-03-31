@@ -86,6 +86,7 @@ static int __bb_force_page_align(struct bounce_buffer *state)
 static void virtqueue_attach_desc(struct virtqueue *vq, unsigned int idx,
 				  struct virtio_sg *sg, u16 flags)
 {
+	struct vring_desc_shadow *desc_shadow = &vq->vring_desc_shadow[idx];
 	struct vring_desc *desc = &vq->vring.desc[idx];
 	void *addr;
 
@@ -114,14 +115,20 @@ static void virtqueue_attach_desc(struct virtqueue *vq, unsigned int idx,
 		addr = sg->addr;
 	}
 
-	desc->flags	= cpu_to_virtio16(vq->vdev, flags);
-	desc->addr	= cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)addr);
-	desc->len	= cpu_to_virtio32(vq->vdev, sg->length);
+	/* Update the shadow descriptor with the original buffer. */
+	desc_shadow->addr = (u64)(uintptr_t)sg->addr;
+	desc_shadow->len = sg->length;
+	desc_shadow->flags = flags;
+
+	/* Update the shared descriptor with the bounce buffer. */
+	desc->addr = cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)addr);
+	desc->len = cpu_to_virtio32(vq->vdev, desc_shadow->len);
+	desc->flags = cpu_to_virtio16(vq->vdev, desc_shadow->flags);
+	desc->next = cpu_to_virtio16(vq->vdev, desc_shadow->next);
 }
 
 static void virtqueue_detach_desc(struct virtqueue *vq, unsigned int idx)
 {
-	struct vring_desc *desc = &vq->vring.desc[idx];
 	struct bounce_buffer *bb;
 
 	if (!IS_ENABLED(CONFIG_BOUNCE_BUFFER) || !vq->vring.bouncebufs)
@@ -131,7 +138,6 @@ static void virtqueue_detach_desc(struct virtqueue *vq, unsigned int idx)
 	virtio_iommu_unmap_pages(vq->vdev, bb->bounce_buffer,
 				 bb->len_aligned / PAGE_SIZE);
 	bounce_buffer_stop(bb);
-	desc->addr = cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)bb->user_buffer);
 }
 
 int virtqueue_add(struct virtqueue *vq, struct virtio_sg *sgs[],
@@ -176,7 +182,8 @@ int virtqueue_add(struct virtqueue *vq, struct virtio_sg *sgs[],
 		i = virtio16_to_cpu(vq->vdev, desc[i].next);
 	}
 	/* Last one doesn't continue */
-	desc[prev].flags &= cpu_to_virtio16(vq->vdev, ~VRING_DESC_F_NEXT);
+	vq->vring_desc_shadow[prev].flags &= ~VRING_DESC_F_NEXT;
+	desc[prev].flags = cpu_to_virtio16(vq->vdev, vq->vring_desc_shadow[prev].flags);
 
 	/* We're using some buffers from the free list. */
 	vq->num_free -= descs_used;
@@ -245,19 +252,18 @@ void virtqueue_kick(struct virtqueue *vq)
 static void detach_buf(struct virtqueue *vq, unsigned int head)
 {
 	unsigned int i;
-	__virtio16 nextflag = cpu_to_virtio16(vq->vdev, VRING_DESC_F_NEXT);
 
 	/* Put back on free list: unmap first-level descriptors and find end */
 	i = head;
 
-	while (vq->vring.desc[i].flags & nextflag) {
+	while (vq->vring_desc_shadow[i].flags & VRING_DESC_F_NEXT) {
 		virtqueue_detach_desc(vq, i);
-		i = virtio16_to_cpu(vq->vdev, vq->vring.desc[i].next);
+		i = vq->vring_desc_shadow[i].next;
 		vq->num_free++;
 	}
 
 	virtqueue_detach_desc(vq, i);
-	vq->vring.desc[i].next = cpu_to_virtio16(vq->vdev, vq->free_head);
+	vq->vring_desc_shadow[i].next = vq->free_head;
 	vq->free_head = head;
 
 	/* Plus final descriptor */
@@ -310,8 +316,7 @@ void *virtqueue_get_buf(struct virtqueue *vq, unsigned int *len)
 		virtio_store_mb(&vring_used_event(&vq->vring),
 				cpu_to_virtio16(vq->vdev, vq->last_used_idx));
 
-	return (void *)(uintptr_t)virtio64_to_cpu(vq->vdev,
-						  vq->vring.desc[i].addr);
+	return (void *)(uintptr_t)vq->vring_desc_shadow[i].addr;
 }
 
 static struct virtqueue *__vring_new_virtqueue(unsigned int index,
@@ -320,6 +325,7 @@ static struct virtqueue *__vring_new_virtqueue(unsigned int index,
 {
 	unsigned int i;
 	struct virtqueue *vq;
+	struct vring_desc_shadow *vring_desc_shadow;
 	struct virtio_dev_priv *uc_priv = dev_get_uclass_priv(udev);
 	struct udevice *vdev = uc_priv->vdev;
 
@@ -327,10 +333,17 @@ static struct virtqueue *__vring_new_virtqueue(unsigned int index,
 	if (!vq)
 		return NULL;
 
+	vring_desc_shadow = calloc(vring.num, sizeof(struct vring_desc_shadow));
+	if (!vring_desc_shadow) {
+		free(vq);
+		return NULL;
+	}
+
 	vq->vdev = vdev;
 	vq->index = index;
 	vq->num_free = vring.num;
 	vq->vring = vring;
+	vq->vring_desc_shadow = vring_desc_shadow;
 	vq->last_used_idx = 0;
 	vq->avail_flags_shadow = 0;
 	vq->avail_idx_shadow = 0;
@@ -348,7 +361,7 @@ static struct virtqueue *__vring_new_virtqueue(unsigned int index,
 	/* Put everything in free lists */
 	vq->free_head = 0;
 	for (i = 0; i < vring.num - 1; i++)
-		vq->vring.desc[i].next = cpu_to_virtio16(vdev, i + 1);
+		vq->vring_desc_shadow[i].next = i + 1;
 
 	return vq;
 }
@@ -419,6 +432,7 @@ void vring_del_virtqueue(struct virtqueue *vq)
 {
 	virtio_free_pages(vq->vdev, vq->vring.desc,
 			  DIV_ROUND_UP(vq->vring.size, PAGE_SIZE));
+	free(vq->vring_desc_shadow);
 	list_del(&vq->list);
 	free(vq->vring.bouncebufs);
 	free(vq);
@@ -465,11 +479,12 @@ void virtqueue_dump(struct virtqueue *vq)
 	printf("\tlast_used_idx %u, avail_flags_shadow %u, avail_idx_shadow %u\n",
 	       vq->last_used_idx, vq->avail_flags_shadow, vq->avail_idx_shadow);
 
-	printf("Descriptor dump:\n");
+	printf("Shadow descriptor dump:\n");
 	for (i = 0; i < vq->vring.num; i++) {
-		printf("\tdesc[%u] = { 0x%llx, len %u, flags %u, next %u }\n",
-		       i, vq->vring.desc[i].addr, vq->vring.desc[i].len,
-		       vq->vring.desc[i].flags, vq->vring.desc[i].next);
+		struct vring_desc_shadow *desc = &vq->vring_desc_shadow[i];
+
+		printf("\tdesc_shadow[%u] = { 0x%llx, len %u, flags %u, next %u }\n",
+		       i, desc->addr, desc->len, desc->flags, desc->next);
 	}
 
 	printf("Avail ring dump:\n");
