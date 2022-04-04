@@ -13,7 +13,8 @@ ccflags-$(CONFIG_LIB_OPENDICE) += \
 
 ifeq ($(CONFIG_LIB_BORINGSSL),y)
 obj-$(CONFIG_LIB_OPENDICE) += \
-	src/boringssl_hash_kdf_sign_ops.o \
+	src/boringssl_hash_kdf_ops.o \
+	src/boringssl_ed25519_ops.o \
 
 ccflags-$(CONFIG_LIB_OPENDICE) += \
 	-I$(srctree)/lib/open-dice/include/dice/config/$(CONFIG_LIB_OPENDICE_CONFIG)/\
