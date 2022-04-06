@@ -7,6 +7,7 @@
 
 #define PLACEHOLDER	0xffffffff
 #define PLACEHOLDER2	PLACEHOLDER PLACEHOLDER
+#define PLACEHOLDER4	PLACEHOLDER2 PLACEHOLDER2
 
 /dts-v1/;
 
@@ -19,6 +20,8 @@
 	chosen {
 		stdout-path = "/uart@3f8";
 		linux,pci-probe-only = <1>;
+		avf,strict-boot;
+		avf,new-instance;
 	};
 
 	memory {
@@ -34,6 +37,12 @@
 			compatible = "restricted-dma-pool";
 			size = <PLACEHOLDER2>;
 			alignment = <PLACEHOLDER2>;
+		};
+
+		dice {
+			compatible = "google,open-dice";
+			no-map;
+			reg = <PLACEHOLDER4>;
 		};
 	};
 

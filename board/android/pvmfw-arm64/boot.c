@@ -4,6 +4,7 @@
  */
 
 #include <asm/global_data.h>
+#include <asm/io.h>
 
 #include <android_bootloader.h>
 #include <android_image.h>
@@ -18,13 +19,6 @@
 
 #include "avb_preloaded.h"
 #include "generate_fdt.h"
-
-/* This assumes reserved-memory#address-cells/size-cells <= 2 */
-#define DICE_NODE_SIZE			96
-#define RSV_MEM_SIZE			(DICE_NODE_SIZE + 128)
-#define COMPAT_DICE			"google,open-dice"
-
-#define CHOSEN_MEM_SIZE			64
 
 /* Taken from libavb/avb_slot_verify.c */
 #define VBMETA_MAX_SIZE			SZ_64K
@@ -44,116 +38,6 @@ static bool is_valid_ram(const void *ptr)
 static bool is_valid_ram_region(const void *ptr, size_t size)
 {
 	return is_valid_ram(ptr) && (size <= gd->ram_top - (uintptr_t)ptr);
-}
-
-static int alloc_subnode(void *fdt, int parentoffset, const char *name,
-			 size_t size)
-{
-	int offset, res;
-
-	offset = fdt_add_subnode(fdt, parentoffset, name);
-	if (offset != -FDT_ERR_NOSPACE)
-		return offset;
-
-	res = fdt_increase_size(fdt, size);
-	if (res)
-		return res;
-
-	return fdt_add_subnode(fdt, parentoffset, name);
-}
-
-static int find_or_alloc_subnode(void *fdt, int parentoffset, const char *name,
-				 size_t size)
-{
-	int offset;
-
-	offset = fdt_subnode_offset(fdt, parentoffset, name);
-	if (offset != -FDT_ERR_NOTFOUND)
-		return offset;
-
-	return alloc_subnode(fdt, parentoffset, name, size);
-}
-
-static bool pvmfw_fdt_is_valid(const void *fdt)
-{
-	int offset;
-
-	if (fdt != (const void *)CONFIG_SYS_SDRAM_BASE)
-		return false;
-
-	if (fdt_totalsize(fdt) > FDT_MAX_SIZE)
-		return false;
-
-	/* Reject DICE-compatible DT nodes. */
-	offset = fdt_node_offset_by_compatible(fdt, -1, COMPAT_DICE);
-	if (offset != -FDT_ERR_NOTFOUND)
-		return false;
-
-	/* Reject "/reserved-memory/dice" nodes. */
-	offset = fdt_subnode_offset(fdt, -1, "reserved-memory");
-	if (offset >= 0)
-		offset = fdt_subnode_offset(fdt, offset, "dice");
-	if (offset != -FDT_ERR_NOTFOUND)
-		return false;
-
-	return true;
-}
-
-static int add_dice_fdt_mem_rsv(void *fdt, void *addr, size_t size)
-{
-	int mem, dice, err;
-
-	mem = find_or_alloc_subnode(fdt, 0, "reserved-memory", RSV_MEM_SIZE);
-	if (mem < 0)
-		return mem;
-
-	dice = alloc_subnode(fdt, mem, "dice", DICE_NODE_SIZE);
-	if (dice < 0)
-		return dice;
-
-	err = fdt_appendprop_addrrange(fdt, mem, dice, "reg",
-				       (uint64_t)addr, size);
-	if (err)
-		return err;
-
-	err = fdt_appendprop(fdt, dice, "no-map", NULL, 0);
-	if (err)
-		return err;
-
-	err = fdt_appendprop_string(fdt, dice, "compatible", COMPAT_DICE);
-	if (err)
-		return err;
-
-	return dice;
-}
-
-static int add_avf_fdt_chosen_properties(void *fdt, bool new_instance)
-{
-	int chosen, err;
-
-	chosen = find_or_alloc_subnode(fdt, 0, "chosen", CHOSEN_MEM_SIZE);
-	if (chosen < 0)
-		return chosen;
-
-	err = fdt_increase_size(fdt, CHOSEN_MEM_SIZE);
-	if (err)
-		return err;
-
-	err = fdt_appendprop(fdt, chosen, "avf,strict-boot", NULL, 0);
-	if (err)
-		return err;
-
-	if (new_instance) {
-		err = fdt_appendprop(fdt, chosen, "avf,new-instance", NULL, 0);
-		if (err)
-			return err;
-	} else {
-		err = fdt_delprop(fdt, chosen, "avf,new-instance");
-		if (err && err != -FDT_ERR_NOTFOUND)
-			return err;
-	}
-
-	return 0;
 }
 
 static struct AvbOps *alloc_avb_ops(void *image, size_t size)
@@ -195,8 +79,7 @@ free_ops:
 	return NULL;
 }
 
-static int verify_image(void *image, size_t size, void* fdt,
-			struct boot_config *cfg)
+static int verify_image(void *image, size_t size, struct boot_config *cfg)
 {
 	const char *instance_uuid = "90d2174a-038a-4bc6-adf3-824848fc5825";
 	const char *iface_str = "virtio";
@@ -219,6 +102,8 @@ static int verify_image(void *image, size_t size, void* fdt,
 		goto err;
 	}
 
+	cfg->new_instance = false;
+
 	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
 				       /*must_exist=*/false, "vm_entry",
 				       BCC_MODE_NORMAL, data, NULL,
@@ -226,11 +111,8 @@ static int verify_image(void *image, size_t size, void* fdt,
 	if (ret < 0)
 		goto err;
 
-	ret = add_avf_fdt_chosen_properties(fdt, ret == BCC_VM_INSTANCE_CREATED);
-	if (ret) {
-		ret = -EIO;
-		goto err;
-	}
+	cfg->new_instance = (ret == BCC_VM_INSTANCE_CREATED);
+	ret = 0;
 
 err:
 	if (data)
@@ -245,15 +127,23 @@ int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
 		    void *bcc, size_t bcc_size)
 {
 	int ret;
-	struct boot_config cfg;
+	struct boot_config cfg = {
+		.bcc_addr = virt_to_phys(bcc),
+		.bcc_size = bcc_size,
+	};
 
 	if (!size || !is_valid_ram_region(image, size)) {
 		ret = -EPERM;
 		goto err;
 	}
 
-	if (!pvmfw_fdt_is_valid(fdt)) {
-		ret = -EINVAL;
+	if (fdt != (const void *)CONFIG_SYS_SDRAM_BASE) {
+		ret = -EFAULT;
+		goto err;
+	}
+
+	if (fdt_totalsize(fdt) > fdt_max_size) {
+		ret = -E2BIG;
 		goto err;
 	}
 
@@ -263,18 +153,11 @@ int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
 	if (ret)
 		goto err;
 
-	/* Transferring template here so that verify_image() can update it */
-	ret = transfer_fdt_template(fdt, fdt_max_size);
+	ret = verify_image(image, size, &cfg);
 	if (ret)
 		goto err;
 
-	ret = add_dice_fdt_mem_rsv(fdt, bcc, bcc_size);
-	if (ret < 0) {
-		ret = -EIO;
-		goto err;
-	}
-
-	ret = verify_image(image, size, fdt, &cfg);
+	ret = transfer_fdt_template(fdt, fdt_max_size);
 	if (ret)
 		goto err;
 

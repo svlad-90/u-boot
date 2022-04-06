@@ -476,6 +476,21 @@ static int patch_chosen_node(void *fdt, const struct boot_config *cfg)
 	if (TRY_OPTIONAL(fdt_path_offset(fdt, path)) == -FDT_ERR_NOTFOUND)
 		TRY(fdt_nop_property(fdt, node, "stdout-path"));
 
+	if (!cfg->new_instance)
+		TRY(fdt_nop_property(fdt, node, "avf,new-instance"));
+
+	/* '/chosen/avf,strict-boot' is always set (from the base DT) */
+
+	return 0;
+}
+
+static int patch_resmem_node(void *fdt, const struct boot_config *cfg)
+{
+	int node = TRY(fdt_path_offset(fdt, "/reserved-memory/dice"));
+
+	TRY(fdt_setpair_inplace_u64(fdt, node, "reg", cfg->bcc_addr,
+				    cfg->bcc_size));
+
 	return 0;
 }
 
@@ -535,6 +550,10 @@ int patch_output_fdt(void *fdt, const struct boot_config *cfg)
 		return err;
 
 	err = patch_swiotlb_node(fdt, cfg);
+	if (err)
+		return err;
+
+	err = patch_resmem_node(fdt, cfg);
 	if (err)
 		return err;
 
