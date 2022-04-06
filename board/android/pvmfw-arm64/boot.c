@@ -12,8 +12,10 @@
 #include <bcc.h>
 #include <command.h>
 #include <config.h>
+#include <dm/uclass.h>
 #include <fdt_support.h>
 #include <malloc.h>
+#include <rng.h>
 #include <string.h>
 #include <linux/err.h>
 
@@ -123,6 +125,18 @@ err:
 	return ret;
 }
 
+static int seed_u64(uint64_t *seed)
+{
+	int res;
+	struct udevice *dev;
+
+	res = uclass_get_device_by_name(UCLASS_RNG, "smccc-trng", &dev);
+	if (res)
+		return res;
+
+	return dm_rng_read(dev, seed, sizeof(*seed));
+}
+
 int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
 		    void *bcc, size_t bcc_size)
 {
@@ -158,6 +172,10 @@ int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
 		goto err;
 
 	ret = transfer_fdt_template(fdt, fdt_max_size);
+	if (ret)
+		goto err;
+
+	ret = seed_u64(&cfg.kaslr_seed);
 	if (ret)
 		goto err;
 

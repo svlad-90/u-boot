@@ -35,6 +35,7 @@ struct boot_config {
 	size_t pci_irq_count;
 	size_t serials_count;
 	uint64_t serials[4];
+	uint64_t kaslr_seed;
 	uint64_t swiotlb_size;
 	uint64_t swiotlb_align;
 	uint64_t bcc_addr;

@@ -481,6 +481,8 @@ static int patch_chosen_node(void *fdt, const struct boot_config *cfg)
 
 	/* '/chosen/avf,strict-boot' is always set (from the base DT) */
 
+	TRY(fdt_setprop_inplace_u64(fdt, node, "kaslr-seed", cfg->kaslr_seed));
+
 	return 0;
 }
 
