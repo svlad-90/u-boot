@@ -114,7 +114,11 @@ static int virtio_pci_get_config(struct udevice *udev, unsigned int offset,
 	__le16 w;
 	__le32 l;
 
-	WARN_ON(offset + len > priv->device_len);
+	if (!priv->device)
+		return -ENOSYS;
+
+	if (offset + len > priv->device_len)
+		return -EINVAL;
 
 	switch (len) {
 	case 1:
@@ -136,7 +140,7 @@ static int virtio_pci_get_config(struct udevice *udev, unsigned int offset,
 		memcpy(buf + sizeof(l), &l, sizeof(l));
 		break;
 	default:
-		WARN_ON(true);
+		return -EINVAL;
 	}
 
 	return 0;
@@ -150,7 +154,11 @@ static int virtio_pci_set_config(struct udevice *udev, unsigned int offset,
 	__le16 w;
 	__le32 l;
 
-	WARN_ON(offset + len > priv->device_len);
+	if (!priv->device)
+		return -ENOSYS;
+
+	if (offset + len > priv->device_len)
+		return -EINVAL;
 
 	switch (len) {
 	case 1:
@@ -172,7 +180,7 @@ static int virtio_pci_set_config(struct udevice *udev, unsigned int offset,
 		iowrite32(le32_to_cpu(l), priv->device + offset + sizeof(l));
 		break;
 	default:
-		WARN_ON(true);
+		return -EINVAL;
 	}
 
 	return 0;
@@ -497,7 +505,7 @@ static int virtio_pci_probe(struct udevice *udev)
 	 */
 	device = virtio_pci_find_capability(udev, VIRTIO_PCI_CAP_DEVICE_CFG);
 	if (device) {
-		offset = notify + offsetof(struct virtio_pci_cap, length);
+		offset = device + offsetof(struct virtio_pci_cap, length);
 		dm_pci_read_config32(udev, offset, &priv->device_len);
 	}
 
