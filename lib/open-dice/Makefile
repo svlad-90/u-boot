@@ -20,5 +20,8 @@ ccflags-$(CONFIG_LIB_OPENDICE) += \
 	-I$(srctree)/lib/open-dice/include/dice/config/$(CONFIG_LIB_OPENDICE_CONFIG)/\
 	-I$(srctree)/lib/boringssl/src/include/\
 	-I$(srctree)/lib/boringssl/include/\
+	-DOPENSSL_NO_THREADS_CORRUPT_MEMORY_AND_LEAK_SECRETS_IF_THREADED\
+	-DOPENSSL_SMALL\
+	-DOPENSSL_NO_ASM\
 
 endif
