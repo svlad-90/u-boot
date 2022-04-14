@@ -1335,6 +1335,22 @@ phys_addr_t dm_pci_bus_to_phys(struct udevice *dev, pci_addr_t addr,
 			       unsigned long flags);
 
 /**
+ * dm_pci_bus_range_to_phys() - convert a PCI bus address range to a physical
+ *				address.
+ *
+ * @dev:	Device containing the PCI address
+ * @addr:	PCI address to convert
+ * @size:	Size of the addressrange
+ * @mask:	Mask of flags to match
+ * @flags:	Flags for the region type (PCI_REGION_...)
+ * Return: physical address corresponding to that PCI bus address range or 0 if
+ *	   the range could not be converted
+ */
+phys_addr_t dm_pci_bus_range_to_phys(struct udevice *dev, pci_addr_t bus_addr,
+				     size_t size, unsigned long mask,
+				     unsigned long flags);
+
+/**
  * dm_pci_phys_to_bus() - convert a physical address to a PCI bus address
  *
  * @dev:	Device containing the bus address
