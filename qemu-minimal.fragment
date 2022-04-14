@@ -93,6 +93,7 @@
 # CONFIG_NVME is not set
 # CONFIG_POWER is not set
 # CONFIG_RANDOM_UUID is not set
+# CONFIG_REQUIRE_SERIAL_CONSOLE is not set
 # CONFIG_SCSI_AHCI is not set
 # CONFIG_SCSI is not set
 # CONFIG_SHOW_BOOT_PROGRESS is not set
