@@ -156,7 +156,8 @@ static struct AvbOps *alloc_avb_ops(void *image, size_t size)
 	if (!ops)
 		return NULL;
 
-	if (!avb_footer_validate_and_byteswap(avb_footer, &footer) ||
+	if (size < AVB_FOOTER_SIZE ||
+	    !avb_footer_validate_and_byteswap(avb_footer, &footer) ||
 	    !is_valid_ram_region(image, footer.original_image_size) ||
 	    !is_valid_ram_region(image + footer.vbmeta_offset, VBMETA_MAX_SIZE))
 		goto free_ops;
