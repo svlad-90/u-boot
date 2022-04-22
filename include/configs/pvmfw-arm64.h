@@ -11,7 +11,7 @@
 /* Physical memory map */
 
 /* The DTB may be placed at start of RAM, stay away from there */
-#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_2M)
+#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_128M)
 
 #define CONFIG_SYS_BOOTM_LEN		SZ_64M
 
