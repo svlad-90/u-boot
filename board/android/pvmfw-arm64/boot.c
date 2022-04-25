@@ -28,6 +28,9 @@
 /* Taken from libavb/avb_slot_verify.c */
 #define VBMETA_MAX_SIZE			SZ_64K
 
+/* Taken from crosvm */
+#define FDT_MAX_SIZE			SZ_2M
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static bool is_valid_ram(const void *ptr)
@@ -73,6 +76,12 @@ static int find_or_alloc_subnode(void *fdt, int parentoffset, const char *name,
 static bool pvmfw_fdt_is_valid(const void *fdt)
 {
 	int offset;
+
+	if (fdt != (const void *)CONFIG_SYS_SDRAM_BASE)
+		return false;
+
+	if (fdt_totalsize(fdt) > FDT_MAX_SIZE)
+		return false;
 
 	/* Reject DICE-compatible DT nodes. */
 	offset = fdt_node_offset_by_compatible(fdt, -1, COMPAT_DICE);
@@ -235,17 +244,17 @@ int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
 {
 	int ret;
 
-	if (!size || !is_valid_ram_region(image, size) || !is_valid_ram(fdt)) {
+	if (!size || !is_valid_ram_region(image, size)) {
 		ret = -EPERM;
 		goto err;
 	}
-
-	bcc_set_handover(bcc, bcc_size);
 
 	if (!pvmfw_fdt_is_valid(fdt)) {
 		ret = -EINVAL;
 		goto err;
 	}
+
+	bcc_set_handover(bcc, bcc_size);
 
 	/*
 	 * We inject the node in the DT before verifying the images
