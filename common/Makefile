@@ -3,10 +3,6 @@
 # (C) Copyright 2004-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
-# Commands for 'cmd' from scripts/Kbuild.include
-quiet_cmd_bin2c = BIN2C   $@
-      cmd_bin2c = scripts/bin2c $2 < $< > $@
-
 # core
 ifndef CONFIG_SPL_BUILD
 obj-y += init/
