@@ -1,3 +1,5 @@
 adelva@google.com
 rammuthiah@google.com
 schuffelen@google.com
+
+per-file build.config.pvmfw,pvmfw.fragment=file:/board/android/pvmfw-arm64/OWNERS
