@@ -282,6 +282,11 @@ static struct avb_part *get_partition(AvbOps *ops, const char *partition)
 	// format is "<devnum>#<partition>\0"
 	dev_part_str_len = strlen(data->devnum) + 1 + strlen(partition) + 1;
 	dev_part_str = (char *)malloc(dev_part_str_len);
+	if (!dev_part_str) {
+		free(part);
+		return NULL;
+	}
+
 	snprintf(dev_part_str, dev_part_str_len, "%s#%s", data->devnum, partition);
 	if (part_get_info_by_dev_and_name_or_num(data->iface, dev_part_str,
 						 &part->blk, &part->info, false) < 0) {
