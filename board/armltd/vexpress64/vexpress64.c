@@ -20,6 +20,11 @@
 #include <asm/armv8/mmu.h>
 #include <mapmem.h>
 
+#ifdef CONFIG_VIRTIO_NET
+#include <virtio_types.h>
+#include <virtio.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static const struct pl01x_serial_plat serial_plat = {
@@ -65,43 +70,9 @@ __weak void vexpress64_pcie_init(void)
 int board_init(void)
 {
 	vexpress64_pcie_init();
-	return 0;
-}
-
-int board_late_init(void)
-{
-	int err;
-	ulong fdtaddr = (ulong)board_fdt_blob_setup(&err);
-	void *fdt = NULL;
-
-	if (!err) {
-		env_set_hex("fdtaddr", fdtaddr);
-		fdt = map_sysmem(fdtaddr, 0);
-	}
-
-	/*
-	 * If the in-memory FDT blob defines /chosen bootargs, back them
-	 * up so that the boot script can use them to define bootargs.
-	 */
-	if (fdt) {
-		int nodeoffset = fdt_path_offset(fdt, "/chosen");
-		if (nodeoffset >= 0) {
-			int bootargs_len;
-			const void *nodep = fdt_getprop(fdt, nodeoffset,
-							"bootargs",
-							&bootargs_len);
-			if (nodep && bootargs_len > 0)
-				env_set("cbootargs", (void *)nodep);
-		}
-		unmap_sysmem(fdt);
-	}
-
-	/*
-	 * Make sure virtio bus is enumerated so that peripherals
-	 * on the virtio bus can be discovered by their drivers
-	 */
+#ifdef CONFIG_VIRTIO_NET
 	virtio_init();
-
+#endif
 	return 0;
 }
 
@@ -126,15 +97,18 @@ int dram_init_banksize(void)
 	return 0;
 }
 
-#if CONFIG_IS_ENABLED(OF_BOARD)
+/* Assigned in lowlevel_init.S
+ * Push the variable into the .data section so that it
+ * does not get cleared later.
+ */
+unsigned long __section(".data") prior_stage_fdt_address;
 
-#if defined(CONFIG_JUNO_DTB_PART)
+#ifdef CONFIG_OF_BOARD
 
+#ifdef CONFIG_TARGET_VEXPRESS64_JUNO
 #define JUNO_FLASH_SEC_SIZE	(256 * 1024)
-
-static phys_addr_t find_dtb(void)
+static phys_addr_t find_dtb_in_nor_flash(const char *partname)
 {
-	const char *partname = CONFIG_JUNO_DTB_PART;
 	phys_addr_t sector = CONFIG_SYS_FLASH_BASE;
 	int i;
 
@@ -176,20 +150,12 @@ static phys_addr_t find_dtb(void)
 
 	return ~0;
 }
-
-#else /* CONFIG_JUNO_DTB_PART */
-
-static phys_addr_t find_dtb(void)
-{
-	/* Gem5 loads a generated DTB for us. */
-	return CONFIG_SYS_FDT_ADDR;
-}
-
-#endif /* CONFIG_JUNO_DTB_PART */
+#endif
 
 void *board_fdt_blob_setup(int *err)
 {
-	phys_addr_t fdt_rom_addr = find_dtb();
+#ifdef CONFIG_TARGET_VEXPRESS64_JUNO
+	phys_addr_t fdt_rom_addr = find_dtb_in_nor_flash(CONFIG_JUNO_DTB_PART);
 
 	*err = 0;
 	if (fdt_rom_addr == ~0UL) {
@@ -198,9 +164,68 @@ void *board_fdt_blob_setup(int *err)
 	}
 
 	return (void *)fdt_rom_addr;
+#endif
+
+#ifdef CONFIG_SYS_FDT_ADDR
+	if (fdt_magic(CONFIG_SYS_FDT_ADDR) == FDT_MAGIC) {
+		*err = 0;
+		return (void *)CONFIG_SYS_FDT_ADDR;
+	}
+#endif
+
+#ifdef VEXPRESS_FDT_ADDR
+	if (fdt_magic(VEXPRESS_FDT_ADDR) == FDT_MAGIC) {
+		*err = 0;
+		return (void *)VEXPRESS_FDT_ADDR;
+	}
+#endif
+
+	if (fdt_magic(prior_stage_fdt_address) == FDT_MAGIC) {
+		*err = 0;
+		return (void *)prior_stage_fdt_address;
+	}
+
+	*err = -ENXIO;
+	return NULL;
 }
 
-#endif /* CONFIG_OF_BOARD */
+int board_late_init(void)
+{
+	int err;
+	ulong fdtaddr = (ulong)board_fdt_blob_setup(&err);
+	void *fdt = NULL;
+
+	if (!err) {
+		env_set_hex("fdtaddr", fdtaddr);
+		fdt = map_sysmem(fdtaddr, 0);
+	}
+
+	/*
+	 * If the in-memory FDT blob defines /chosen bootargs, back them
+	 * up so that the boot script can use them to define bootargs.
+	 */
+	if (fdt) {
+		int nodeoffset = fdt_path_offset(fdt, "/chosen");
+		if (nodeoffset >= 0) {
+			int bootargs_len;
+			const void *nodep = fdt_getprop(fdt, nodeoffset,
+							"bootargs",
+							&bootargs_len);
+			if (nodep && bootargs_len > 0)
+				env_set("cbootargs", (void *)nodep);
+		}
+		unmap_sysmem(fdt);
+	}
+
+	/*
+	 * Make sure virtio bus is enumerated so that peripherals
+	 * on the virtio bus can be discovered by their drivers
+	 */
+	virtio_init();
+
+	return 0;
+}
+#endif
 
 #ifndef CONFIG_SYSRESET
 

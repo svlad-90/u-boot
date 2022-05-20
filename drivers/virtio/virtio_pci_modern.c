@@ -400,7 +400,7 @@ static int virtio_pci_notify(struct udevice *udev, struct virtqueue *vq)
  * @cap_size:	expected size of the capability
  * @cap:	capability read from the config space
  *
- * @return offset of the configuration structure
+ * Return: offset of the configuration structure
  */
 static int virtio_pci_find_capability(struct udevice *udev, u8 cfg_type,
 				      size_t cap_size,
@@ -454,7 +454,7 @@ static int virtio_pci_find_capability(struct udevice *udev, u8 cfg_type,
  * @udev:	the transport device
  * @cap:	capability to map
  *
- * @return base address of the capability
+ * Return: base address of the capability
  */
 static void __iomem *virtio_pci_map_capability(struct udevice *udev,
 					       const struct virtio_pci_cap *cap)
