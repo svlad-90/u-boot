@@ -9,6 +9,7 @@
 #include <cpu_func.h>
 #include <image.h>
 #include <linux/bug.h>
+#include <linux/string.h>
 #include <malloc.h>
 #include <part.h>
 #include <tee.h>
@@ -267,15 +268,15 @@ static struct avb_part *get_partition(AvbOps *ops, const char *partition)
 	size_t dev_part_str_len;
 	char *dev_part_str;
 
-	part = malloc(sizeof(struct avb_part));
-	if (!part)
-		return NULL;
-
 	if (!ops)
 		return NULL;
 
 	data = ops->user_data;
 	if (!data)
+		return NULL;
+
+	part = malloc(sizeof(*part));
+	if (!part)
 		return NULL;
 
 	// format is "<devnum>#<partition>\0"
@@ -300,6 +301,7 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 			       size_t *out_num_read,
 			       enum io_type io_type)
 {
+	AvbIOResult res = AVB_IO_RESULT_OK;
 	ulong ret;
 	struct avb_part *part;
 	u64 start_offset, start_sector, sectors, residue;
@@ -313,8 +315,10 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 	if (!part)
 		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
 
-	if (!part->info.blksz)
-		return AVB_IO_RESULT_ERROR_IO;
+	if (!part->info.blksz) {
+		res = AVB_IO_RESULT_ERROR_IO;
+		goto err;
+	}
 
 	start_offset = calc_offset(part, offset);
 	while (num_bytes) {
@@ -342,7 +346,8 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 				if (ret != 1) {
 					printf("%s: read error (%ld, %lld)\n",
 					       __func__, ret, start_sector);
-					return AVB_IO_RESULT_ERROR_IO;
+					res = AVB_IO_RESULT_ERROR_IO;
+					goto err;
 				}
 				/*
 				 * if this is not aligned at sector start,
@@ -359,7 +364,8 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 				if (ret != 1) {
 					printf("%s: read error (%ld, %lld)\n",
 					       __func__, ret, start_sector);
-					return AVB_IO_RESULT_ERROR_IO;
+					res = AVB_IO_RESULT_ERROR_IO;
+					goto err;
 				}
 				memcpy((void *)tmp_buf +
 					start_offset % part->info.blksz,
@@ -370,7 +376,8 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 				if (ret != 1) {
 					printf("%s: write error (%ld, %lld)\n",
 					       __func__, ret, start_sector);
-					return AVB_IO_RESULT_ERROR_IO;
+					res = AVB_IO_RESULT_ERROR_IO;
+					goto err;
 				}
 			}
 
@@ -396,7 +403,8 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 
 			if (!ret) {
 				printf("%s: sector read error\n", __func__);
-				return AVB_IO_RESULT_ERROR_IO;
+				res = AVB_IO_RESULT_ERROR_IO;
+				goto err;
 			}
 
 			io_cnt += ret * part->info.blksz;
@@ -410,7 +418,9 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 	if (io_type == IO_READ && out_num_read)
 		*out_num_read = io_cnt;
 
-	return AVB_IO_RESULT_OK;
+err:
+	free(part);
+	return res;
 }
 
 /**
@@ -714,19 +724,17 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 						 size_t guid_buf_size)
 {
 	struct avb_part *part;
-	size_t uuid_size;
+
+	if (guid_buf_size <= UUID_STR_LEN)
+		return AVB_IO_RESULT_ERROR_IO;
 
 	part = get_partition(ops, partition);
 	if (!part)
 		return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
 
-	uuid_size = sizeof(part->info.uuid);
-	if (uuid_size > guid_buf_size)
-		return AVB_IO_RESULT_ERROR_IO;
+	strlcpy(guid_buf, part->info.uuid, UUID_STR_LEN + 1);
 
-	memcpy(guid_buf, part->info.uuid, uuid_size);
-	guid_buf[uuid_size - 1] = 0;
-
+	free(part);
 	return AVB_IO_RESULT_OK;
 }
 
@@ -758,6 +766,7 @@ static AvbIOResult get_size_of_partition(AvbOps *ops,
 
 	*out_size_num_bytes = part->info.blksz * part->info.size;
 
+	free(part);
 	return AVB_IO_RESULT_OK;
 }
 
