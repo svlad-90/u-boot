@@ -163,7 +163,7 @@ static void __cmo_on_leaves(void (*cmo_fn)(unsigned long, unsigned long),
 		debug("PTE %llx at level %d VA %llx\n", pte, level, va);
 
 		/* Not valid? next! */
-		if (!(type && PTE_TYPE_VALID))
+		if (!(type & PTE_TYPE_VALID))
 			continue;
 
 		/* Not a leaf? Recurse on the next level */
