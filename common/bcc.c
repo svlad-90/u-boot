@@ -9,7 +9,6 @@
 #include <vm_instance.h>
 
 #include <dice/android/bcc.h>
-#include <dice/cbor_reader.h>
 #include <dice/cbor_writer.h>
 #include <dice/ops.h>
 
@@ -483,12 +482,11 @@ int bcc_vm_instance_avf_boot_state(bool *strict_boot, bool *new_instance)
 int bcc_get_sealing_key(const uint8_t *info, size_t info_size,
 			uint8_t *out_key, size_t out_key_size)
 {
-	const uint64_t cdi_attest_label = 1;
-	const uint64_t cdi_seal_label = 2;
-	struct CborIn in;
-	int64_t label;
-	size_t item_size;
-	const uint8_t *ptr;
+	const uint8_t *cdi_attest;
+	const uint8_t *cdi_seal;
+	const uint8_t *bcc;
+	size_t bcc_size;
+	DiceResult res;
 	int ret;
 
 	/* Make sure initialization is complete. */
@@ -496,23 +494,13 @@ int bcc_get_sealing_key(const uint8_t *info, size_t info_size,
 	if (ret)
 		return ret;
 
-	CborInInit(bcc_handover_buffer, bcc_handover_buffer_size, &in);
-	if (CborReadMap(&in, &item_size) != CBOR_READ_RESULT_OK ||
-	    item_size < 3 ||
-	    // Read the attestation CDI.
-	    CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
-	    label != cdi_attest_label ||
-	    CborReadBstr(&in, &item_size, &ptr) != CBOR_READ_RESULT_OK ||
-	    item_size != DICE_CDI_SIZE ||
-	    // Read the sealing CDI.
-	    CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
-	    label != cdi_seal_label ||
-	    CborReadBstr(&in, &item_size, &ptr) != CBOR_READ_RESULT_OK ||
-	    item_size != DICE_CDI_SIZE)
+	res = BccHandoverParse(bcc_handover_buffer, bcc_handover_buffer_size,
+			       &cdi_attest, &cdi_seal, &bcc, &bcc_size);
+	if (res != kDiceResultOk)
 		return -EINVAL;
 
 	if (!HKDF(out_key, out_key_size, EVP_sha512(),
-		  ptr, DICE_CDI_SIZE, /*salt=*/NULL, /*salt_len=*/0,
+		  cdi_seal, DICE_CDI_SIZE, /*salt=*/NULL, /*salt_len=*/0,
 		  info, info_size)) {
 		return -EIO;
 	}
