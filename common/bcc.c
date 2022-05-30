@@ -5,7 +5,6 @@
 
 #include <bcc.h>
 #include <malloc.h>
-#include <u-boot/sha256.h>
 #include <vm_instance.h>
 
 #include <dice/android/bcc.h>
@@ -20,13 +19,14 @@
 
 #include <openssl/evp.h>
 #include <openssl/hkdf.h>
+#include <openssl/sha.h>
 
-#define BCC_CONFIG_DESC_SIZE	64
+#define BCC_CONFIG_DESC_SIZE	128
 
 struct boot_measurement {
 	const uint8_t *public_key;
 	size_t public_key_size;
-	uint8_t digest[AVB_SHA256_DIGEST_SIZE];
+	uint8_t digest[SHA512_DIGEST_LENGTH];
 };
 
 static uint8_t *bcc_handover_buffer;
@@ -77,15 +77,6 @@ void bcc_clear_memory(void *data, size_t size)
 	DiceClearMemory(NULL, size, data);
 }
 
-static void sha256(const void *data, size_t data_size, uint8_t digest[AVB_SHA256_DIGEST_SIZE])
-{
-	sha256_context ctx;
-
-	sha256_starts(&ctx);
-	sha256_update(&ctx, data, data_size);
-	sha256_finish(&ctx, digest);
-}
-
 /**
  * Format the VM instance data into a CBOR record.
  *
@@ -129,7 +120,7 @@ static int vm_instance_format(const struct boot_measurement *code,
 	CborWriteInt(public_key_label, &out);
 	CborWriteBstr(code->public_key_size, code->public_key, &out);
 	CborWriteInt(digest_label, &out);
-	CborWriteBstr(AVB_SHA256_DIGEST_SIZE, code->digest, &out);
+	CborWriteBstr(SHA512_DIGEST_LENGTH, code->digest, &out);
 
 	if (config) {
 		CborWriteInt(config_label, &out);
@@ -137,7 +128,7 @@ static int vm_instance_format(const struct boot_measurement *code,
 		CborWriteInt(public_key_label, &out);
 		CborWriteBstr(config->public_key_size, config->public_key, &out);
 		CborWriteInt(digest_label, &out);
-		CborWriteBstr(AVB_SHA256_DIGEST_SIZE, config->digest, &out);
+		CborWriteBstr(SHA512_DIGEST_LENGTH, config->digest, &out);
 	}
 
 	*formatted_size = CborOutSize(&out);
@@ -299,7 +290,7 @@ static int boot_measurement_from_avb_data(const AvbSlotVerifyData *data,
 		AvbVBMetaData *vbmeta = &data->vbmeta_images[n];
 
 		if (strcmp(partition_name, vbmeta->partition_name) == 0) {
-			sha256(vbmeta->vbmeta_data, vbmeta->vbmeta_size,
+			SHA512(vbmeta->vbmeta_data, vbmeta->vbmeta_size,
 			       measurement->digest);
 			return 0;
 		}
@@ -320,7 +311,7 @@ static int boot_measurement_from_avb_data(const AvbSlotVerifyData *data,
  * }
  */
 DiceResult format_config_descriptor(const char *component_name,
-				    const uint8_t config_digest[AVB_SHA256_DIGEST_SIZE],
+				    const uint8_t config_digest[SHA512_DIGEST_LENGTH],
 				    size_t buffer_size, uint8_t *buffer,
 				    size_t *actual_size)
 {
@@ -334,7 +325,7 @@ DiceResult format_config_descriptor(const char *component_name,
 	CborWriteTstr(component_name, &out);
 	if (config_digest) {
 		CborWriteInt(config_digest_label, &out);
-		CborWriteBstr(AVB_SHA256_DIGEST_SIZE, config_digest, &out);
+		CborWriteBstr(SHA512_DIGEST_LENGTH, config_digest, &out);
 	}
 	*actual_size = CborOutSize(&out);
 	return CborOutOverflowed(&out) ? -E2BIG : 0;
@@ -383,7 +374,7 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 			   code.public_key_size) != 0)
 			return -EINVAL;
 	} else if (unverified_config) {
-		sha256(unverified_config, unverified_config_size,
+		SHA512(unverified_config, unverified_config_size,
 		       config.digest);
 	}
 
@@ -393,8 +384,8 @@ int bcc_vm_instance_handover(const char *iface_str, int devnum,
 		.mode = bcc_to_dice_mode[bcc_mode],
 	};
 
-	memcpy(input_vals.code_hash, code.digest, AVB_SHA256_DIGEST_SIZE);
-	sha256(code.public_key, code.public_key_size, input_vals.authority_hash);
+	memcpy(input_vals.code_hash, code.digest, SHA512_DIGEST_LENGTH);
+	SHA512(code.public_key, code.public_key_size, input_vals.authority_hash);
 	ret = format_config_descriptor(component_name, config.digest,
 				       sizeof(config_desc), config_desc,
 				       &input_vals.config_descriptor_size);
