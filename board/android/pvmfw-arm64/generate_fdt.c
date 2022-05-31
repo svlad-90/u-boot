@@ -503,6 +503,8 @@ int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 	if ((uintptr_t)fdt != CROSVM_FDT_ADDR)
 		return -EFAULT;
 
+	TRY(fdt_check_header(fdt));
+
 	if (fdt_totalsize(fdt) > CROSVM_FDT_MAX_SIZE)
 		return -E2BIG;
 
