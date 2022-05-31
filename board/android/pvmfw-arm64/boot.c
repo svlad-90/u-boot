@@ -137,8 +137,8 @@ static int seed_u64(uint64_t *seed)
 	return dm_rng_read(dev, seed, sizeof(*seed));
 }
 
-int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
-		    void *bcc, size_t bcc_size)
+int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
+		    size_t bcc_size)
 {
 	int ret;
 	struct boot_config cfg = {
@@ -148,16 +148,6 @@ int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
 
 	if (!size || !is_valid_ram_region(image, size)) {
 		ret = -EPERM;
-		goto err;
-	}
-
-	if (fdt != (const void *)CONFIG_SYS_SDRAM_BASE) {
-		ret = -EFAULT;
-		goto err;
-	}
-
-	if (fdt_totalsize(fdt) > fdt_max_size) {
-		ret = -E2BIG;
 		goto err;
 	}
 
@@ -171,7 +161,7 @@ int pvmfw_boot_flow(void *fdt, size_t fdt_max_size, void *image, size_t size,
 	if (ret)
 		goto err;
 
-	ret = transfer_fdt_template(fdt, fdt_max_size);
+	ret = transfer_fdt_template(fdt);
 	if (ret)
 		goto err;
 

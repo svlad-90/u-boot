@@ -44,7 +44,7 @@ struct boot_config {
 };
 
 int parse_input_fdt(const void *fdt, struct boot_config *cfg);
-int transfer_fdt_template(void *fdt, size_t max_size);
+int transfer_fdt_template(void *fdt);
 int patch_output_fdt(void *fdt, const struct boot_config *cfg);
 
 #endif
