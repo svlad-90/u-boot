@@ -25,6 +25,7 @@ obj-$(CONFIG_LIB_BORINGSSL) += \
 	src/crypto/thread_none.o\
 
 BORINGSSL_EXTRA_FLAGS := \
+	-std=gnu11 \
 	-I$(srctree)/lib/boringssl/include\
 	-I$(srctree)/lib/boringssl/src/include\
 	-I$(srctree)/lib/boringssl/src/crypto\
