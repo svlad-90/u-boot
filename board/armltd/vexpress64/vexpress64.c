@@ -145,10 +145,14 @@ void *board_fdt_blob_setup(int *err)
 }
 #endif
 
+#ifndef CONFIG_SYSRESET
+
 /* Actual reset is done via PSCI. */
 void reset_cpu(void)
 {
 }
+
+#endif /* !CONFIG_SYSRESET */
 
 /*
  * Board specific ethernet initialization routine.
