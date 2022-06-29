@@ -71,6 +71,7 @@
 # CONFIG_ENV_OVERWRITE is not set
 # CONFIG_ENV_SECT_SIZE is not set
 # CONFIG_ETH is not set
+# CONFIG_EXAMPLES is not set
 # CONFIG_FIT is not set
 # CONFIG_FIT_SIGNATURE is not set
 # CONFIG_FIT_VERBOSE is not set
