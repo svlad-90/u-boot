@@ -131,7 +131,7 @@ CONFIG_DM_RNG=y
 
 # Align some of the console/display messages between x86 and arm64
 # CONFIG_DISPLAY_CPUINFO is not set
-CONFIG_DISPLAY_BOARDINFO_LATE=y
+# CONFIG_DISPLAY_BOARDINFO_LATE is not set
 CONFIG_SYS_CONSOLE_INFO_QUIET=y
 
 # Disable STATIC_RELA as it is broken with clang/llvm on arm64
