@@ -18,6 +18,7 @@
 #include <dm/platform_data/serial_pl01x.h>
 #include "pcie.h"
 #include <asm/armv8/mmu.h>
+#include <mapmem.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -64,6 +65,43 @@ __weak void vexpress64_pcie_init(void)
 int board_init(void)
 {
 	vexpress64_pcie_init();
+	return 0;
+}
+
+int board_late_init(void)
+{
+	int err;
+	ulong fdtaddr = (ulong)board_fdt_blob_setup(&err);
+	void *fdt = NULL;
+
+	if (!err) {
+		env_set_hex("fdtaddr", fdtaddr);
+		fdt = map_sysmem(fdtaddr, 0);
+	}
+
+	/*
+	 * If the in-memory FDT blob defines /chosen bootargs, back them
+	 * up so that the boot script can use them to define bootargs.
+	 */
+	if (fdt) {
+		int nodeoffset = fdt_path_offset(fdt, "/chosen");
+		if (nodeoffset >= 0) {
+			int bootargs_len;
+			const void *nodep = fdt_getprop(fdt, nodeoffset,
+							"bootargs",
+							&bootargs_len);
+			if (nodep && bootargs_len > 0)
+				env_set("cbootargs", (void *)nodep);
+		}
+		unmap_sysmem(fdt);
+	}
+
+	/*
+	 * Make sure virtio bus is enumerated so that peripherals
+	 * on the virtio bus can be discovered by their drivers
+	 */
+	virtio_init();
+
 	return 0;
 }
 
