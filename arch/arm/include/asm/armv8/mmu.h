@@ -105,9 +105,9 @@
 #define TCR_HA			(1UL << 39)
 #define TCR_HD			(1UL << 40)
 
-#define TCR_EL1_RSVD		(1 << 31)
-#define TCR_EL2_RSVD		(1 << 31 | 1 << 23)
-#define TCR_EL3_RSVD		(1 << 31 | 1 << 23)
+#define TCR_EL1_RSVD		(1UL << 31)
+#define TCR_EL2_RSVD		(1UL << 31 | 1 << 23)
+#define TCR_EL3_RSVD		(1UL << 31 | 1 << 23)
 
 #ifndef __ASSEMBLY__
 
