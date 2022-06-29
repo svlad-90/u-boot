@@ -161,8 +161,8 @@ int dram_init_banksize(void)
 void *board_fdt_blob_setup(int *err)
 {
 	*err = 0;
-	/* QEMU loads a generated DTB for us at the start of RAM. */
-	return (void *)CONFIG_SYS_SDRAM_BASE;
+	/* QEMU loads a generated DTB for us. */
+	return (void *)CONFIG_SYS_FDT_ADDR;
 }
 
 void enable_caches(void)
