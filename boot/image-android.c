@@ -17,6 +17,7 @@
 #include <part.h>
 #include <log.h>
 #include <linux/libfdt.h>
+#include <linux/sizes.h>
 #include <avb_verify.h>
 
 #define BLK_CNT(_num_bytes, _block_size) ((_num_bytes + _block_size - 1) / \

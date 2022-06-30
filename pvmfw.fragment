@@ -9,7 +9,6 @@
 # CONFIG_CMD_ECHO is not set
 # CONFIG_CMD_ENV_EXISTS is not set
 # CONFIG_CMD_ITEST is not set
-# CONFIG_CMD_PCI is not set
 # CONFIG_CMD_RUN is not set
 # CONFIG_CMD_SETEXPR is not set
 # CONFIG_CMD_SLEEP is not set
