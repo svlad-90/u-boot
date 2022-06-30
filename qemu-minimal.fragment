@@ -144,3 +144,12 @@ CONFIG_BLK=y
 
 # Enable EFI partition type, required by all builds
 CONFIG_EFI_PARTITION=y
+
+# Avoid KVM trap+emulate
+CONFIG_CMO_BY_VA_ONLY=y
+
+# VM manager is responsible for cleaning RAM's contents, so this is unneeded
+# CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
+
+# Enable BOUNCE_BUFFER API
+CONFIG_BOUNCE_BUFFER=y
