@@ -71,6 +71,7 @@
 # CONFIG_ENV_OVERWRITE is not set
 # CONFIG_ENV_SECT_SIZE is not set
 # CONFIG_ETH is not set
+# CONFIG_EXAMPLES is not set
 # CONFIG_FIT is not set
 # CONFIG_FIT_SIGNATURE is not set
 # CONFIG_FIT_VERBOSE is not set
@@ -130,7 +131,7 @@ CONFIG_DM_RNG=y
 
 # Align some of the console/display messages between x86 and arm64
 # CONFIG_DISPLAY_CPUINFO is not set
-CONFIG_DISPLAY_BOARDINFO_LATE=y
+# CONFIG_DISPLAY_BOARDINFO_LATE is not set
 CONFIG_SYS_CONSOLE_INFO_QUIET=y
 
 # Disable STATIC_RELA as it is broken with clang/llvm on arm64
