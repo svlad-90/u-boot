@@ -5,7 +5,7 @@
 #ifndef USE_HOSTCC
 #include <linux/libfdt_env.h>
 #endif
-#include "../../scripts/dtc/libfdt/libfdt.h"
+#include "../scripts/dtc/libfdt/libfdt.h"
 
 /* U-Boot local hacks */
 extern struct fdt_header *working_fdt;  /* Pointer to the working fdt */
