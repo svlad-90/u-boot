@@ -8,7 +8,11 @@
 
 #include <linux/sizes.h>
 
-#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_128M)
+#define CONFIG_SYS_SDRAM_SIZE		SZ_128M
+
+/* INIT_SP_ADDR is 16-byte aligned by _main() before use. */
+#define CONFIG_SYS_INIT_SP_ADDR \
+	(CONFIG_SYS_SDRAM_BASE + CONFIG_SYS_SDRAM_SIZE - 1)
 
 #define CONFIG_SYS_CBSIZE		SZ_512
 

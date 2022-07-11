@@ -3,6 +3,7 @@
  * Copyright (C) 2022 Google LLC
  */
 
+#include <configs/pvmfw-arm64.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 
 /dts-v1/;
@@ -19,7 +20,8 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x00 0x80000000 0x00 0x8000000>; /* size=128MB */
+		reg = <0x00 CONFIG_SYS_SDRAM_BASE>,
+		      <0x00 CONFIG_SYS_SDRAM_SIZE>;
 	};
 
 	cpus {
