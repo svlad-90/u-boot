@@ -8,21 +8,9 @@
 
 #include <linux/sizes.h>
 
-/* Physical memory map */
-
-/* The DTB may be placed at start of RAM, stay away from there */
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_128M)
 
-#define CONFIG_SYS_BOOTM_LEN		SZ_64M
-
-/* ARMv7/ARMv8 architected timer */
-#define CONFIG_SYS_HZ                       1000
-
-#define CONFIG_SYS_CBSIZE 512
-
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
-#define CONFIG_SYS_MAX_FLASH_BANKS_DETECT	2
-#define CONFIG_SYS_MAX_FLASH_SECT	256 /* Sector: 256K, Bank: 64M */
+#define CONFIG_SYS_CBSIZE		SZ_512
 
 #define CROSVM_PVMFW_MAX_SIZE		SZ_2M
 #define CROSVM_FDT_MAX_SIZE		SZ_2M

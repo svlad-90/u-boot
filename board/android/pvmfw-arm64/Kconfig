@@ -1,6 +1,2 @@
 if TARGET_PVMFW_ARM_64BIT
-
-config SYS_TEXT_BASE
-	default 0x7FE00000
-
 endif
