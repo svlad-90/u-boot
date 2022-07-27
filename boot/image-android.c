@@ -13,7 +13,6 @@
 #include <errno.h>
 #include <asm/unaligned.h>
 #include <xbc.h>
-#include <mapmem.h>
 #include <part.h>
 #include <log.h>
 #include <linux/libfdt.h>
