@@ -99,3 +99,20 @@ copy_to_dist_dir(
     dist_dir = "out/u-boot/dist",
     flat = True,
 )
+
+kernel_build(
+    name = "qemu_riscv64",
+    outs = [
+        "System.map",
+        "u-boot",
+        "u-boot.bin",
+    ],
+    build_config = "build.config.qemu.riscv64",
+)
+
+copy_to_dist_dir(
+    name = "qemu_riscv64_dist",
+    data = [":qemu_riscv64"],
+    dist_dir = "out/u-boot/dist",
+    flat = True,
+)
