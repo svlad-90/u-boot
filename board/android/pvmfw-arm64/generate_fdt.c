@@ -21,6 +21,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define AARCH64_RTC_PERIPH_ID			0x41030
 #define AARCH64_CLOCK_FREQ			0x2fefd8
 
+#define AARCH64_VMWDT_ADDR			0x3000
+#define AARCH64_VMWDT_SIZE			0x1000
+#define AARCH64_VMWDT_INSTANCE_SIZE		0x10
+#define AARCH64_VMWDT_MAX_CPU_COUNT		(AARCH64_VMWDT_SIZE /	\
+						 AARCH64_VMWDT_INSTANCE_SIZE)
+
 #define FDT_CELLS_PER_PCI_RANGE		7
 #define FDT_CELLS_PER_PCI_IRQ		10
 #define FDT_CELLS_PER_PCI_IRQ_MASK	4
@@ -559,6 +565,25 @@ static int parse_rtc_node(const void *fdt, struct boot_config *cfg)
 	return 0;
 }
 
+static int parse_wdt_node(const void *fdt, struct boot_config *cfg)
+{
+	int node;
+	uint64_t addr, size;
+
+	node = TRY(fdt_node_offset_by_compatible(fdt, 0,
+						 "qemu,vcpu-stall-detector"));
+	TRY(fdt_getpair_u64(fdt, node, "reg", &addr, &size));
+
+	/* Verify the CPU count as we don't want our device to write past
+	 * the allocated size.
+	 */
+	if (size != AARCH64_VMWDT_SIZE || addr != AARCH64_VMWDT_ADDR ||
+	    cfg->cpu_count > AARCH64_VMWDT_MAX_CPU_COUNT)
+		return -EINVAL;
+
+	return 0;
+}
+
 int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 {
 	int err;
@@ -588,6 +613,10 @@ int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 		return err;
 
 	err = parse_rtc_node(fdt, cfg);
+	if (err)
+		return err;
+
+	err = parse_wdt_node(fdt, cfg);
 	if (err)
 		return err;
 
