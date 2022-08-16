@@ -16,6 +16,11 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define GIC_REDIST_SIZE_PER_CPU			0x20000
 
+#define AARCH64_RTC_ADDR			0x2000
+#define AARCH64_RTC_SIZE			0x1000
+#define AARCH64_RTC_PERIPH_ID			0x41030
+#define AARCH64_CLOCK_FREQ			0x2fefd8
+
 #define FDT_CELLS_PER_PCI_RANGE		7
 #define FDT_CELLS_PER_PCI_IRQ		10
 #define FDT_CELLS_PER_PCI_IRQ_MASK	4
@@ -88,6 +93,20 @@ static int fdt_getprop_u64(const void *fdt, int node, const char *name,
 		return -FDT_ERR_TRUNCATED;
 
 	*dest = fdt64_to_cpu(*prop);
+
+	return 0;
+}
+
+static int fdt_getprop_u32(const void *fdt, int node, const char *name,
+			   uint32_t *dest)
+{
+	int len;
+	const fdt32_t *prop = TRY_FDT_GETPROP(fdt, node, name, &len);
+
+	if (len != sizeof(*dest))
+		return -FDT_ERR_TRUNCATED;
+
+	*dest = fdt32_to_cpu(*prop);
 
 	return 0;
 }
@@ -496,6 +515,50 @@ static int patch_resmem_node(void *fdt, const struct boot_config *cfg)
 	return 0;
 }
 
+static int parse_clock_node(const void *fdt, struct boot_config *cfg)
+{
+	int node;
+	uint32_t freq;
+
+	node = TRY(fdt_node_offset_by_compatible(fdt, 0, "fixed-clock"));
+	TRY(fdt_getprop_u32(fdt, node, "clock-frequency", &freq));
+	TRY(fdt_getprop_u32(fdt, node, "phandle", &cfg->clk_phandle));
+
+	if (freq != AARCH64_CLOCK_FREQ)
+		return -EINVAL;
+
+	if (!&cfg->clk_phandle || cfg->clk_phandle == (uint32_t)(-1))
+		return -EINVAL;
+
+	return 0;
+}
+
+static int parse_rtc_node(const void *fdt, struct boot_config *cfg)
+{
+	int node;
+	uint64_t addr = 0x0, size = 0;
+	uint32_t rtc_periph_id, clk_phandle;
+
+	fdt_for_each_compatible(node, fdt, "arm,primecell") {
+		if (fdt_getprop_u32(fdt, node, "arm,primecell-periphid",
+				    &rtc_periph_id))
+			continue;
+
+		if (rtc_periph_id != AARCH64_RTC_PERIPH_ID)
+			continue;
+
+		TRY(fdt_getpair_u64(fdt, node, "reg", &addr, &size));
+		TRY(fdt_getprop_u32(fdt, node, "clocks", &clk_phandle));
+		break;
+	}
+
+	if (size != AARCH64_RTC_SIZE || addr != AARCH64_RTC_ADDR ||
+	    clk_phandle != cfg->clk_phandle)
+		return -EINVAL;
+
+	return 0;
+}
+
 int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 {
 	int err;
@@ -517,6 +580,14 @@ int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 		return err;
 
 	err = parse_swiotlb_node(fdt, cfg);
+	if (err)
+		return err;
+
+	err = parse_clock_node(fdt, cfg);
+	if (err)
+		return err;
+
+	err = parse_rtc_node(fdt, cfg);
 	if (err)
 		return err;
 
