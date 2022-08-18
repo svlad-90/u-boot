@@ -18,7 +18,11 @@ SECTIONS
 #ifdef CONFIG_ARMV8_SECURE_BASE
 	/DISCARD/ : { *(.rela._secure*) }
 #endif
+#ifdef CONFIG_TARGET_VEXPRESS64_GEM5
+	. = 0x00000010;
+#else
 	. = 0x00000000;
+#endif
 
 	. = ALIGN(8);
 	.text :
