@@ -26,6 +26,7 @@ obj-$(CONFIG_LIB_BORINGSSL) += \
 
 BORINGSSL_EXTRA_FLAGS := \
 	-std=gnu11 \
+	-include pre-stdio.h \
 	-I$(srctree)/lib/boringssl/include\
 	-I$(srctree)/lib/boringssl/src/include\
 	-I$(srctree)/lib/boringssl/src/crypto\
@@ -33,14 +34,9 @@ BORINGSSL_EXTRA_FLAGS := \
 	-DOPENSSL_SMALL\
 	-DOPENSSL_NO_ASM\
 
-CFLAGS_err.o = -include pre-stdio.h
-CFLAGS_digest.o = -include pre-stdio.h
-CFLAGS_hkdf.o = -include pre-stdio.h
-CFLAGS_mem.o = -include pre-stdio.h
-CFLAGS_aead.o = -include pre-stdio.h
-CFLAGS_e_aes.o = -include pre-stdio.h -include pre-stdlib.h
-CFLAGS_rand.o = -include pre-stdlib.h
+CFLAGS_e_aes.o = -include pre-stdlib.h
 CFLAGS_forkunsafe.o = -include pre-stdlib.h
+CFLAGS_rand.o = -include pre-stdlib.h
 
 ccflags-y += $(BORINGSSL_EXTRA_FLAGS)
 asflags-y += $(BORINGSSL_EXTRA_FLAGS)
