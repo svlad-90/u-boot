@@ -6,6 +6,7 @@ CROSS_COMPILE=aarch64-linux-androidkernel-
 LD=ld.lld
 LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin
 
-FILES="u-boot.bin
+FILES="u-boot
+u-boot.bin
 System.map
 "

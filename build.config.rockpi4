@@ -15,8 +15,8 @@ MAKE_GOALS="
 BL31=${PWD}/u-boot/bl31.elf
 "
 
-FILES="
-idbloader.img
+FILES="idbloader.img
+u-boot
 u-boot.itb
 u-boot-rockchip.bin
 "

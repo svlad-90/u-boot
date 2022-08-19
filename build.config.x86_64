@@ -12,6 +12,7 @@ MAKE_GOALS="
 SWIG_LIB=${PWD}/external/swig/Lib
 "
 
-FILES="u-boot.rom
+FILES="u-boot
+u-boot.rom
 System.map
 "

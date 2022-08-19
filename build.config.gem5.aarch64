@@ -15,3 +15,8 @@ PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG
     ${ROOT_DIR}/${KERNEL_DIR}/avb_unlocked.fragment
 "
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}"
+
+FILES="u-boot
+u-boot.elf
+System.map
+"
