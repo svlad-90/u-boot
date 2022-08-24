@@ -66,7 +66,10 @@ endif
 
 LDSCRIPT_EFI := $(srctree)/arch/x86/lib/elf_$(EFIARCH)_efi.lds
 EFISTUB := crt0_$(EFIARCH)_efi.o reloc_$(EFIARCH)_efi.o
+# FIXME: Our LLVM build lacks the efi-app-* targets
+ifeq ($(findstring llvm-objcopy,$(OBJCOPY)),)
 OBJCOPYFLAGS_EFI += --target=efi-app-$(EFIARCH)
+endif
 
 CPPFLAGS_REMOVE_crt0-efi-$(EFIARCH).o += $(CFLAGS_NON_EFI)
 CPPFLAGS_crt0-efi-$(EFIARCH).o += $(CFLAGS_EFI)
@@ -123,8 +126,11 @@ endif
 
 endif
 
+# FIXME: Our LLVM build lacks the efi-app-* targets
+ifeq ($(findstring llvm-objcopy,$(OBJCOPY)),)
 ifdef CONFIG_X86_64
 EFI_TARGET := --target=efi-app-x86_64
 else
 EFI_TARGET := --target=efi-app-ia32
+endif
 endif

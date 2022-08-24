@@ -2,7 +2,7 @@
 . ${ROOT_DIR}/u-boot/build.config.aarch64
 
 # FIXME: To work around _start syntax error
-LD=
+LD=aarch64-linux-androidkernel-ld
 
 DEFCONFIG=cf-arm64_defconfig
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}

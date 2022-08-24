@@ -952,7 +952,11 @@ cmd_static_rela =
 endif
 
 # Always append INPUTS so that arch config.mk's can add custom ones
-INPUTS-y += u-boot.srec u-boot.bin u-boot.sym System.map binary_size_check
+INPUTS-y += u-boot.bin u-boot.sym System.map binary_size_check
+# llvm-objcopy doesn't support srec as an output format
+ifeq ($(findstring llvm-,$(OBJCOPY)),)
+INPUTS-y += u-boot.srec
+endif
 
 INPUTS-$(CONFIG_ONENAND_U_BOOT) += u-boot-onenand.bin
 ifeq ($(CONFIG_SPL_FSL_PBL),y)
@@ -1039,7 +1043,10 @@ CHECKFLAGS += $(if $(CONFIG_64BIT),-m64,-m32)
 
 # Normally we fill empty space with 0xff
 quiet_cmd_objcopy = OBJCOPY $@
-cmd_objcopy = $(OBJCOPY) --gap-fill=0xff $(OBJCOPYFLAGS) \
+# llvm-objcopy doesn't support --gap-fill
+# https://github.com/llvm/llvm-project/issues/57995
+cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) \
+	$(if $(findstring llvm-,$(OBJCOPY)),,--gap-fill=0xff) \
 	$(OBJCOPYFLAGS_$(@F)) $< $@
 
 # Provide a version which does not do this, for use by EFI

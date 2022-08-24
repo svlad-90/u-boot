@@ -1,7 +1,10 @@
 . ${ROOT_DIR}/u-boot/build.config.aarch64
 
 # Can't build ATF image or SPL with ld.lld yet
-LD=
+LD=aarch64-linux-androidkernel-ld
+
+# llvm-objcopy: error: unknown argument '--pad-to=8355840'
+OBJCOPY=aarch64-linux-androidkernel-objcopy
 
 DEFCONFIG=rockpi4_defconfig
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}
