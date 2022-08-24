@@ -40,6 +40,7 @@ struct boot_config {
 	uint64_t swiotlb_align;
 	uint64_t bcc_addr;
 	uint64_t bcc_size;
+	uint32_t clk_phandle;
 	bool new_instance;
 };
 
