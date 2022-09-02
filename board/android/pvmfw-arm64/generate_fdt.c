@@ -588,6 +588,14 @@ int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 {
 	int err;
 
+	if ((uintptr_t)fdt != CROSVM_FDT_ADDR)
+		return -EFAULT;
+
+	TRY(fdt_check_header(fdt));
+
+	if (fdt_totalsize(fdt) > CROSVM_FDT_MAX_SIZE)
+		return -E2BIG;
+
 	err = parse_memory_node(fdt, cfg);
 	if (err)
 		return err;
@@ -663,16 +671,16 @@ int patch_output_fdt(void *fdt, const struct boot_config *cfg)
 	return patch_chosen_node(fdt, cfg);
 }
 
-int transfer_fdt_template(void *fdt, size_t max_size)
+int transfer_fdt_template(void *fdt)
 {
 	extern const char next_stage_fdt_template[];
 	extern const size_t next_stage_fdt_template_size;
 	size_t rem;
 
-	if (max_size < next_stage_fdt_template_size)
+	if (next_stage_fdt_template_size > CROSVM_FDT_MAX_SIZE)
 		return -ENOMEM;
 
-	rem = max_size - next_stage_fdt_template_size;
+	rem = CROSVM_FDT_MAX_SIZE - next_stage_fdt_template_size;
 
 	memcpy(fdt, next_stage_fdt_template, next_stage_fdt_template_size);
 	memset(fdt + next_stage_fdt_template_size, 0, rem);

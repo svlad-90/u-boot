@@ -16,7 +16,8 @@
 
 #define CONFIG_SYS_CBSIZE		SZ_512
 
-#define CROSVM_PVMFW_MAX_SIZE		SZ_2M
-#define CROSVM_FDT_MAX_SIZE		SZ_2M
+#define CROSVM_PVMFW_MAX_SIZE		((size_t)SZ_2M)
+#define CROSVM_FDT_MAX_SIZE		((size_t)SZ_2M)
+#define CROSVM_FDT_ADDR			((uintptr_t)CONFIG_SYS_SDRAM_BASE)
 
 #endif /* __CONFIG_H */
