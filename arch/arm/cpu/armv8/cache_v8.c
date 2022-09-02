@@ -163,7 +163,7 @@ static void __cmo_on_leaves(void (*cmo_fn)(unsigned long, unsigned long),
 		debug("PTE %llx at level %d VA %llx\n", pte, level, va);
 
 		/* Not valid? next! */
-		if (!(type && PTE_TYPE_VALID))
+		if (!(type & PTE_TYPE_VALID))
 			continue;
 
 		/* Not a leaf? Recurse on the next level */
@@ -313,7 +313,7 @@ static void map_range(u64 virt, u64 phys, u64 size, int level,
 			set_pte_table(&table[i], create_table());
 
 		next_table = (u64 *)(table[i] & GENMASK_ULL(47, PAGE_SHIFT));
-		next_size = min(map_size, size);
+		next_size = min(map_size - (virt & (map_size - 1)), size);
 
 		map_range(virt, phys, next_size, level + 1, next_table, attrs);
 
@@ -362,7 +362,7 @@ static void count_range(u64 virt, u64 size, int level, int *cntp)
 
 		/* Going one level down */
 		(*cntp)++;
-		next_size = min(map_size, size);
+		next_size = min(map_size - (virt & (map_size - 1)), size);
 
 		count_range(virt, next_size, level + 1, cntp);
 
