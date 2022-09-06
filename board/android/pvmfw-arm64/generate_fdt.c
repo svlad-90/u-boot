@@ -533,7 +533,7 @@ static int parse_clock_node(const void *fdt, struct boot_config *cfg)
 	if (freq != AARCH64_CLOCK_FREQ)
 		return -EINVAL;
 
-	if (!&cfg->clk_phandle || cfg->clk_phandle == (uint32_t)(-1))
+	if (!cfg->clk_phandle || cfg->clk_phandle == (uint32_t)(-1))
 		return -EINVAL;
 
 	return 0;
