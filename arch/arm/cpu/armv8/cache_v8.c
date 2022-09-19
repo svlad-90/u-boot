@@ -39,8 +39,28 @@ DECLARE_GLOBAL_DATA_PTR;
  *    off:          FFF
  */
 
-u64 get_tcr(int el, u64 *pips, u64 *pva_bits)
+static int get_effective_el(void)
 {
+	int el = current_el();
+
+	if (el == 2) {
+		u64 hcr_el2;
+
+		/*
+		 * If we are using the EL2&0 translation regime, the TCR_EL2
+		 * looks like the EL1 version, even though we are in EL2.
+		 */
+		__asm__ ("mrs %0, HCR_EL2\n" : "=r" (hcr_el2));
+		if (hcr_el2 & BIT(HCR_EL2_E2H_BIT))
+			return 1;
+	}
+
+	return el;
+}
+
+u64 get_tcr(u64 *pips, u64 *pva_bits)
+{
+	int el = get_effective_el();
 	u64 max_addr = 0;
 	u64 ips, va_bits;
 	u64 tcr;
@@ -121,7 +141,7 @@ static u64 *find_pte(u64 addr, int level)
 
 	debug("addr=%llx level=%d\n", addr, level);
 
-	get_tcr(0, NULL, &va_bits);
+	get_tcr(NULL, &va_bits);
 	if (va_bits < 39)
 		start_level = 1;
 
@@ -219,7 +239,7 @@ static void apply_cmo_to_mappings(void (*cmo_fn)(unsigned long, unsigned long))
 	if (!gd->arch.tlb_addr)
 		return;
 
-	get_tcr(0, NULL, &va_bits);
+	get_tcr(NULL, &va_bits);
 	if (va_bits < 39)
 		sl = 1;
 
@@ -333,7 +353,7 @@ static void add_map(struct mm_region *map)
 	u64 va_bits;
 	int level = 0;
 
-	get_tcr(0, NULL, &va_bits);
+	get_tcr(NULL, &va_bits);
 	if (va_bits < 39)
 		level = 1;
 
@@ -380,7 +400,7 @@ static int count_ranges(void)
 	int i, count = 0, level = 0;
 	u64 va_bits;
 
-	get_tcr(0, NULL, &va_bits);
+	get_tcr(NULL, &va_bits);
 	if (va_bits < 39)
 		level = 1;
 
@@ -473,7 +493,7 @@ __weak void mmu_setup(void)
 		setup_all_pgtables();
 
 	el = current_el();
-	set_ttbr_tcr(el, gd->arch.tlb_addr, get_tcr(el, NULL, NULL));
+	set_ttbr_tcr(el, gd->arch.tlb_addr, get_tcr(NULL, NULL));
 
 	/* enable the mmu */
 	set_sctlr(get_sctlr() | CR_M);

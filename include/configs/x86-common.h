@@ -47,7 +47,6 @@
  */
 
 #define CONFIG_SYS_STACK_SIZE			(32 * 1024)
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
 
 /*-----------------------------------------------------------------------
  * Environment configuration
@@ -61,8 +60,6 @@
 /*-----------------------------------------------------------------------
  * USB configuration
  */
-
-#define CONFIG_BOOTP_BOOTFILESIZE
 
 /* Default environment */
 #define CONFIG_ROOTPATH		"/opt/nfsroot"

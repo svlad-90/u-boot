@@ -6,6 +6,8 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <efi.h>
+#include <efi_loader.h>
 #include <fdtdec.h>
 #include <init.h>
 #include <log.h>
@@ -13,6 +15,8 @@
 #include <virtio.h>
 #include <env.h>
 #include <mapmem.h>
+
+#include <linux/kernel.h>
 
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
@@ -105,7 +109,32 @@ static struct mm_region qemu_arm64_mem_map[] = {
 struct mm_region *mem_map = qemu_arm64_mem_map;
 
 #endif
+
+#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
+struct efi_fw_image fw_images[] = {
+#if defined(CONFIG_TARGET_QEMU_ARM_32BIT)
+	{
+		.image_type_id = QEMU_ARM_UBOOT_IMAGE_GUID,
+		.fw_name = u"Qemu-Arm-UBOOT",
+		.image_index = 1,
+	},
+#elif defined(CONFIG_TARGET_QEMU_ARM_64BIT)
+	{
+		.image_type_id = QEMU_ARM64_UBOOT_IMAGE_GUID,
+		.fw_name = u"Qemu-Arm-UBOOT",
+		.image_index = 1,
+	},
 #endif
+};
+
+struct efi_capsule_update_info update_info = {
+	.images = fw_images,
+};
+
+u8 num_image_type_guids = ARRAY_SIZE(fw_images);
+#endif /* EFI_HAVE_CAPSULE_SUPPORT */
+
+#endif /* ARM64 */
 
 int board_init(void)
 {

@@ -89,6 +89,8 @@ obj-y += malloc_simple.o
 endif
 endif
 
+obj-$(CONFIG_$(SPL_TPL_)EVENT) += event.o
+
 obj-$(CONFIG_$(SPL_TPL_)HASH) += hash.o
 obj-$(CONFIG_IO_TRACE) += iotrace.o
 obj-y += memsize.o
@@ -133,6 +135,7 @@ obj-$(CONFIG_AVB_VERIFY) += avb_pubkey.o
 $(obj)/avb_pubkey.c: $(srctree)/$(subst $(quote),,$(CONFIG_AVB_PUBKEY_FILE))
 	$(call cmd,bin2c,avb_pubkey)
 
+obj-$(CONFIG_$(SPL_TPL_)AVB_VERIFY) += avb_verify.o
 obj-$(CONFIG_$(SPL_TPL_)STACKPROTECTOR) += stackprot.o
 obj-$(CONFIG_SCP03) += scp03.o
 

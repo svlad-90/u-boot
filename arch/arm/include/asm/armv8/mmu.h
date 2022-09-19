@@ -116,6 +116,8 @@
 #define TCR_EL2_RSVD		(1UL << 31 | 1 << 23)
 #define TCR_EL3_RSVD		(1UL << 31 | 1 << 23)
 
+#define HCR_EL2_E2H_BIT		34
+
 #ifndef __ASSEMBLY__
 
 #include <linux/types.h>
@@ -147,7 +149,7 @@ struct mm_region {
 
 extern struct mm_region *mem_map;
 void setup_pgtables(void);
-u64 get_tcr(int el, u64 *pips, u64 *pva_bits);
+u64 get_tcr(u64 *pips, u64 *pva_bits);
 #endif
 
 #endif /* _ASM_ARMV8_MMU_H_ */
