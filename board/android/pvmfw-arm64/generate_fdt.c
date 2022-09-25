@@ -518,6 +518,29 @@ static int patch_chosen_node(void *fdt, const struct boot_config *cfg)
 
 	TRY(fdt_setprop_inplace_u64(fdt, node, "kaslr-seed", cfg->kaslr_seed));
 
+	if (cfg->initrd_start && cfg->initrd_end) {
+		if (cfg->initrd_start >= cfg->initrd_end)
+			return -EINVAL;
+		if (cfg->initrd_start % PAGE_SIZE)
+			return -EINVAL;
+		// initrd_start is inclusive
+		if (cfg->initrd_start < CONFIG_SYS_SDRAM_BASE ||
+		    cfg->initrd_start >= CONFIG_SYS_SDRAM_BASE + cfg->memsize)
+			return -EINVAL;
+		// initrd_end is exclusive
+		if (cfg->initrd_end < CONFIG_SYS_SDRAM_BASE ||
+		    cfg->initrd_end > CONFIG_SYS_SDRAM_BASE + cfg->memsize)
+			return -EINVAL;
+
+		TRY(fdt_setprop_inplace_u32(fdt, node, "linux,initrd-start",
+					    cfg->initrd_start));
+		TRY(fdt_setprop_inplace_u32(fdt, node, "linux,initrd-end",
+					    cfg->initrd_end));
+	} else {
+		TRY(fdt_nop_property(fdt, node, "linux,initrd-start"));
+		TRY(fdt_nop_property(fdt, node, "linux,initrd-end"));
+	}
+
 	return 0;
 }
 
@@ -594,6 +617,20 @@ static int parse_wdt_node(const void *fdt, struct boot_config *cfg)
 	return 0;
 }
 
+static int parse_initrd_node(const void *fdt, struct boot_config *cfg)
+{
+	int node;
+
+	node = TRY_OPTIONAL(fdt_path_offset(fdt, "/chosen"));
+	if (node != -FDT_ERR_NOTFOUND) {
+		TRY_OPTIONAL(fdt_getprop_u32(fdt, node, "linux,initrd-start",
+					     &cfg->initrd_start));
+		TRY_OPTIONAL(fdt_getprop_u32(fdt, node, "linux,initrd-end",
+					     &cfg->initrd_end));
+	}
+	return 0;
+}
+
 int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 {
 	int err;
@@ -632,6 +669,10 @@ int parse_input_fdt(const void *fdt, struct boot_config *cfg)
 		return err;
 
 	err = parse_wdt_node(fdt, cfg);
+	if (err)
+		return err;
+
+	err = parse_initrd_node(fdt, cfg);
 	if (err)
 		return err;
 

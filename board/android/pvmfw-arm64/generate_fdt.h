@@ -42,6 +42,8 @@ struct boot_config {
 	uint64_t bcc_size;
 	uint32_t clk_phandle;
 	bool new_instance;
+	uint32_t initrd_start;
+	uint32_t initrd_end;
 };
 
 int parse_input_fdt(const void *fdt, struct boot_config *cfg);

@@ -23,6 +23,8 @@
 		kaslr-seed = <PLACEHOLDER2>;
 		avf,strict-boot;
 		avf,new-instance;
+		linux,initrd-start = <PLACEHOLDER>;
+		linux,initrd-end = <PLACEHOLDER>;
 	};
 
 	memory {
