@@ -11,6 +11,7 @@
 # CONFIG_BOOTM_VXWORKS is not set
 # CONFIG_BOOTSTAGE is not set
 # CONFIG_BOOTSTAGE_REPORT is not set
+# CONFIG_BOOTSTD is not set
 # CONFIG_CAAM_64BIT is not set
 # CONFIG_CFI_FLASH is not set
 # CONFIG_CMD_BDI is not set
@@ -52,6 +53,7 @@
 # CONFIG_CMDLINE is not set
 # CONFIG_CMDLINE_EDITING is not set
 # CONFIG_CONSOLE_SCROLL_LINES is not set
+# CONFIG_DEBUG_UART is not set
 # CONFIG_DFU_TFTP is not set
 # CONFIG_DFU_RAM is not set
 # CONFIG_DFU_MTD is not set
@@ -91,7 +93,7 @@
 # CONFIG_MMC is not set
 # CONFIG_NET is not set
 # CONFIG_NETDEVICES is not set
-# CONFIG_NVME is not set
+# CONFIG_NVME_PCI is not set
 # CONFIG_POWER is not set
 # CONFIG_RANDOM_UUID is not set
 # CONFIG_REQUIRE_SERIAL_CONSOLE is not set
