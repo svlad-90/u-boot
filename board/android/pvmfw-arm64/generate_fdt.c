@@ -56,15 +56,6 @@ DECLARE_GLOBAL_DATA_PTR;
 		_fdt_err_opt == -FDT_ERR_NOTFOUND ? _fdt_err_opt \
 						  : TRY(_fdt_err_opt); \
 	})
-#define TRY_FDT_GETPROP(fdt, node, name, sizeptr) \
-	({ \
-		int _len; \
-		const void *_ptr = fdt_getprop(fdt, node, name, &_len); \
-		if (!_ptr) \
-			TRY(_len); \
-		*(sizeptr) = _len; \
-		_ptr; \
-	})
 
 #define fdt_for_each_compatible(node, fdt, c) \
 	for (node = TRY_OPTIONAL(fdt_node_offset_by_compatible(fdt, -1, c)); \
@@ -93,8 +84,11 @@ static int fdt_getprop_u64(const void *fdt, int node, const char *name,
 			   uint64_t *dest)
 {
 	int len;
-	const fdt64_t *prop = TRY_FDT_GETPROP(fdt, node, name, &len);
+	const fdt64_t *prop;
 
+	prop = fdt_getprop(fdt, node, name, &len);
+	if (!prop)
+		return len;
 	if (len != sizeof(*dest))
 		return -FDT_ERR_TRUNCATED;
 
@@ -107,8 +101,11 @@ static int fdt_getprop_u32(const void *fdt, int node, const char *name,
 			   uint32_t *dest)
 {
 	int len;
-	const fdt32_t *prop = TRY_FDT_GETPROP(fdt, node, name, &len);
+	const fdt32_t *prop;
 
+	prop = fdt_getprop(fdt, node, name, &len);
+	if (!prop)
+		return len;
 	if (len != sizeof(*dest))
 		return -FDT_ERR_TRUNCATED;
 
@@ -121,8 +118,11 @@ static int fdt_getpair_u64(const void* fdt, int node, const char *name,
 			   uint64_t *first, uint64_t *second)
 {
 	int len;
-	const fdt64_t *prop = TRY_FDT_GETPROP(fdt, node, name, &len);
+	const fdt64_t *prop;
 
+	prop = fdt_getprop(fdt, node, name, &len);
+	if (!prop)
+		return len;
 	if (len != sizeof(*first) + sizeof(*second))
 		return -FDT_ERR_TRUNCATED;
 
@@ -144,13 +144,18 @@ static int fdt_setpair_inplace_u64(void *fdt, int node, const char *name,
 }
 
 static int fdt_getprop_array(const void *fdt, int node, const char *name,
-			     const void **prop, size_t size)
+			     const void **propp, size_t size)
 {
 	int len;
-	*prop = TRY_FDT_GETPROP(fdt, node, name, &len);
+	const void *prop;
 
+	prop = fdt_getprop(fdt, node, name, &len);
+	if (!prop)
+		return len;
 	if (len != size)
 		return -FDT_ERR_BADVALUE;
+
+	*propp = prop;
 
 	return 0;
 }
@@ -159,8 +164,11 @@ static int fdt_trim_prop(void *fdt, int node, const char *name, void *buf,
 			 size_t smaller_size)
 {
 	int len;
-	const void *prop = TRY_FDT_GETPROP(fdt, node, name, &len);
+	const void *prop;
 
+	prop = fdt_getprop(fdt, node, name, &len);
+	if (!prop)
+		return len;
 	if (len < smaller_size)
 		return -EINVAL;
 	if (len == smaller_size)
@@ -276,8 +284,8 @@ static int count_pci_irq_masks(const void *fdt, int node, size_t *count)
 	int size;
 	const fdt32_t (*masks)[FDT_CELLS_PER_PCI_IRQ_MASK];
 
-	masks = TRY_FDT_GETPROP(fdt, node, "interrupt-map-mask", &size);
-	if (size % sizeof(*masks) || !size)
+	masks = fdt_getprop(fdt, node, "interrupt-map-mask", &size);
+	if (!masks || size % sizeof(*masks) || !size)
 		return -EINVAL;
 
 	*count = size / sizeof(*masks);
@@ -495,7 +503,9 @@ static int patch_chosen_node(void *fdt, const struct boot_config *cfg)
 	int node = TRY(fdt_path_offset(fdt, "/chosen"));
 
 	/* "stdout-path" should always be in the base DT! */
-	path = TRY_FDT_GETPROP(fdt, node, "stdout-path", &len);
+	path = fdt_getprop(fdt, node, "stdout-path", &len);
+	if (!path)
+		return -EINVAL;
 
 	/* If "stdout-path" points to a node that has been removed, NOP it. */
 	if (TRY_OPTIONAL(fdt_path_offset(fdt, path)) == -FDT_ERR_NOTFOUND)
