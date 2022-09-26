@@ -63,19 +63,16 @@
 #define CONFIG_SYS_NAND_U_BOOT_SIZE	((768 << 10) - 0x2000)
 #define CONFIG_SYS_NAND_U_BOOT_DST	(0x00200000 - CONFIG_SPL_MAX_SIZE)
 #define CONFIG_SYS_NAND_U_BOOT_START	0x00200000
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	0
 #else
 #ifdef CONFIG_TPL_BUILD
 #define CONFIG_SPL_FLUSH_IMAGE
 #define CONFIG_SPL_NAND_INIT
 #define CONFIG_SPL_COMMON_INIT_DDR
 #define CONFIG_SPL_MAX_SIZE		(128 << 10)
-#define CONFIG_TPL_TEXT_BASE		0xD0001000
 #define CONFIG_SYS_MPC85XX_NO_RESETVEC
 #define CONFIG_SYS_NAND_U_BOOT_SIZE	(576 << 10)
 #define CONFIG_SYS_NAND_U_BOOT_DST	(0x11000000)
 #define CONFIG_SYS_NAND_U_BOOT_START	(0x11000000)
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	((128 + 128) << 10)
 #elif defined(CONFIG_SPL_BUILD)
 #define CONFIG_SPL_INIT_MINIMAL
 #define CONFIG_SPL_NAND_MINIMAL
@@ -84,7 +81,10 @@
 #define CONFIG_SYS_NAND_U_BOOT_SIZE	(128 << 10)
 #define CONFIG_SYS_NAND_U_BOOT_DST	0xD0000000
 #define CONFIG_SYS_NAND_U_BOOT_START	0xD0000000
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	(128 << 10)
+#else
+#ifndef CONFIG_MPC85XX_HAVE_RESET_VECTOR
+#define CONFIG_SYS_MPC85XX_NO_RESETVEC
+#endif
 #endif
 #define CONFIG_SPL_PAD_TO	0x20000
 #define CONFIG_TPL_PAD_TO	0x20000
@@ -101,21 +101,11 @@
 #define CONFIG_RESET_VECTOR_ADDRESS	0xeffffffc
 #endif
 
-#ifdef CONFIG_TPL_BUILD
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_TPL_TEXT_BASE
-#elif defined(CONFIG_SPL_BUILD)
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SPL_TEXT_BASE
-#else
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_TEXT_BASE	/* start of monitor */
-#endif
-
 /* High Level Configuration Options */
-#define CONFIG_SYS_HAS_SERDES		/* common SERDES init code */
 
 #if defined(CONFIG_PCI)
 #define CONFIG_PCIE1			/* PCIE controller 1 (slot 1) */
 #define CONFIG_PCIE2			/* PCIE controller 2 (slot 2) */
-#define CONFIG_SYS_PCI_64BIT		/* enable 64-bit PCI resources */
 
 /*
  * PCI Windows
@@ -152,14 +142,11 @@
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup */
 #endif
 
-#define CONFIG_SYS_CLK_FREQ	66666666 /* SYSCLK for P1010 RDB */
-
 #define CONFIG_HWCONFIG
 /*
  * These can be toggled for performance analysis, otherwise use default.
  */
 #define CONFIG_L2_CACHE			/* toggle L2 cache */
-#define CONFIG_BTB			/* toggle branch predition */
 
 
 #define CONFIG_ENABLE_36BIT_PHYS
@@ -177,9 +164,6 @@ extern unsigned long get_sdram_size(void);
 #define CONFIG_SYS_SDRAM_SIZE		get_sdram_size() /* DDR size */
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x00000000
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
-
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_CHIP_SELECTS_PER_CTRL	1
 
 /* DDR3 Controller Settings */
 #define CONFIG_SYS_DDR_CS0_BNDS		0x0000003f
@@ -275,7 +259,6 @@ extern unsigned long get_sdram_size(void);
 #define CONFIG_SYS_FLASH_BANKS_LIST	{CONFIG_SYS_FLASH_BASE_PHYS}
 #define CONFIG_SYS_FLASH_QUIET_TEST
 #define CONFIG_FLASH_SHOW_PROGRESS	45	/* count down from 45/5: 9..1 */
-#define CONFIG_SYS_MAX_FLASH_BANKS	1	/* number of banks */
 
 #undef CONFIG_SYS_FLASH_CHECKSUM
 #define CONFIG_SYS_FLASH_ERASE_TOUT	60000	/* Flash Erase Timeout (ms) */
@@ -422,12 +405,6 @@ extern unsigned long get_sdram_size(void);
 #undef CONFIG_SYS_RAMBOOT
 #endif
 
-#ifdef CONFIG_SYS_FSL_ERRATUM_IFC_A003399
-#if !defined(CONFIG_SPL) && !defined(CONFIG_SYS_RAMBOOT)
-#define CONFIG_A003399_NOR_WORKAROUND
-#endif
-#endif
-
 #define CONFIG_SYS_INIT_RAM_LOCK
 #define CONFIG_SYS_INIT_RAM_ADDR	0xffd00000 /* stack in RAM */
 #define CONFIG_SYS_INIT_RAM_SIZE	0x00004000 /* End of used area in RAM */
@@ -537,8 +514,6 @@ extern unsigned long get_sdram_size(void);
 #define TSEC2_PHYIDX		0
 #define TSEC3_PHYIDX		0
 
-#define CONFIG_ETHPRIME		"eTSEC1"
-
 /* TBI PHY configuration for SGMII mode */
 #define CONFIG_TSEC_TBICR_SETTINGS ( \
 		TBICR_PHY_RESET \
@@ -553,7 +528,6 @@ extern unsigned long get_sdram_size(void);
 #define CONFIG_FSL_SATA_V2
 
 #ifdef CONFIG_FSL_SATA
-#define CONFIG_SYS_SATA_MAX_DEVICE	2
 #define CONFIG_SATA1
 #define CONFIG_SYS_SATA1		CONFIG_SYS_MPC85xx_SATA1_ADDR
 #define CONFIG_SYS_SATA1_FLAGS		FLAGS_DMA
@@ -573,7 +547,6 @@ extern unsigned long get_sdram_size(void);
 #if defined(CONFIG_HAS_FSL_DR_USB)
 #ifdef CONFIG_USB_EHCI_HCD
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_USB_EHCI_FSL
 #endif
 #endif
 
@@ -597,8 +570,6 @@ extern unsigned long get_sdram_size(void);
 #define CONFIG_LOADS_ECHO		/* echo on for serial download */
 #define CONFIG_SYS_LOADS_BAUD_CHANGE	/* allow baudrate change */
 
-#undef CONFIG_WATCHDOG			/* watchdog disabled */
-
 #if defined(CONFIG_MMC) || defined(CONFIG_USB_EHCI_HCD) \
 		 || defined(CONFIG_FSL_SATA)
 #endif
@@ -619,14 +590,7 @@ extern unsigned long get_sdram_size(void);
  * Environment Configuration
  */
 
-#if defined(CONFIG_TSEC_ENET)
-#define CONFIG_HAS_ETH0
-#define CONFIG_HAS_ETH1
-#define CONFIG_HAS_ETH2
-#endif
-
 #define CONFIG_ROOTPATH		"/opt/nfsroot"
-#define CONFIG_BOOTFILE		"uImage"
 #define CONFIG_UBOOTPATH	u-boot.bin/* U-Boot image on TFTP server */
 
 #define	CONFIG_EXTRA_ENV_SETTINGS				\
@@ -656,10 +620,10 @@ extern unsigned long get_sdram_size(void);
 	"ext2load usb 0:4 $fdtaddr $fdtfile;"	\
 	"ext2load usb 0:4 $ramdiskaddr $ramdiskfile;"	\
 	"bootm $loadaddr $ramdiskaddr $fdtaddr\0"	\
-	CONFIG_BOOTMODE
+	BOOTMODE
 
 #if defined(CONFIG_TARGET_P1010RDB_PA)
-#define CONFIG_BOOTMODE \
+#define BOOTMODE \
 	"boot_bank0=i2c dev 0; i2c mw 18 1 f1; i2c mw 18 3 f0;" \
 	"mw.b ffb00011 0; mw.b ffb00009 0; reset\0" \
 	"boot_bank1=i2c dev 0; i2c mw 18 1 f1; i2c mw 18 3 f0;" \
@@ -668,7 +632,7 @@ extern unsigned long get_sdram_size(void);
 	"mw.b ffb00011 0; mw.b ffb00017 1; reset\0"
 
 #elif defined(CONFIG_TARGET_P1010RDB_PB)
-#define CONFIG_BOOTMODE \
+#define BOOTMODE \
 	"boot_bank0=i2c dev 0; i2c mw 18 1 fe; i2c mw 18 3 0;" \
 	"i2c mw 19 1 2; i2c mw 19 3 e1; reset\0" \
 	"boot_bank1=i2c dev 0; i2c mw 18 1 fe; i2c mw 18 3 0;" \
@@ -680,16 +644,6 @@ extern unsigned long get_sdram_size(void);
 	"boot_sd=i2c dev 0; i2c mw 18 1 f8; i2c mw 18 3 0;" \
 	"i2c mw 19 1 4; i2c mw 19 3 f3; reset\0"
 #endif
-
-#define RAMBOOTCOMMAND		\
-	"setenv bootargs root=/dev/ram rw "	\
-	"console=$consoledev,$baudrate $othbootargs; "	\
-	"tftp $ramdiskaddr $ramdiskfile;"	\
-	"tftp $loadaddr $bootfile;"		\
-	"tftp $fdtaddr $fdtfile;"		\
-	"bootm $loadaddr $ramdiskaddr $fdtaddr"
-
-#define CONFIG_BOOTCOMMAND RAMBOOTCOMMAND
 
 #include <asm/fsl_secure_boot.h>
 

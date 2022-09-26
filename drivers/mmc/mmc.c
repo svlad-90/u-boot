@@ -34,6 +34,9 @@ static int mmc_set_signal_voltage(struct mmc *mmc, uint signal_voltage);
 
 static int mmc_wait_dat0(struct mmc *mmc, int state, int timeout_us)
 {
+	if (mmc->cfg->ops->wait_dat0)
+		return mmc->cfg->ops->wait_dat0(mmc, state, timeout_us);
+
 	return -ENOSYS;
 }
 
@@ -132,7 +135,7 @@ void mmc_trace_state(struct mmc *mmc, struct mmc_cmd *cmd)
 }
 #endif
 
-#if CONFIG_IS_ENABLED(MMC_VERBOSE) || defined(DEBUG)
+#if CONFIG_IS_ENABLED(MMC_VERBOSE) || defined(DEBUG) || CONFIG_VAL(LOGLEVEL) >= LOGL_DEBUG
 const char *mmc_mode_name(enum bus_mode mode)
 {
 	static const char *const names[] = {
@@ -215,7 +218,7 @@ int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
  * @data:	additional data to send/receive
  * @retries:	how many times to retry; mmc_send_cmd is always called at least
  *              once
- * @return 0 if ok, -ve on error
+ * Return: 0 if ok, -ve on error
  */
 static int mmc_send_cmd_retry(struct mmc *mmc, struct mmc_cmd *cmd,
 			      struct mmc_data *data, uint retries)
@@ -239,7 +242,7 @@ static int mmc_send_cmd_retry(struct mmc *mmc, struct mmc_cmd *cmd,
  * @quirk:	retry only if this quirk is enabled
  * @retries:	how many times to retry; mmc_send_cmd is always called at least
  *              once
- * @return 0 if ok, -ve on error
+ * Return: 0 if ok, -ve on error
  */
 static int mmc_send_cmd_quirks(struct mmc *mmc, struct mmc_cmd *cmd,
 			       struct mmc_data *data, u32 quirk, uint retries)

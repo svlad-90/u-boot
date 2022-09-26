@@ -1,6 +1,13 @@
 menu "mpc83xx CPU"
 	depends on MPC83xx
 
+config DEFAULT_IMMR
+	hex
+	default 0xFF400000
+
+config E300
+	def_bool y
+
 config SYS_CPU
 	default "mpc83xx"
 
@@ -179,13 +186,6 @@ config ARCH_MPC837X
 	select SYS_CACHE_SHIFT_5
 	select FSL_ELBC
 
-config SYS_IMMR
-	hex "Value for IMMR"
-	default 0xE0000000
-	help
-	  Address for the Internal Memory-Mapped Registers (IMMR) window used
-	  to configure the features of the SoC.
-
 source "arch/powerpc/cpu/mpc83xx/hrcw/Kconfig"
 source "arch/powerpc/cpu/mpc83xx/bats/Kconfig"
 source "arch/powerpc/cpu/mpc83xx/lblaw/Kconfig"
@@ -195,12 +195,18 @@ source "arch/powerpc/cpu/mpc83xx/sysio/Kconfig"
 source "arch/powerpc/cpu/mpc83xx/arbiter/Kconfig"
 source "arch/powerpc/cpu/mpc83xx/initreg/Kconfig"
 
+config 83XX_PCICLK
+	hex "PCI clock frequency"
+	default 0xDEADBEEF
+	help
+	  If required, the PCI clock frequency to use when configuring
+	  the host bridge.
+
 config FSL_ELBC
 	bool
 
 source "board/freescale/mpc837xerdb/Kconfig"
 source "board/ids/ids8313/Kconfig"
-source "board/keymile/Kconfig"
 source "board/gdsys/mpc8308/Kconfig"
 
 endmenu

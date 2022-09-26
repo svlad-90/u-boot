@@ -53,19 +53,6 @@
 		"run setrootmmc; " \
 		"run setloadmmc; " \
 
-#define CONFIG_BOOTCOMMAND \
-	"run setfdtfile; " \
-	"run checkbootdev; " \
-	"run loadfdt;" \
-	"if run loadbootscript; then " \
-		"run bootscript; " \
-	"else " \
-		"if run loadimage; then " \
-			"run setbootargs; " \
-			"bootz ${loadaddr} - ${fdt_addr}; " \
-		"fi; " \
-	"fi"
-
 /* Miscellaneous configurable options */
 
 /* Physical Memory Map */
@@ -91,10 +78,7 @@
 #endif
 
 #ifdef CONFIG_CMD_NET
-#define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR		0x1
-#define CONFIG_FEC_XCV_TYPE		RMII
-#define CONFIG_ETHPRIME			"eth0"
 #endif
 
 #endif

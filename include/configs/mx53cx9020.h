@@ -14,8 +14,6 @@
 
 #include <asm/arch/imx-regs.h>
 
-#define CONFIG_SYS_FSL_CLK
-
 #define CONFIG_MXC_UART_BASE UART2_BASE
 
 #define CONFIG_FPGA_COUNT 1
@@ -55,8 +53,6 @@
 	"stderr=serial,vidconsole\0" \
 	"fdtfile=imx53-cx9020.dtb\0" \
 	BOOTENV
-
-#define CONFIG_ARP_TIMEOUT	200UL
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_CBSIZE		512	/* Console I/O Buffer Size */

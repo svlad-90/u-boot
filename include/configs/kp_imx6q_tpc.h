@@ -18,7 +18,6 @@
 /* Miscellaneous configurable options */
 
 /* FEC ethernet */
-#define CONFIG_ARP_TIMEOUT		200UL
 
 /* USB Configs */
 #ifdef CONFIG_CMD_USB
@@ -81,8 +80,6 @@
 	       "run loadusb; " \
 	       "bootm ${loadaddr}#${fit_config}\0" \
 	BOOTENV
-
-#define CONFIG_BOOTCOMMAND		"run usbupd; run distro_bootcmd"
 
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 0) \

@@ -14,7 +14,6 @@
 #include <errno.h>
 #include <netdev.h>
 #include <fsl_ddr.h>
-#include <fsl_sec.h>
 #include <asm/io.h>
 #include <fdt_support.h>
 #include <linux/bitops.h>
@@ -123,8 +122,7 @@ int board_fix_fdt(void *fdt)
 	if (IS_SVR_REV(get_svr(), 1, 0))
 		return 0;
 
-	off = fdt_node_offset_by_compatible(fdt, -1, "fsl,lx2160a-pcie");
-	while (off != -FDT_ERR_NOTFOUND) {
+	fdt_for_each_node_by_compatible(off, fdt, -1, "fsl,lx2160a-pcie") {
 		fdt_setprop(fdt, off, "compatible", "fsl,ls-pcie",
 			    strlen("fsl,ls-pcie") + 1);
 
@@ -166,8 +164,6 @@ int board_fix_fdt(void *fdt)
 		}
 
 		fdt_setprop(fdt, off, "reg-names", reg_names, names_len);
-		off = fdt_node_offset_by_compatible(fdt, off,
-						    "fsl,lx2160a-pcie");
 	}
 
 	return 0;
@@ -594,10 +590,6 @@ int board_init(void)
 #if defined(CONFIG_FSL_MC_ENET) && defined(CONFIG_TARGET_LX2160ARDB)
 	/* invert AQR107 IRQ pins polarity */
 	out_le32(irq_ccsr + IRQCR_OFFSET / 4, AQR107_IRQ_MASK);
-#endif
-
-#ifdef CONFIG_FSL_CAAM
-	sec_init();
 #endif
 
 #if !defined(CONFIG_SYS_EARLY_PCI_INIT) && defined(CONFIG_DM_ETH)

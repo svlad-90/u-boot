@@ -48,11 +48,31 @@ config TPL_DM_GPIO
 	  particular GPIOs that they provide. The uclass interface
 	  is defined in include/asm-generic/gpio.h.
 
+config VPL_DM_GPIO
+	bool "Enable Driver Model for GPIO drivers in VPL"
+	depends on DM_GPIO && VPL_DM && VPL_GPIO
+	default y
+	help
+	  Enable driver model for GPIO access in VPL. The standard GPIO
+	  interface (gpio_get_value(), etc.) is then implemented by
+	  the GPIO uclass. Drivers provide methods to query the
+	  particular GPIOs that they provide. The uclass interface
+	  is defined in include/asm-generic/gpio.h.
+
 config GPIO_HOG
 	bool "Enable GPIO hog support"
 	depends on DM_GPIO
 	help
 	  Enable gpio hog support
+	  The GPIO chip may contain GPIO hog definitions. GPIO hogging
+	  is a mechanism providing automatic GPIO request and config-
+	  uration as part of the gpio-controller's driver probe function.
+
+config SPL_GPIO_HOG
+	bool "Enable GPIO hog support in SPL"
+	depends on SPL_GPIO_SUPPORT
+	help
+	  Enable gpio hog support in SPL
 	  The GPIO chip may contain GPIO hog definitions. GPIO hogging
 	  is a mechanism providing automatic GPIO request and config-
 	  uration as part of the gpio-controller's driver probe function.
@@ -84,10 +104,15 @@ config ALTERA_PIO
 	  Select this to enable PIO for Altera devices. Please find
 	  details on the "Embedded Peripherals IP User Guide" of Altera.
 
+config BCM2835_GPIO
+	bool "BCM2835 GPIO driver"
+	depends on DM_GPIO
+
 config BCM6345_GPIO
 	bool "BCM6345 GPIO driver"
 	depends on DM_GPIO && (ARCH_BMIPS || ARCH_BCM68360 || \
-			       ARCH_BCM6858 || ARCH_BCM63158)
+			       ARCH_BCM6858 || ARCH_BCM63158 || \
+			       ARCH_BCM6753)
 	help
 	  This driver supports the GPIO banks on BCM6345 SoCs.
 
@@ -126,10 +151,24 @@ config ATMEL_PIO4
 	  may be dedicated as a general purpose I/O or be assigned to
 	  a function of an embedded peripheral.
 
+config ASPEED_GPIO
+	bool "Aspeed GPIO Driver"
+	help
+	  Say yes here to support the Aspeed GPIO driver. The controller
+	  is found in the AST2400, AST2500 and AST2600 BMC SoCs and
+	  provides access to over 200 GPIOs on each chip.
+
 config DA8XX_GPIO
 	bool "DA8xx GPIO Driver"
 	help
 	  This driver supports the DA8xx GPIO controller
+
+config FXL6408_GPIO
+	bool "FXL6408 I2C GPIO expander driver"
+	depends on DM_GPIO && DM_I2C
+	help
+	  This driver supports the Fairchild FXL6408 device. FXL6408 is a
+	  fully configurable 8-bit I2C-controlled GPIO expander.
 
 config INTEL_BROADWELL_GPIO
 	bool "Intel Broadwell GPIO driver"
@@ -176,6 +215,11 @@ config HSDK_CREG_GPIO
 	depends on DM_GPIO
 	help
 	  This driver supports CREG GPIOs on Synopsys HSDK SOC.
+
+config KIRKWOOD_GPIO
+	bool "Kirkwood GPIO driver"
+	help
+	  This drdiver supports GPIOs on Kirkwood platforms
 
 config LPC32XX_GPIO
 	bool "LPC32XX GPIO driver"
@@ -234,6 +278,13 @@ config MXS_GPIO
 	bool "Freescale/NXP MXS GPIO driver"
 	help
 	  Support GPIO controllers on i.MX23 and i.MX28 platforms
+
+config NPCM_GPIO
+	bool "Nuvoton NPCM GPIO driver"
+	depends on DM_GPIO
+	help
+	  Support GPIO controllers on Nuvovon NPCM SoCs.
+	  NPCM7xx/NPCM8xx contain 8 GPIO banks, each bank contains 32 pins.
 
 config OMAP_GPIO
 	bool "TI OMAP GPIO driver"
@@ -314,6 +365,7 @@ config SANDBOX_GPIO_COUNT
 config SUNXI_GPIO
 	bool "Allwinner GPIO driver"
 	depends on ARCH_SUNXI
+	select SPL_STRTO if SPL
 	help
 	  Support the GPIO device in Allwinner SoCs.
 
@@ -522,5 +574,28 @@ config NOMADIK_GPIO
 	  Support GPIO access on ST-Ericsson Ux500 SoCs. The GPIOs are arranged
 	  into a number of banks each with 32 GPIOs. The GPIOs for a device are
 	  defined in the device tree with one node for each bank.
+
+config ZYNQMP_GPIO_MODEPIN
+	bool "ZynqMP gpio modepin"
+	depends on DM_GPIO
+	help
+	  This config enables the ZynqMP gpio modepin driver. ZynqMP modepin
+	  driver will set and get the status of PS_MODE pins. These modepins
+	  are accessed using xilinx firmware. In modepin register, [3:0] bits
+	  set direction, [7:4] bits read IO, [11:8] bits set/clear IO.
+
+config SL28CPLD_GPIO
+	bool "Kontron sl28cpld GPIO driver"
+	depends on DM_GPIO && SL28CPLD
+	help
+	  Support GPIO access on Kontron sl28cpld board management controllers.
+
+config SLG7XL45106_I2C_GPO
+	bool "slg7xl45106 i2c gpo expander"
+	depends on DM_GPIO
+	help
+	   Support for slg7xl45106 i2c gpo expander. It is an i2c based
+	   8-bit gpo expander, all gpo lines are controlled by writing
+	   value into data register.
 
 endif

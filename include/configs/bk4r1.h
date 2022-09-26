@@ -32,17 +32,7 @@
 	"preboot=" BK4_NET_INIT \
 		"if ${ncenable}; then run if_netconsole start_netconsole; fi\0"
 
-/* BK4r1 boot command sets GPIO103/PTC30 to force USB hub out of reset*/
-#define BK4_BOOTCOMMAND "run set_gpio122; run set_gpio96; sf probe; " \
-			"run manage_userdata; "
-
 /* Enable PREBOOT variable */
-
-/* Set ARP_TIMEOUT to 500ms */
-#define CONFIG_ARP_TIMEOUT 500UL
-
-/* Set ARP_TIMEOUT_COUNT to 3 repetitions */
-#define CONFIG_NET_RETRY_COUNT	5
 
 /* BK4r1 net init sets GPIO122/PTE17 to enable Ethernet */
 #define BK4_NET_INIT "run set_gpio122;"
@@ -72,11 +62,7 @@
 #define CONFIG_SYS_FSL_QSPI_LE
 #endif
 
-/* We boot from the gfxRAM area of the OCRAM. */
-#define CONFIG_BOARD_SIZE_LIMIT		520192
-
 /* boot command, including the target-defined one if any */
-#define CONFIG_BOOTCOMMAND	BK4_BOOTCOMMAND "run bootcmd_nand"
 
 /* Extra env settings (including the target-defined ones if any) */
 #define CONFIG_EXTRA_ENV_SETTINGS \

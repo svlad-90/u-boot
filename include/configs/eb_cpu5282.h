@@ -18,16 +18,9 @@
 
 #undef	CONFIG_MONITOR_IS_IN_RAM		/* starts uboot direct */
 
-#define CONFIG_BOOTCOMMAND "printenv"
-
 /*----------------------------------------------------------------------*
  * Options								*
  *----------------------------------------------------------------------*/
-
-#define CONFIG_BOOT_RETRY_TIME	-1
-#define CONFIG_RESET_TO_RETRY
-
-#define CONFIG_HW_WATCHDOG
 
 #define STATUS_LED_ACTIVE		0
 
@@ -35,13 +28,6 @@
  * Configuration for environment					*
  * Environment is in the second sector of the first 256k of flash	*
  *----------------------------------------------------------------------*/
-
-/*
- * BOOTP options
- */
-#define CONFIG_BOOTP_BOOTFILESIZE
-
-#define CONFIG_MCFTMR
 
 #define	CONFIG_SYS_CBSIZE	1024	/* Console I/O Buffer Size	*/
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE
@@ -64,10 +50,7 @@
  *----------------------------------------------------------------------*/
 
 #ifdef CONFIG_MCFFEC
-#define CONFIG_MII_INIT			1
 #define CONFIG_SYS_DISCOVER_PHY
-#define CONFIG_SYS_RX_ETH_BUFFER	8
-#define CONFIG_SYS_FAULT_ECHO_LINK_DOWN
 #define CONFIG_OVERWRITE_ETHADDR_ONCE
 #endif
 
@@ -120,7 +103,6 @@
 #define CONFIG_SYS_INT_FLASH_ENABLE	0x21
 
 #define	CONFIG_SYS_MAX_FLASH_SECT	128
-#define	CONFIG_SYS_MAX_FLASH_BANKS	1
 #define	CONFIG_SYS_FLASH_ERASE_TOUT	10000000
 
 #define CONFIG_SYS_FLASH_SIZE		16*1024*1024
@@ -188,8 +170,6 @@
 /*-----------------------------------------------------------------------
  * I2C
  */
-
-#define CONFIG_SYS_IMMR			CONFIG_SYS_MBAR
 
 #ifdef CONFIG_CMD_DATE
 #define CONFIG_RTC_DS1338

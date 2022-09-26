@@ -39,6 +39,7 @@ obj-$(CONFIG_$(SPL_)FPGA) += fpga/
 obj-y += reserved-mem/
 
 ifndef CONFIG_TPL_BUILD
+ifndef CONFIG_VPL_BUILD
 ifdef CONFIG_SPL_BUILD
 
 obj-$(CONFIG_SPL_CPU) += cpu/
@@ -61,6 +62,7 @@ obj-$(CONFIG_SPL_SATA) += ata/ scsi/
 obj-$(CONFIG_HAVE_BLOCK_DEVICE) += block/
 obj-$(CONFIG_SPL_THERMAL) += thermal/
 
+endif
 endif
 endif
 

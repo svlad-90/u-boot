@@ -136,22 +136,6 @@
 					"echo WARNING: Could not determine dtb to use; fi; " \
 			"fi;\0" \
 
-#define CONFIG_BOOTCOMMAND \
-	"run findfdt;" \
-	"mmc dev ${mmcdev};" \
-	"if mmc rescan; then " \
-		"if run loadbootscript; then " \
-		"run bootscript; " \
-		"else " \
-			"if run loadimage; then " \
-				"run mmcboot; " \
-			"else run netboot; " \
-			"fi; " \
-		"fi; " \
-	"else run netboot; fi"
-
-#define CONFIG_ARP_TIMEOUT     200UL
-
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 
@@ -167,8 +151,6 @@
 /* Environment organization */
 
 /* Framebuffer */
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
 #define CONFIG_IMX_HDMI
 #define CONFIG_IMX_VIDEO_SKIP
 

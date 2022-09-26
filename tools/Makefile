@@ -93,9 +93,10 @@ ECDSA_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := $(addprefix lib/ecdsa/, ecdsa-libcrypto.
 AES_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := $(addprefix lib/aes/, \
 					aes-encrypt.o aes-decrypt.o)
 
-# Cryptographic helpers that depend on openssl/libcrypto
-LIBCRYPTO_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := $(addprefix lib/, \
-					fdt-libcrypto.o) kwbimage.o
+# Cryptographic helpers and image types that depend on openssl/libcrypto
+LIBCRYPTO_OBJS-$(CONFIG_TOOLS_LIBCRYPTO) := \
+			lib/fdt-libcrypto.o \
+			sunxi_toc0.o
 
 ROCKCHIP_OBS = lib/rc4.o rkcommon.o rkimage.o rksd.o rkspi.o
 
@@ -129,7 +130,7 @@ dumpimage-mkimage-objs := aisimage.o \
 			$(ROCKCHIP_OBS) \
 			socfpgaimage.o \
 			sunxi_egon.o \
-			lib/crc16.o \
+			lib/crc16-ccitt.o \
 			lib/hash-checksum.o \
 			lib/sha1.o \
 			lib/sha256.o \
@@ -194,6 +195,9 @@ hostprogs-$(CONFIG_EXYNOS5250) += mkexynosspl
 hostprogs-$(CONFIG_EXYNOS5420) += mkexynosspl
 HOSTCFLAGS_mkexynosspl.o := -pedantic
 
+HOSTCFLAGS_kwboot.o += -pthread
+HOSTLDLIBS_kwboot += -pthread -ltinfo
+
 ifdtool-objs := $(LIBFDT_OBJS) ifdtool.o
 hostprogs-$(CONFIG_X86) += ifdtool
 
@@ -236,8 +240,8 @@ hostprogs-$(CONFIG_MIPS) += mips-relocs
 hostprogs-$(CONFIG_ASN1_COMPILER)	+= asn1_compiler
 HOSTCFLAGS_asn1_compiler.o = -idirafter $(srctree)/include
 
-mkeficapsule-objs	:= mkeficapsule.o $(LIBFDT_OBJS)
-hostprogs-$(CONFIG_EFI_HAVE_CAPSULE_SUPPORT) += mkeficapsule
+HOSTLDLIBS_mkeficapsule += -lgnutls -luuid
+hostprogs-$(CONFIG_TOOLS_MKEFICAPSULE) += mkeficapsule
 
 # We build some files with extra pedantic flags to try to minimize things
 # that won't build on some weird host compiler -- though there are lots of

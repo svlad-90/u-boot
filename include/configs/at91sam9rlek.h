@@ -16,20 +16,12 @@
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768		/* slow clock xtal */
 #define CONFIG_SYS_AT91_MAIN_CLOCK	12000000	/* main clock xtal */
 
-#define CONFIG_ATMEL_LEGACY
-
 /*
  * Hardware drivers
  */
 
 /* LCD */
 #define LCD_BPP				LCD_COLOR8
-#define CONFIG_LCD_LOGO			1
-#undef LCD_TEST_PATTERN
-#define CONFIG_LCD_INFO			1
-#define CONFIG_LCD_INFO_BELOW_LOGO	1
-#define CONFIG_ATMEL_LCD		1
-#define CONFIG_ATMEL_LCD_RGB565		1
 /* Let board_init_f handle the framebuffer allocation */
 #undef CONFIG_FB_ADDR
 
@@ -54,27 +46,4 @@
 
 #endif
 
-/* Ethernet - not present */
-
-#ifdef CONFIG_SYS_USE_DATAFLASH
-
-/* bootstrap + u-boot + env + linux in dataflash on CS0 */
-#define CONFIG_BOOTCOMMAND	"sf probe 0; " \
-				"sf read 0x22000000 0x84000 0x294000; " \
-				"bootm 0x22000000"
-
-#elif CONFIG_SYS_USE_NANDFLASH
-
-/* bootstrap + u-boot + env + linux in nandflash */
-#define CONFIG_BOOTCOMMAND	"nand read 0x22000000 0x200000 0x600000; "	\
-				"nand read 0x21000000 0x180000 0x80000; "	\
-				"bootz 0x22000000 - 0x21000000"
-
-#else /* CONFIG_SYS_USE_MMC */
-
-/* bootstrap + u-boot + env + linux in mmc */
-#define CONFIG_BOOTCOMMAND	"fatload mmc 0:1 0x21000000 at91sam9rlek.dtb; " \
-				"fatload mmc 0:1 0x22000000 zImage; " \
-				"bootz 0x22000000 - 0x21000000"
-#endif
 #endif

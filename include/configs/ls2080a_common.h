@@ -7,8 +7,6 @@
 #ifndef __LS2_COMMON_H
 #define __LS2_COMMON_H
 
-#define CONFIG_REMAKE_ELF
-
 #include <asm/arch/stream_id_lsch3.h>
 #include <asm/arch/config.h>
 
@@ -42,30 +40,13 @@
 #define CPU_RELEASE_ADDR		secondary_boot_addr
 
 #define CONFIG_SYS_FSL_OTHER_DDR_NUM_CTRLS
-#ifdef CONFIG_SYS_FSL_HAS_DP_DDR
-#define CONFIG_SYS_DP_DDR_BASE		0x6000000000ULL
-/*
- * DDR controller use 0 as the base address for binding.
- * It is mapped to CONFIG_SYS_DP_DDR_BASE for core to access.
- */
-#define CONFIG_SYS_DP_DDR_BASE_PHY	0
-#define CONFIG_DP_DDR_CTRL		2
-#define CONFIG_DP_DDR_NUM_CTRLS		1
-#endif
 
-/* Generic Timer Definitions */
 /*
  * This is not an accurate number. It is used in start.S. The frequency
  * will be udpated later when get_bus_freq(0) is available.
  */
-#define COUNTER_FREQUENCY		25000000	/* 25MHz */
 
 /* GPIO */
-#ifdef CONFIG_DM_GPIO
-#ifndef CONFIG_MPC8XXX_GPIO
-#define CONFIG_MPC8XXX_GPIO
-#endif
-#endif
 
 /* I2C */
 
@@ -73,9 +54,6 @@
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE     1
 #define CONFIG_SYS_NS16550_CLK          (get_serial_clock())
-
-/* IFC */
-#define CONFIG_FSL_IFC
 
 /*
  * During booting, IFC is mapped at the region of 0x30000000.
@@ -130,11 +108,6 @@ unsigned long long get_qixis_addr(void);
 #define CONFIG_SYS_LS_MC_AIOP_IMG_MAX_LENGTH	0x200000
 #define CONFIG_SYS_LS_MC_DRAM_AIOP_IMG_OFFSET	0x07000000
 
-/* Define phy_reset function to boot the MC based on mcinitcmd.
- * This happens late enough to properly fixup u-boot env MAC addresses.
- */
-#define CONFIG_RESET_PHY_R
-
 /*
  * Carve out a DDR region which will not be used by u-boot/Linux
  *
@@ -149,7 +122,6 @@ unsigned long long get_qixis_addr(void);
 
 /* Physical Memory Map */
 /* fixme: these need to be checked against the board */
-#define CONFIG_CHIP_SELECTS_PER_CTRL	4
 
 #define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		128
@@ -169,19 +141,6 @@ unsigned long long get_qixis_addr(void);
 	"console=ttyAMA0,38400n8\0"		\
 	"mcinitcmd=fsl_mc start mc 0x580a00000"	\
 	" 0x580e00000 \0"
-
-#ifndef CONFIG_TFABOOT
-#ifdef CONFIG_SD_BOOT
-#define CONFIG_BOOTCOMMAND	"mmc read 0x80200000 0x6800 0x800;"\
-				" fsl_mc apply dpl 0x80200000 &&" \
-				" mmc read $kernel_load $kernel_start" \
-				" $kernel_size && bootm $kernel_load"
-#else
-#define CONFIG_BOOTCOMMAND	"fsl_mc apply dpl 0x580d00000 &&" \
-				" cp.b $kernel_start $kernel_load" \
-				" $kernel_size && bootm $kernel_load"
-#endif
-#endif
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE		512	/* Console I/O Buffer Size */

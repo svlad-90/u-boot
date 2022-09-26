@@ -19,7 +19,6 @@
  *  System memory Configuration
  */
 #define CONFIG_SYS_INIT_SP_ADDR		CONFIG_SYS_TEXT_BASE
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
 #define CONFIG_SYS_MEM_SIZE		0x40000000
 #define CONFIG_SYS_SDRAM_BASE		0x71000000
 
@@ -89,12 +88,6 @@
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 
 /*-----------------------------------------------------------------------
- * Etc Command definition
- */
-#undef CONFIG_BOOTM_NETBSD
-#undef CONFIG_BOOTM_RTEMS
-
-/*-----------------------------------------------------------------------
  * serial console configuration
  */
 #define CONFIG_PL011_CLOCK		50000000
@@ -102,16 +95,6 @@
 					 (void *)PHY_BASEADDR_UART1, \
 					 (void *)PHY_BASEADDR_UART2, \
 					 (void *)PHY_BASEADDR_UART3}
-
-/*-----------------------------------------------------------------------
- * PLL
- */
-#define CONFIG_SYS_PLLFIN		24000000UL
-
-/*-----------------------------------------------------------------------
- * Timer
- */
-#define CONFIG_TIMER_SYS_TICK_CH	0
 
 /*-----------------------------------------------------------------------
  * BACKLIGHT
@@ -130,8 +113,6 @@
 /*-----------------------------------------------------------------------
  * VIDEO
  */
-
-#define CONFIG_VIDEO_LOGO
 
 #ifdef CONFIG_VIDEO_LOGO
 #ifdef CONFIG_SPLASH_SCREEN

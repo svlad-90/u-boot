@@ -75,7 +75,7 @@ static bool esr_is_external_data_abort(unsigned int esr)
 		((unsigned int)(ESR_ELx_EC_DABT_CUR) << ESR_ELx_EC_SHIFT));
 }
 
-int handle_synchronous_exception(struct pt_regs *pt_regs, unsigned int esr)
+int handle_synchronous_exception(struct pt_regs *pt_regs)
 {
 	struct mm_region *region;
 	u64 far;
@@ -84,7 +84,7 @@ int handle_synchronous_exception(struct pt_regs *pt_regs, unsigned int esr)
 	 * HACK: Check for an external data abort, symptomatic of an
 	 * injected exception
 	 */
-	if (!esr_is_external_data_abort(esr))
+	if (!esr_is_external_data_abort(pt_regs->esr))
 		return 0;
 
 	asm volatile("mrs %0, far_el1" : "=r" (far));

@@ -6,19 +6,11 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define CONFIG_ARMV7_SECURE_BASE	OCRAM_BASE_S_ADDR
-
-#define CONFIG_SYS_FSL_CLK
-
-#define CONFIG_DEEP_SLEEP
-
 #define CONFIG_SYS_INIT_RAM_ADDR	OCRAM_BASE_ADDR
 #define CONFIG_SYS_INIT_RAM_SIZE	OCRAM_SIZE
 
 /* XHCI Support - enabled by default */
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	1
-
-#define CONFIG_SYS_CLK_FREQ		100000000
 
 #define DDR_SDRAM_CFG			0x470c0008
 #define DDR_CS0_BNDS			0x008000bf
@@ -75,14 +67,11 @@
 #endif /* ifdef CONFIG_U_BOOT_HDR_SIZE */
 #endif
 
-#define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM			0x80000000
 #define PHYS_SDRAM_SIZE			(1u * 1024 * 1024 * 1024)
 
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x80000000UL
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
-
-#define CONFIG_CHIP_SELECTS_PER_CTRL	4
 
 /* Serial Port */
 #define CONFIG_SYS_NS16550_SERIAL
@@ -110,7 +99,6 @@
 #endif
 
 #define CONFIG_LAYERSCAPE_NS_ACCESS
-#define COUNTER_FREQUENCY		12500000
 
 #define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		256
@@ -126,7 +114,6 @@
 #define CONFIG_EXTRA_ENV_SETTINGS					\
 	"bootargs=root=/dev/ram0 rw console=ttyS0,115200\0"		\
 	"initrd_high=0xffffffff\0"					\
-	"fdt_addr=0x64f00000\0"						\
 	"kernel_addr=0x61000000\0"					\
 	"kernelheader_addr=0x60800000\0"				\
 	"scriptaddr=0x80000000\0"					\
@@ -201,12 +188,6 @@
 	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SPL_TEXT_BASE
-#else
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SYS_TEXT_BASE    /* start of monitor */
-#endif
 
 /* Environment */
 

@@ -18,15 +18,6 @@
 /* LCD */
 #define LCD_BPP				LCD_COLOR16
 #define LCD_OUTPUT_BPP			24
-#define CONFIG_LCD_LOGO
-#define CONFIG_LCD_INFO
-#define CONFIG_LCD_INFO_BELOW_LOGO
-#define CONFIG_ATMEL_LCD_RGB565
-
-/*
- * BOOTP options
- */
-#define CONFIG_BOOTP_BOOTFILESIZE
 
 #define CONFIG_SYS_SDRAM_BASE		0x20000000
 #define CONFIG_SYS_SDRAM_SIZE		0x08000000
@@ -66,33 +57,6 @@
 #define CONFIG_SYS_USB_OHCI_REGS_BASE	ATMEL_BASE_OHCI
 #define CONFIG_SYS_USB_OHCI_SLOT_NAME	"at91sam9n12"
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	1
-#endif
-
-#ifdef CONFIG_SPI_BOOT
-
-/* bootstrap + u-boot + env + linux in dataflash on CS0 */
-#define CONFIG_BOOTCOMMAND						\
-	"setenv bootargs ${console} ${mtdparts} ${bootargs_nand};"	\
-	"sf probe 0; sf read 0x22000000 0x100000 0x300000; "		\
-	"bootm 0x22000000"
-
-#elif defined(CONFIG_NAND_BOOT)
-
-/* bootstrap + u-boot + env + linux in nandflash */
-#define CONFIG_BOOTCOMMAND						\
-	"setenv bootargs ${console} ${mtdparts} ${bootargs_nand};"	\
-	"nand read 0x21000000 0x180000 0x080000;"			\
-	"nand read 0x22000000 0x200000 0x400000;"			\
-	"bootm 0x22000000 - 0x21000000"
-
-#else /* CONFIG_SD_BOOT */
-
-#define CONFIG_BOOTCOMMAND						\
-	"setenv bootargs ${console} ${mtdparts} ${bootargs_mmc};"	\
-	"fatload mmc 0:1 0x21000000 dtb;"				\
-	"fatload mmc 0:1 0x22000000 uImage;"				\
-	"bootm 0x22000000 - 0x21000000"
-
 #endif
 
 /* SPL */

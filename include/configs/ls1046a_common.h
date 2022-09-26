@@ -26,8 +26,6 @@
 #define SPL_NO_IFC
 #endif
 
-#define CONFIG_REMAKE_ELF
-
 #include <asm/arch/config.h>
 #include <asm/arch/stream_id_lsch2.h>
 
@@ -45,9 +43,6 @@
 #define CONFIG_SYS_DDR_BLOCK2_BASE      0x880000000ULL
 
 #define CPU_RELEASE_ADDR               secondary_boot_addr
-
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		25000000	/* 25MHz */
 
 /* Serial Port */
 #define CONFIG_SYS_NS16550_SERIAL
@@ -110,11 +105,6 @@
 #endif
 
 /* GPIO */
-#ifdef CONFIG_DM_GPIO
-#ifndef CONFIG_MPC8XXX_GPIO
-#define CONFIG_MPC8XXX_GPIO
-#endif
-#endif
 
 /* I2C */
 
@@ -129,14 +119,7 @@
 
 /* SATA */
 #ifndef SPL_NO_SATA
-#define CONFIG_SCSI_AHCI_PLAT
-
 #define CONFIG_SYS_SATA				AHCI_BASE_ADDR
-
-#define CONFIG_SYS_SCSI_MAX_SCSI_ID		1
-#define CONFIG_SYS_SCSI_MAX_LUN			1
-#define CONFIG_SYS_SCSI_MAX_DEVICE		(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
-						CONFIG_SYS_SCSI_MAX_LUN)
 #endif
 
 /* FMan ucode */
@@ -182,7 +165,6 @@
 	"ramdisk_addr=0x800000\0"		\
 	"ramdisk_size=0x2000000\0"		\
 	"bootm_size=0x10000000\0"		\
-	"fdt_addr=0x64f00000\0"                 \
 	"kernel_addr=0x61000000\0"              \
 	"scriptaddr=0x80000000\0"               \
 	"scripthdraddr=0x80080000\0"		\

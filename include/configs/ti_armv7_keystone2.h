@@ -63,7 +63,6 @@
 #define CONFIG_SYS_SPI_CLK		ks_clk_get_rate(KS2_CLK1_6)
 
 /* Network Configuration */
-#define CONFIG_NET_RETRY_COUNT		32
 #define CONFIG_SYS_SGMII_REFCLK_MHZ	312
 #define CONFIG_SYS_SGMII_LINERATE_MHZ	1250
 #define CONFIG_SYS_SGMII_RATESCALE	2
@@ -108,7 +107,6 @@
 	DFU_ALT_INFO_MMC \
 
 /* U-Boot general configuration */
-#define CONFIG_TIMESTAMP
 
 /* EDMA3 */
 
@@ -204,24 +202,6 @@
 	"no_post=1\0"							\
 	"mtdparts=mtdparts=davinci_nand.0:"				\
 		"1024k(bootloader)ro,512k(params)ro,-(ubifs)\0"
-
-#ifndef CONFIG_BOOTCOMMAND
-#ifndef CONFIG_TI_SECURE_DEVICE
-#define CONFIG_BOOTCOMMAND						\
-	"run init_${boot}; "						\
-	"run get_mon_${boot} run_mon; "					\
-	"run get_kern_${boot}; "					\
-	"run init_fw_rd_${boot}; "					\
-	"run get_fdt_${boot}; "						\
-	"run run_kern"
-#else
-#define CONFIG_BOOTCOMMAND						\
-	"run run_mon_hs; "						\
-	"run init_${boot}; "						\
-	"run get_fit_${boot}; "						\
-	"bootm ${addr_fit}#${name_fdt}"
-#endif
-#endif
 
 /* Now for the remaining common defines */
 #include <configs/ti_armv7_common.h>

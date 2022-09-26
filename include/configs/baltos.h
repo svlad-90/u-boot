@@ -185,15 +185,6 @@
 	/*DFUARGS*/
 #endif
 
-#define CONFIG_BOOTCOMMAND \
-	"run findfdt; " \
-	"run usbboot;" \
-	"run mmcboot;" \
-	"setenv mmcdev 1; " \
-	"setenv bootpart 1:2; " \
-	"run mmcboot;" \
-	"run nandboot;"
-
 /* NS16550 Configuration */
 #define CONFIG_SYS_NS16550_COM1		0x44e09000	/* Base EVM has UART0 */
 #define CONFIG_SYS_NS16550_COM2		0x48022000	/* UART1 */
@@ -222,18 +213,6 @@
 #define CONFIG_SYS_NAND_U_BOOT_START	CONFIG_SYS_TEXT_BASE
 #endif
 #endif
-
-/*
- * USB configuration.  We enable MUSB support, both for host and for
- * gadget.  We set USB0 as peripheral and USB1 as host, based on the
- * board schematic and physical port wired to each.  Then for host we
- * add mass storage support and for gadget we add both RNDIS ethernet
- * and DFU.
- */
-#define CONFIG_AM335X_USB0
-#define CONFIG_AM335X_USB0_MODE	MUSB_HOST
-#define CONFIG_AM335X_USB1
-#define CONFIG_AM335X_USB1_MODE MUSB_OTG
 
 /* NAND support */
 #ifdef CONFIG_MTD_RAW_NAND

@@ -141,21 +141,16 @@
 #define CONFIG_SYS_FSL_CPC		/* Corenet Platform Cache */
 #define CONFIG_SYS_NUM_CPC		CONFIG_SYS_NUM_DDR_CTLRS
 #define CONFIG_PCIE1			/* PCIE controller 1 */
-#define CONFIG_SYS_PCI_64BIT		/* enable 64-bit PCI resources */
 
 /* Environment in parallel NOR-Flash */
 #define CONFIG_ENV_TOTAL_SIZE		0x040000
 #define ENV_DEL_ADDR		0xebf00000	/*direct for newenv*/
 
-#define CONFIG_SYS_CLK_FREQ	66666666
-
 /*
  * These can be toggled for performance analysis, otherwise use default.
  */
 #define CONFIG_SYS_CACHE_STASHING
-#define CONFIG_BACKSIDE_L2_CACHE
 #define CONFIG_SYS_INIT_L2CSR0		L2CSR0_L2E
-#define CONFIG_BTB			/* toggle branch predition */
 
 #define CONFIG_ENABLE_36BIT_PHYS
 
@@ -177,9 +172,6 @@
 #define CONFIG_VERY_BIG_RAM
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x00000000
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
-
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_CHIP_SELECTS_PER_CTRL	(2 * CONFIG_DIMM_SLOTS_PER_CTLR)
 
 #define CONFIG_SYS_SPD_BUS_NUM	0
 #define SPD_EEPROM_ADDRESS	0x54
@@ -249,7 +241,6 @@
 /* More NOR Flash params */
 #define CONFIG_SYS_FLASH_QUIET_TEST
 
-#define CONFIG_SYS_MAX_FLASH_BANKS	1	/* number of banks */
 #define CONFIG_SYS_MAX_FLASH_SECT	512	/* sectors per device */
 
 #define CONFIG_SYS_FLASH_EMPTY_INFO
@@ -352,7 +343,6 @@
 					GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_OFFSET	CONFIG_SYS_GBL_DATA_OFFSET
 
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_TEXT_BASE	/* start of monitor */
 #define CONFIG_SYS_MONITOR_LEN		0xc0000         /* 768k */
 
 /*
@@ -362,7 +352,6 @@
  * Retain non-DM serial port for debug purposes.
  */
 #if !defined(CONFIG_DM_SERIAL)
-#define CONFIG_CONS_INDEX	1
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	1
 #define CONFIG_SYS_NS16550_CLK		(get_bus_freq(0) / 2)
@@ -415,7 +404,6 @@ int get_scl(void);
 /* Qman / Bman */
 /* RGMII (FM1@DTESC5) is local managemant interface */
 #define CONFIG_SYS_RGMII2_PHY_ADDR             0x11
-#define CONFIG_ETHPRIME		"fm1-mac5"
 
 /*
  * Hardware Watchdog

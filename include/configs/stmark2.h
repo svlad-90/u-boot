@@ -15,13 +15,6 @@
 #define LDS_BOARD_TEXT						\
 	board/sysam/stmark2/sbf_dram_init.o (.text*)
 
-#define CONFIG_TIMESTAMP
-
-#define CONFIG_BOOTCOMMAND					\
-	"sf probe 0:1 50000000; "				\
-	"sf read ${loadaddr} 0x100000 ${kern_size}; "		\
-	"bootm ${loadaddr}"
-
 #define CONFIG_EXTRA_ENV_SETTINGS				\
 	"kern_size=0x700000\0"					\
 	"loadaddr=0x40001000\0"					\
@@ -42,19 +35,8 @@
 	""
 
 /* Realtime clock */
-#undef CONFIG_MCFRTC
 #define CONFIG_RTC_MCFRRTC
 #define CONFIG_SYS_MCFRRTC_BASE		0xFC0A8000
-
-/* spi not partitions */
-#define CONFIG_JFFS2_DEV		"nor0"
-
-/* Timer */
-#define CONFIG_MCFTMR
-
-/* DSPI and Serial Flash */
-#define CONFIG_CF_DSPI
-#define CONFIG_SERIAL_FLASH
 
 #define CONFIG_SYS_SBFHDR_SIZE		0x7
 
@@ -99,12 +81,6 @@
 #define CONFIG_SERIAL_BOOT
 #endif
 
-#if defined(CONFIG_SERIAL_BOOT)
-#define CONFIG_SYS_MONITOR_BASE		(CONFIG_SYS_TEXT_BASE + 0x400)
-#else
-#define CONFIG_SYS_MONITOR_BASE		(CONFIG_SYS_FLASH_BASE + 0x400)
-#endif
-
 #define CONFIG_SYS_BOOTPARAMS_LEN	(64 * 1024)
 /* Reserve 256 kB for Monitor */
 #define CONFIG_SYS_MONITOR_LEN		(256 << 10)
@@ -142,18 +118,11 @@
 					CONFIG_SYS_INIT_RAM_SIZE - 12)
 
 #ifdef CONFIG_MCFFEC
-#define CONFIG_MII_INIT			1
 #define CONFIG_SYS_DISCOVER_PHY
-#define CONFIG_SYS_RX_ETH_BUFFER	8
-#define CONFIG_SYS_FAULT_ECHO_LINK_DOWN
 /* If CONFIG_SYS_DISCOVER_PHY is not defined - hardcoded */
 #ifndef CONFIG_SYS_DISCOVER_PHY
 #define FECDUPLEX			FULL
 #define FECSPEED			_100BASET
-#else
-#ifndef CONFIG_SYS_FAULT_ECHO_LINK_DOWN
-#define CONFIG_SYS_FAULT_ECHO_LINK_DOWN
-#endif
 #endif /* CONFIG_SYS_DISCOVER_PHY */
 #endif
 #endif /* __STMARK2_CONFIG_H */

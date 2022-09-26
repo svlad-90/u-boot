@@ -13,12 +13,6 @@
 #define CONFIG_SYS_AT91_MAIN_CLOCK	12000000	/* 12 MHz crystal */
 
 /* general purpose I/O */
-#define CONFIG_ATMEL_LEGACY		/* required until (g)pio is fixed */
-
-/*
- * BOOTP options
- */
-#define CONFIG_BOOTP_BOOTFILESIZE
 
 /*
  * define CONFIG_USB_EHCI_HCD to enable USB Hi-Speed (aka 2.0)
@@ -58,24 +52,6 @@
 #define CONFIG_SYS_USB_OHCI_SLOT_NAME		"at91sam9x5"
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	3
 #endif
-#endif
-
-#ifdef CONFIG_NAND_BOOT
-/* bootstrap + u-boot + env + linux in nandflash */
-#define CONFIG_BOOTCOMMAND	"nand read " \
-				"0x22000000 0x200000 0x600000; " \
-				"nand read 0x21000000 0x180000 0x20000; " \
-				"bootz 0x22000000 - 0x21000000"
-#elif defined(CONFIG_SPI_BOOT)
-/* bootstrap + u-boot + env + linux in spi flash */
-#define CONFIG_BOOTCOMMAND	"sf probe 0; " \
-				"sf read 0x22000000 0x100000 0x300000; " \
-				"bootm 0x22000000"
-#elif defined(CONFIG_SYS_USE_DATAFLASH)
-/* bootstrap + u-boot + env + linux in data flash */
-#define CONFIG_BOOTCOMMAND	"sf probe 0; " \
-				"sf read 0x22000000 0x84000 0x294000; " \
-				"bootm 0x22000000"
 #endif
 
 /* SPL */

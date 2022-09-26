@@ -13,7 +13,6 @@
 /*
  * High Level Configuration Options
  */
-#define CONFIG_E300		1 /* E300 family */
 
 #define CONFIG_HWCONFIG
 
@@ -127,7 +126,6 @@
 /*
  * The reserved memory
  */
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_TEXT_BASE /* start of monitor */
 
 #if (CONFIG_SYS_MONITOR_BASE < CONFIG_SYS_FLASH_BASE)
 #define CONFIG_SYS_RAMBOOT
@@ -155,7 +153,6 @@
 #define CONFIG_SYS_FLASH_EMPTY_INFO		/* display empty sectors */
 
 
-#define CONFIG_SYS_MAX_FLASH_BANKS	1 /* number of banks */
 #define CONFIG_SYS_MAX_FLASH_SECT	256 /* max sectors per device */
 
 #undef	CONFIG_SYS_FLASH_CHECKSUM
@@ -251,7 +248,6 @@
 #define CONFIG_TSEC1
 
 #ifdef CONFIG_TSEC1
-#define CONFIG_HAS_ETH0
 #define CONFIG_TSEC1_NAME		"TSEC0"
 #define CONFIG_SYS_TSEC1_OFFSET		0x24000
 #define TSEC1_PHY_ADDR			2
@@ -260,23 +256,17 @@
 #endif
 
 #ifdef CONFIG_TSEC2
-#define CONFIG_HAS_ETH1
 #define CONFIG_TSEC2_NAME		"TSEC1"
 #define CONFIG_SYS_TSEC2_OFFSET		0x25000
 #define TSEC2_PHY_ADDR			0x1c
 #define TSEC2_FLAGS			(TSEC_GIGABIT | TSEC_REDUCED)
 #define TSEC2_PHYIDX			0
 #endif
-
-/* Options are: TSEC[0-1] */
-#define CONFIG_ETHPRIME			"TSEC0"
-
 #endif
 
 /*
  * SATA
  */
-#define CONFIG_SYS_SATA_MAX_DEVICE	2
 #define CONFIG_SATA1
 #define CONFIG_SYS_SATA1_OFFSET	0x18000
 #define CONFIG_SYS_SATA1	(CONFIG_SYS_IMMR + CONFIG_SYS_SATA1_OFFSET)
@@ -296,13 +286,6 @@
 
 #define CONFIG_LOADS_ECHO	1	/* echo on for serial download */
 #define CONFIG_SYS_LOADS_BAUD_CHANGE	1	/* allow baudrate change */
-
-/*
- * BOOTP options
- */
-#define CONFIG_BOOTP_BOOTFILESIZE
-
-#undef CONFIG_WATCHDOG		/* watchdog disabled */
 
 #ifdef CONFIG_MMC
 #define CONFIG_FSL_ESDHC_PIN_MUX
@@ -326,15 +309,12 @@
  */
 
 #define CONFIG_HAS_FSL_DR_USB
-#define CONFIG_USB_EHCI_FSL
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
 
 #define CONFIG_NETDEV		"eth1"
 
 #define CONFIG_HOSTNAME		"mpc837x_rdb"
 #define CONFIG_ROOTPATH		"/nfsroot"
-#define CONFIG_RAMDISKFILE	"rootfs.ext2.gz.uboot"
-#define CONFIG_BOOTFILE		"uImage"
 				/* U-Boot image on TFTP server */
 #define CONFIG_UBOOTPATH	"u-boot.bin"
 #define CONFIG_FDTFILE		"mpc8379_rdb.dtb"
@@ -356,7 +336,7 @@
 	"fdtaddr=780000\0"						\
 	"fdtfile=" CONFIG_FDTFILE "\0"					\
 	"ramdiskaddr=1000000\0"						\
-	"ramdiskfile=" CONFIG_RAMDISKFILE "\0"				\
+	"ramdiskfile=rootfs.ext2.gz.uboot\0"				\
 	"console=ttyS0\0"						\
 	"setbootargs=setenv bootargs "					\
 		"root=$rootdev rw console=$console,$baudrate $othbootargs\0" \
@@ -364,21 +344,5 @@
 		"ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname:"	\
 							"$netdev:off "	\
 		"root=$rootdev rw console=$console,$baudrate $othbootargs\0"
-
-#define NFSBOOTCOMMAND						\
-	"setenv rootdev /dev/nfs;"					\
-	"run setbootargs;"						\
-	"run setipargs;"						\
-	"tftp $loadaddr $bootfile;"					\
-	"tftp $fdtaddr $fdtfile;"					\
-	"bootm $loadaddr - $fdtaddr"
-
-#define RAMBOOTCOMMAND						\
-	"setenv rootdev /dev/ram;"					\
-	"run setbootargs;"						\
-	"tftp $ramdiskaddr $ramdiskfile;"				\
-	"tftp $loadaddr $bootfile;"					\
-	"tftp $fdtaddr $fdtfile;"					\
-	"bootm $loadaddr $ramdiskaddr $fdtaddr"
 
 #endif	/* __CONFIG_H */

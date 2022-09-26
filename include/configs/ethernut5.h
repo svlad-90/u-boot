@@ -32,9 +32,7 @@
 #define CONFIG_SYS_SDRAM_SIZE		(128 << 20)
 
 /* 512kB on-chip NOR flash */
-# define CONFIG_SYS_MAX_FLASH_BANKS	1
 # define CONFIG_SYS_FLASH_BASE		0x00200000 /* AT91SAM9XE_FLASH_BASE */
-# define CONFIG_AT91_EFLASH
 # define CONFIG_SYS_MAX_FLASH_SECT	32
 # define CONFIG_EFLASH_PROTSECTORS	1
 
@@ -54,19 +52,13 @@
 #endif
 
 /* JFFS2 */
-#ifdef CONFIG_CMD_JFFS2
-#define CONFIG_JFFS2_NAND
-#endif
 
 /* Ethernet */
-#define CONFIG_NET_RETRY_COUNT		20
-#define CONFIG_RMII
 #define CONFIG_PHY_ID			0
 #define CONFIG_MACB_SEARCH_PHY
 
 /* MMC */
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_GENERIC_ATMEL_MCI
 #define CONFIG_SYS_MMC_CD_PIN		AT91_PIO_PORTC, 8
 #endif
 
@@ -111,16 +103,12 @@
 
 /* DHCP/BOOTP options */
 #ifdef CONFIG_CMD_DHCP
-#define CONFIG_BOOTP_BOOTFILESIZE
 #define CONFIG_SYS_AUTOLOAD	"n"
 #endif
 
 /* File systems */
 
 /* Boot command */
-#define CONFIG_BOOTCOMMAND	"sf probe 0:0; " \
-				"sf read 0x22000000 0xc6000 0x294000; " \
-				"bootm 0x22000000"
 
 /* Misc. u-boot settings */
 

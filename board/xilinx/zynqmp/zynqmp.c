@@ -70,6 +70,11 @@ static const struct {
 	u8 variants;
 } zynqmp_devices[] = {
 	{
+		.id = 0x04688093,
+		.device = 1,
+		.variants = ZYNQMP_VARIANT_EG,
+	},
+	{
 		.id = 0x04711093,
 		.device = 2,
 		.variants = ZYNQMP_VARIANT_EG | ZYNQMP_VARIANT_CG,
@@ -313,9 +318,8 @@ static char *zynqmp_get_silicon_idcode_name(void)
 }
 #endif
 
-int board_early_init_f(void)
+int __maybe_unused psu_uboot_init(void)
 {
-#if defined(CONFIG_ZYNQMP_PSU_INIT_ENABLED)
 	int ret;
 
 	ret = psu_init();
@@ -335,16 +339,31 @@ int board_early_init_f(void)
 
 	/* Delay is required for clocks to be propagated */
 	udelay(1000000);
-#endif
-
-#ifdef CONFIG_DEBUG_UART
-	/* Uart debug for sure */
-	debug_uart_init();
-	puts("Debug uart enabled\n"); /* or printch() */
-#endif
-
+	
 	return 0;
 }
+
+#if !defined(CONFIG_SPL_BUILD)
+# if defined(CONFIG_DEBUG_UART_BOARD_INIT)
+void board_debug_uart_init(void)
+{
+#  if defined(CONFIG_ZYNQMP_PSU_INIT_ENABLED)
+	psu_uboot_init();
+#  endif
+}
+# endif
+
+# if defined(CONFIG_BOARD_EARLY_INIT_F)
+int board_early_init_f(void)
+{
+	int ret = 0;
+#  if defined(CONFIG_ZYNQMP_PSU_INIT_ENABLED) && !defined(CONFIG_DEBUG_UART_BOARD_INIT)
+	ret = psu_uboot_init();
+#  endif
+	return ret;
+}
+# endif
+#endif
 
 static int multi_boot(void)
 {
@@ -373,8 +392,17 @@ static void restore_jtag(void)
 }
 #endif
 
-#define PS_SYSMON_ANALOG_BUS_VAL	0x3210
-#define PS_SYSMON_ANALOG_BUS_REG	0xFFA50914
+static void print_secure_boot(void)
+{
+	u32 status = 0;
+
+	if (zynqmp_mmio_read((ulong)&csu_base->status, &status))
+		return;
+
+	printf("Secure Boot:\t%sauthenticated, %sencrypted\n",
+	       status & ZYNQMP_CSU_STATUS_AUTHENTICATED ? "" : "not ",
+	       status & ZYNQMP_CSU_STATUS_ENCRYPTED ? "" : "not ");
+}
 
 int board_init(void)
 {
@@ -403,9 +431,6 @@ int board_init(void)
 
 	printf("EL Level:\tEL%d\n", current_el());
 
-	/* Bug in ROM sets wrong value in this register */
-	writel(PS_SYSMON_ANALOG_BUS_VAL, PS_SYSMON_ANALOG_BUS_REG);
-
 #if CONFIG_IS_ENABLED(FPGA) && defined(CONFIG_FPGA_ZYNQMPPL)
 	zynqmppl.name = zynqmp_get_silicon_idcode_name();
 	printf("Chip ID:\t%s\n", zynqmppl.name);
@@ -413,6 +438,8 @@ int board_init(void)
 	fpga_add(fpga_xilinx, &zynqmppl);
 #endif
 
+	/* display secure boot information */
+	print_secure_boot();
 	if (current_el() == 3)
 		printf("Multiboot:\t%d\n", multi_boot());
 
@@ -488,6 +515,9 @@ ulong board_get_usable_ram_top(ulong total_size)
 	phys_size_t size;
 	phys_addr_t reg;
 	struct lmb lmb;
+
+	if (!total_size)
+		return gd->ram_top;
 
 	if (!IS_ALIGNED((ulong)gd->fdt_blob, 0x8))
 		panic("Not 64bit aligned DT location: %p\n", gd->fdt_blob);
@@ -862,7 +892,8 @@ void set_dfu_alt_info(char *interface, char *devstr)
 
 	ALLOC_CACHE_ALIGN_BUFFER(char, buf, DFU_ALT_BUF_LEN);
 
-	if (env_get("dfu_alt_info"))
+	if (!CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT) &&
+	    env_get("dfu_alt_info"))
 		return;
 
 	memset(buf, 0, sizeof(buf));

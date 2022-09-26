@@ -9,7 +9,6 @@
 #define __CONFIG_H
 
 /* System configurations */
-#define CONFIG_KEYBOARD
 
 #include "mx6_common.h"
 
@@ -26,7 +25,6 @@
  */
 
 /* Booting Linux */
-#define CONFIG_BOOTFILE			"fitImage"
 #define CONFIG_HOSTNAME			"novena"
 
 /* Physical Memory Map */
@@ -43,11 +41,6 @@
 
 /* SPL */
 #include "imx6_spl.h"			/* common IMX6 SPL configuration */
-
-/* Ethernet Configuration */
-#ifdef CONFIG_SPL_BUILD
-#undef CONFIG_DM_ETH
-#endif
 
 /* I2C */
 #define CONFIG_I2C_MULTI_BUS
@@ -87,7 +80,6 @@
 #endif
 
 /* Video output */
-#define CONFIG_VIDEO_LOGO
 #define CONFIG_IMX_HDMI
 #define CONFIG_IMX_VIDEO_SKIP
 

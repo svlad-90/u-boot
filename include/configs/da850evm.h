@@ -18,7 +18,6 @@
  * SoC Configuration
  */
 #define CONFIG_SYS_EXCEPTION_VECTORS_HIGH
-#define CONFIG_SYS_CLK_FREQ		clk_get(DAVINCI_ARM_CLKID)
 #define CONFIG_SYS_OSCIN_FREQ		24000000
 #define CONFIG_SYS_TIMERBASE		DAVINCI_TIMER0_BASE
 #define CONFIG_SYS_HZ_CLOCK		clk_get(DAVINCI_AUXCLK_CLKID)
@@ -136,21 +135,9 @@
 				59, 60, 61, 62, 63 }
 #define CONFIG_SYS_NAND_ECCSIZE		512
 #define CONFIG_SYS_NAND_ECCBYTES	10
-
-#ifndef CONFIG_SPL_BUILD
-#define CONFIG_SYS_NAND_SELF_INIT
-#endif
-#endif
-
-/*
- * Network & Ethernet Configuration
- */
-#ifdef CONFIG_DRIVER_TI_EMAC
-#define CONFIG_NET_RETRY_COUNT	10
 #endif
 
 #ifdef CONFIG_MTD_NOR_FLASH
-#define CONFIG_SYS_MAX_FLASH_BANKS	1 /* max number of flash banks */
 #define CONFIG_SYS_FLASH_SECT_SZ	(128 << 10) /* 128KB */
 #define CONFIG_SYS_FLASH_BASE		DAVINCI_ASYNC_EMIF_DATA_CE2_BASE
 #define PHYS_FLASH_SIZE			(8 << 20) /* Flash size 8MB */
@@ -161,7 +148,6 @@
 /*
  * U-Boot general configuration
  */
-#define CONFIG_BOOTFILE		"uImage" /* Boot file name */
 #define CONFIG_SYS_CBSIZE	1024 /* Console I/O Buffer Size	*/
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE /* Boot Args Buffer Size */
 
@@ -170,10 +156,6 @@
  */
 #define LINUX_BOOT_PARAM_ADDR	(PHYS_SDRAM_1 + 0x100)
 #define CONFIG_HWCONFIG		/* enable hwconfig */
-
-#define CONFIG_BOOTCOMMAND \
-		"run envboot; " \
-		"run mmcboot; "
 
 #define DEFAULT_LINUX_BOOT_ENV \
 	"loadaddr=0xc0700000\0" \
@@ -193,10 +175,6 @@
 	"boot_fit=0\0" \
 	"console=ttyS2,115200n8\0" \
 	"hwconfig=dsp:wake=yes"
-
-#ifdef CONFIG_CMD_BDI
-#define CONFIG_CLOCKS
-#endif
 
 /* USB Configs */
 #define CONFIG_USB_OHCI_NEW

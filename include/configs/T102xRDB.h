@@ -20,11 +20,6 @@
 #define CONFIG_SYS_FSL_CPC		/* Corenet Platform Cache */
 #define CONFIG_SYS_NUM_CPC		CONFIG_SYS_NUM_DDR_CTLRS
 
-/* support deep sleep */
-#ifdef CONFIG_ARCH_T1024
-#define CONFIG_DEEP_SLEEP
-#endif
-
 #ifdef CONFIG_RAMBOOT_PBL
 #define CONFIG_SPL_FLUSH_IMAGE
 #define CONFIG_SPL_PAD_TO		0x40000
@@ -41,7 +36,9 @@
 #define CONFIG_SYS_NAND_U_BOOT_SIZE	(768 << 10)
 #define CONFIG_SYS_NAND_U_BOOT_DST	0x30000000
 #define CONFIG_SYS_NAND_U_BOOT_START	0x30000000
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	(256 << 10)
+#ifndef CONFIG_MPC85XX_HAVE_RESET_VECTOR
+#define CONFIG_SYS_MPC85XX_NO_RESETVEC
+#endif
 #endif
 
 #ifdef CONFIG_SPIFLASH
@@ -116,19 +113,11 @@
 #define CONFIG_RESET_VECTOR_ADDRESS 0xfffffffc
 #endif
 
-#ifndef __ASSEMBLY__
-unsigned long get_board_sys_clk(void);
-#endif
-
-#define CONFIG_SYS_CLK_FREQ	100000000
-
 /*
  * These can be toggled for performance analysis, otherwise use default.
  */
 #define CONFIG_SYS_CACHE_STASHING
-#define CONFIG_BACKSIDE_L2_CACHE
 #define CONFIG_SYS_INIT_L2CSR0		L2CSR0_L2E
-#define CONFIG_BTB			/* toggle branch predition */
 #ifdef CONFIG_DDR_ECC
 #define CONFIG_MEM_INIT_VALUE		0xdeadbeef
 #endif
@@ -159,8 +148,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_VERY_BIG_RAM
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x00000000
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_CHIP_SELECTS_PER_CTRL	(4 * CONFIG_DIMM_SLOTS_PER_CTLR)
 #if defined(CONFIG_TARGET_T1024RDB)
 #define CONFIG_SYS_SPD_BUS_NUM	0
 #define SPD_EEPROM_ADDRESS	0x51
@@ -209,7 +196,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_SYS_FLASH_QUIET_TEST
 #define CONFIG_FLASH_SHOW_PROGRESS	45 /* count down from 45/5: 9..1 */
 
-#define CONFIG_SYS_MAX_FLASH_BANKS	1	/* number of banks */
 #define CONFIG_SYS_MAX_FLASH_SECT	1024	/* sectors per device */
 #define CONFIG_SYS_FLASH_ERASE_TOUT	60000	/* Flash Erase Timeout (ms) */
 #define CONFIG_SYS_FLASH_WRITE_TOUT	500	/* Flash Write Timeout (ms) */
@@ -327,12 +313,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_SYS_CS1_FTIM3		CONFIG_SYS_NAND_FTIM3
 #endif
 
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SPL_TEXT_BASE
-#else
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
-#endif
-
 #if defined(CONFIG_RAMBOOT_PBL)
 #define CONFIG_SYS_RAMBOOT
 #endif
@@ -376,20 +356,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_SYS_NS16550_COM3	(CONFIG_SYS_CCSRBAR+0x11D500)
 #define CONFIG_SYS_NS16550_COM4	(CONFIG_SYS_CCSRBAR+0x11D600)
 
-/* Video */
-#undef CONFIG_FSL_DIU_FB	/* RDB doesn't support DIU */
-#ifdef CONFIG_FSL_DIU_FB
-#define CONFIG_SYS_DIU_ADDR	(CONFIG_SYS_CCSRBAR + 0x180000)
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
-#define CONFIG_CFI_FLASH_USE_WEAK_ACCESSORS
-/*
- * With CONFIG_CFI_FLASH_USE_WEAK_ACCESSORS, flash I/O is really slow, so
- * disable empty flash sector detection, which is I/O-intensive.
- */
-#undef CONFIG_SYS_FLASH_EMPTY_INFO
-#endif
-
 /* I2C */
 
 #define I2C_PCA6408_BUS_NUM		1
@@ -416,7 +382,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_PCIE1		/* PCIE controller 1 */
 #define CONFIG_PCIE2		/* PCIE controller 2 */
 #define CONFIG_PCIE3		/* PCIE controller 3 */
-#define CONFIG_SYS_PCI_64BIT	/* enable 64-bit PCI resources */
 
 #ifdef CONFIG_PCI
 /* controller 1, direct to uli, tgtid 3, Base address 20000 */
@@ -452,7 +417,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_HAS_FSL_DR_USB
 
 #ifdef CONFIG_HAS_FSL_DR_USB
-#define CONFIG_USB_EHCI_FSL
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
 #endif
 
@@ -516,10 +480,6 @@ unsigned long get_board_sys_clk(void);
 #endif
 #endif
 
-#ifdef CONFIG_FMAN_ENET
-#define CONFIG_ETHPRIME		"FM1@DTSEC4"
-#endif
-
 /*
  * Dynamic MTD Partition support with mtdparts
  */
@@ -546,25 +506,25 @@ unsigned long get_board_sys_clk(void);
  * Environment Configuration
  */
 #define CONFIG_ROOTPATH		"/opt/nfsroot"
-#define CONFIG_BOOTFILE		"uImage"
 #define CONFIG_UBOOTPATH	u-boot.bin /* U-Boot image on TFTP server */
 #define __USB_PHY_TYPE		utmi
 
 #ifdef CONFIG_ARCH_T1024
-#define CONFIG_BOARDNAME t1024rdb
-#define BANK_INTLV cs0_cs1
+#define ARCH_EXTRA_ENV_SETTINGS \
+	"bank_intlv=cs0_cs1\0"			\
+	"ramdiskfile=t1024rdb/ramdisk.uboot\0"	\
+	"fdtfile=t1024rdb/t1024rdb.dtb\0"
 #else
-#define CONFIG_BOARDNAME t1023rdb
-#define BANK_INTLV  null
+#define ARCH_EXTRA_ENV_SETTINGS \
+	"bank_intlv=null\0"			\
+	"ramdiskfile=t1023rdb/ramdisk.uboot\0"	\
+	"fdtfile=t1023rdb/t1023rdb.dtb\0"
 #endif
 
 #define	CONFIG_EXTRA_ENV_SETTINGS				\
+	ARCH_EXTRA_ENV_SETTINGS					\
 	"hwconfig=fsl_ddr:ctlr_intlv=cacheline,"		\
-	"bank_intlv=" __stringify(BANK_INTLV) "\0"		\
 	"usb1:dr_mode=host,phy_type=" __stringify(__USB_PHY_TYPE) "\0"  \
-	"ramdiskfile=" __stringify(CONFIG_BOARDNAME) "/ramdisk.uboot\0" \
-	"fdtfile=" __stringify(CONFIG_BOARDNAME) "/"		\
-	__stringify(CONFIG_BOARDNAME) ".dtb\0"			\
 	"uboot=" __stringify(CONFIG_UBOOTPATH) "\0"		\
 	"ubootaddr=" __stringify(CONFIG_SYS_TEXT_BASE) "\0"	\
 	"bootargs=root=/dev/ram rw console=ttyS0,115200\0" \
@@ -579,25 +539,6 @@ unsigned long get_board_sys_clk(void);
 	"ramdiskaddr=2000000\0"					\
 	"fdtaddr=1e00000\0"					\
 	"bdev=sda3\0"
-
-#define LINUXBOOTCOMMAND					\
-	"setenv bootargs root=/dev/ram rw "		\
-	"console=$consoledev,$baudrate $othbootargs;"	\
-	"setenv ramdiskaddr 0x02000000;"		\
-	"setenv fdtaddr 0x00c00000;"			\
-	"setenv loadaddr 0x1000000;"			\
-	"bootm $loadaddr $ramdiskaddr $fdtaddr"
-
-#define NFSBOOTCOMMAND			\
-	"setenv bootargs root=/dev/nfs rw "	\
-	"nfsroot=$serverip:$rootpath "		\
-	"ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname:$netdev:off " \
-	"console=$consoledev,$baudrate $othbootargs;"	\
-	"tftp $loadaddr $bootfile;"		\
-	"tftp $fdtaddr $fdtfile;"		\
-	"bootm $loadaddr - $fdtaddr"
-
-#define CONFIG_BOOTCOMMAND	LINUXBOOTCOMMAND
 
 #include <asm/fsl_secure_boot.h>
 

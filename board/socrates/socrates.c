@@ -26,7 +26,6 @@
 #include <fdt_support.h>
 #include <asm/io.h>
 #include <i2c.h>
-#include <video_fb.h>
 #include "upm_table.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -57,7 +56,7 @@ int checkboard (void)
 	/* Check the PCI_clk sel bit */
 	if (in_be32(&gur->porpllsr) & (1<<15)) {
 		src = "SYSCLK";
-		f = CONFIG_SYS_CLK_FREQ;
+		f = get_board_sys_clk();
 	} else {
 		src = "PCI_CLK";
 		f = CONFIG_PCI_CLK_FREQ;

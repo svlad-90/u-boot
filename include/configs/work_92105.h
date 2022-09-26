@@ -22,14 +22,6 @@
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_512K \
 					 - GENERATED_GBL_DATA_SIZE)
 
-/*
- * Ethernet Driver
- */
-
-#define CONFIG_LPC32XX_ETH
-#define CONFIG_SYS_FAULT_ECHO_LINK_DOWN
-/* FIXME: remove "Waiting for PHY auto negotiation to complete..." message */
-
 #define CONFIG_RTC_DS1374
 
 /*
@@ -55,7 +47,6 @@
  */
 
 /* driver configuration */
-#define CONFIG_SYS_NAND_SELF_INIT
 #define CONFIG_SYS_MAX_NAND_DEVICE 1
 #define CONFIG_SYS_MAX_NAND_CHIPS 1
 #define CONFIG_SYS_NAND_BASE MLC_NAND_BASE
@@ -64,17 +55,9 @@
  * GPIO
  */
 
-#define CONFIG_LPC32XX_GPIO
-
 /*
  * Environment
  */
-
-/*
- * Boot Linux
- */
-
-#define CONFIG_BOOTFILE			"uImage"
 
 /*
  * SPL

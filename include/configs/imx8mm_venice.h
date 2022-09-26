@@ -11,8 +11,6 @@
 
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		SZ_512K
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	0x300
 #define CONFIG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
@@ -31,21 +29,21 @@
 #endif
 
 #define MEM_LAYOUT_ENV_SETTINGS \
-	"fdt_addr_r=0x44000000\0" \
-	"kernel_addr_r=0x42000000\0" \
-	"ramdisk_addr_r=0x46400000\0" \
-	"scriptaddr=0x46000000\0"
-
-/* Link Definitions */
+	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+	"fdt_addr_r=0x50200000\0" \
+	"scriptaddr=0x50280000\0" \
+	"ramdisk_addr_r=0x50300000\0" \
+	"kernel_comp_addr_r=0x40200000\0"
 
 /* Enable Distro Boot */
 #ifndef CONFIG_SPL_BUILD
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
 	func(MMC, mmc, 2) \
+	func(USB, usb, 0) \
+	func(USB, usb, 1) \
 	func(DHCP, dhcp, na)
 #include <config_distro_bootcmd.h>
-#undef CONFIG_ISO_PARTITION
 #else
 #define BOOTENV
 #endif
@@ -56,8 +54,6 @@
 	MEM_LAYOUT_ENV_SETTINGS \
 	"script=boot.scr\0" \
 	"bootm_size=0x10000000\0" \
-	"ipaddr=192.168.1.22\0" \
-	"serverip=192.168.1.146\0" \
 	"dev=2\0" \
 	"preboot=gsc wd-disable\0" \
 	"console=ttymxc1,115200\0" \
@@ -67,9 +63,22 @@
 		"setexpr blkcnt $blkcnt / 0x200 && " \
 		"mmc dev $dev && " \
 		"mmc write $loadaddr 0x42 $blkcnt\0" \
+	"loadfdt=" \
+		"if $fsload $fdt_addr_r $dir/$fdt_file1; " \
+			"then echo loaded $fdt_file1; " \
+		"elif $fsload $fdt_addr_r $dir/$fdt_file2; " \
+			"then echo loaded $fdt_file2; " \
+		"elif $fsload $fdt_addr_r $dir/$fdt_file3; " \
+			"then echo loaded $fdt_file3; " \
+		"elif $fsload $fdt_addr_r $dir/$fdt_file4; " \
+			"then echo loaded $fdt_file4; " \
+		"elif $fsload $fdt_addr_r $dir/$fdt_file5; " \
+			"then echo loaded $fdt_file5; " \
+		"fi\0" \
 	"boot_net=" \
-		"tftpboot $kernel_addr_r $image && " \
-		"booti $kernel_addr_r - $fdtcontroladdr\0" \
+		"setenv fsload tftpboot; " \
+		"run loadfdt && tftpboot $kernel_addr_r $dir/Image && " \
+		"booti $kernel_addr_r - $fdt_addr_r\0" \
 	"update_rootfs=" \
 		"tftpboot $loadaddr $image && " \
 		"gzwrite mmc $dev $loadaddr $filesize 100000 1000000\0" \
@@ -89,11 +98,11 @@
 
 /* SDRAM configuration */
 #define PHYS_SDRAM                      0x40000000
-#define PHYS_SDRAM_SIZE			SZ_1G /* 1GB DDR */
+#define PHYS_SDRAM_SIZE			SZ_4G
 #define CONFIG_SYS_BOOTM_LEN		SZ_256M
 
 /* UART */
-#define CONFIG_MXC_UART_BASE		UART2_BASE_ADDR
+#define CONFIG_MXC_UART_BASE		UART_BASE_ADDR(2)
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE		SZ_2K
@@ -101,17 +110,5 @@
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
 					sizeof(CONFIG_SYS_PROMPT) + 16)
-
-/* USDHC */
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-#define CONFIG_SYS_FSL_ESDHC_ADDR	0
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
-/* FEC */
-#define CONFIG_ETHPRIME                 "eth0"
-#define CONFIG_FEC_XCV_TYPE             RGMII
-#define CONFIG_FEC_MXC_PHYADDR          0
-#define FEC_QUIRK_ENET_MAC
-#define IMX_FEC_BASE			0x30BE0000
 
 #endif

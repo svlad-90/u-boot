@@ -12,9 +12,6 @@
 #define CONFIG_SYS_BOOTM_LEN		(SZ_64M)
 #define CONFIG_SPL_MAX_SIZE		(148 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	0x300
-#define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
 #define CONFIG_SYS_UBOOT_BASE	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
 #ifdef CONFIG_SPL_BUILD
@@ -30,17 +27,11 @@
 
 #endif
 
-#define CONFIG_REMAKE_ELF
-
 /* ENET Config */
 #if defined(CONFIG_FEC_MXC)
-#define CONFIG_ETHPRIME                 "FEC"
 #define PHY_ANEG_TIMEOUT		20000
 
-#define CONFIG_FEC_XCV_TYPE		RMII
 #define CONFIG_FEC_MXC_PHYADDR		1
-
-#define IMX_FEC_BASE			0x29950000
 #endif
 
 #ifdef CONFIG_DISTRO_DEFAULTS
@@ -64,8 +55,8 @@
 	"fdtfile=imx8ulp-evk.dtb\0" \
 	"initrd_addr=0x83800000\0"		\
 	"bootm_size=0x10000000\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcpart=1\0" \
+	"mmcroot=/dev/mmcblk2p2 rootwait rw\0" \
 
 /* Link Definitions */
 
@@ -74,7 +65,6 @@
 #define CONFIG_SYS_INIT_SP_OFFSET	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
-#define CONFIG_MMCROOT			"/dev/mmcblk2p2"
 
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM			0x80000000

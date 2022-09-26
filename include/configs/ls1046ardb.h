@@ -9,13 +9,9 @@
 
 #include "ls1046a_common.h"
 
-#define CONFIG_SYS_CLK_FREQ		100000000
-
 #define CONFIG_LAYERSCAPE_NS_ACCESS
 
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
 /* Physical Memory Map */
-#define CONFIG_CHIP_SELECTS_PER_CTRL	4
 
 #define SPD_EEPROM_ADDRESS		0x51
 #define CONFIG_SYS_SPD_BUS_NUM		0
@@ -25,14 +21,6 @@
 #if defined(CONFIG_QSPI_BOOT)
 #define CONFIG_SYS_UBOOT_BASE		0x40100000
 #define CONFIG_SYS_SPL_ARGS_ADDR	0x90000000
-#endif
-
-#ifndef SPL_NO_IFC
-/* IFC */
-#define CONFIG_FSL_IFC
-/*
- * NAND Flash Definitions
- */
 #endif
 
 #define CONFIG_SYS_NAND_BASE		0x7e800000
@@ -138,29 +126,20 @@
 #define FM1_10GEC1_PHY_ADDR		0x0
 
 #define FDT_SEQ_MACADDR_FROM_ENV
-
-#define CONFIG_ETHPRIME			"FM1@DTSEC3"
 #endif
 
 #endif
 
 #ifndef SPL_NO_MISC
-#undef CONFIG_BOOTCOMMAND
 #ifdef CONFIG_TFABOOT
 #define QSPI_NOR_BOOTCOMMAND "run distro_bootcmd; run qspi_bootcmd; "	\
 			   "env exists secureboot && esbc_halt;;"
 #define SD_BOOTCOMMAND "run distro_bootcmd;run sd_bootcmd; "	\
 			   "env exists secureboot && esbc_halt;"
-#else
-#if defined(CONFIG_QSPI_BOOT)
-#define CONFIG_BOOTCOMMAND "run distro_bootcmd; run qspi_bootcmd; "	\
-			   "env exists secureboot && esbc_halt;;"
-#elif defined(CONFIG_SD_BOOT)
-#define CONFIG_BOOTCOMMAND "run distro_bootcmd;run sd_bootcmd; "	\
-			   "env exists secureboot && esbc_halt;"
 #endif
 #endif
-#endif
+
+#define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME "u-boot.img"
 
 #include <asm/fsl_secure_boot.h>
 

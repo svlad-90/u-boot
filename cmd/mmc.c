@@ -22,10 +22,18 @@ static void print_mmcinfo(struct mmc *mmc)
 
 	printf("Device: %s\n", mmc->cfg->name);
 	printf("Manufacturer ID: %x\n", mmc->cid[0] >> 24);
-	printf("OEM: %x\n", (mmc->cid[0] >> 8) & 0xffff);
-	printf("Name: %c%c%c%c%c \n", mmc->cid[0] & 0xff,
-			(mmc->cid[1] >> 24), (mmc->cid[1] >> 16) & 0xff,
-			(mmc->cid[1] >> 8) & 0xff, mmc->cid[1] & 0xff);
+	if (IS_SD(mmc)) {
+		printf("OEM: %x\n", (mmc->cid[0] >> 8) & 0xffff);
+		printf("Name: %c%c%c%c%c \n", mmc->cid[0] & 0xff,
+		(mmc->cid[1] >> 24), (mmc->cid[1] >> 16) & 0xff,
+		(mmc->cid[1] >> 8) & 0xff, mmc->cid[1] & 0xff);
+	} else {
+		printf("OEM: %x\n", (mmc->cid[0] >> 8) & 0xff);
+		printf("Name: %c%c%c%c%c%c \n", mmc->cid[0] & 0xff,
+		(mmc->cid[1] >> 24), (mmc->cid[1] >> 16) & 0xff,
+		(mmc->cid[1] >> 8) & 0xff, mmc->cid[1] & 0xff,
+		(mmc->cid[2] >> 24));
+	}
 
 	printf("Bus Speed: %d\n", mmc->clock);
 #if CONFIG_IS_ENABLED(MMC_VERBOSE)
@@ -493,11 +501,12 @@ static int do_mmc_rescan(struct cmd_tbl *cmdtp, int flag,
 			 int argc, char *const argv[])
 {
 	struct mmc *mmc;
-	enum bus_mode speed_mode = MMC_MODES_END;
 
 	if (argc == 1) {
 		mmc = init_mmc_device(curr_device, true);
 	} else if (argc == 2) {
+		enum bus_mode speed_mode;
+
 		speed_mode = (int)dectoul(argv[1], NULL);
 		mmc = __init_mmc_device(curr_device, true, speed_mode);
 	} else {
@@ -535,7 +544,6 @@ static int do_mmc_dev(struct cmd_tbl *cmdtp, int flag,
 {
 	int dev, part = 0, ret;
 	struct mmc *mmc;
-	enum bus_mode speed_mode = MMC_MODES_END;
 
 	if (argc == 1) {
 		dev = curr_device;
@@ -553,6 +561,8 @@ static int do_mmc_dev(struct cmd_tbl *cmdtp, int flag,
 		}
 		mmc = init_mmc_device(dev, true);
 	} else if (argc == 4) {
+		enum bus_mode speed_mode;
+
 		dev = (int)dectoul(argv[1], NULL);
 		part = (int)dectoul(argv[2], NULL);
 		if (part > PART_ACCESS_MASK) {
@@ -597,7 +607,7 @@ static void parse_hwpart_user_enh_size(struct mmc *mmc,
 				       struct mmc_hwpart_conf *pconf,
 				       char *argv)
 {
-	int ret;
+	int i, ret;
 
 	pconf->user.enh_size = 0;
 
@@ -606,7 +616,7 @@ static void parse_hwpart_user_enh_size(struct mmc *mmc,
 		ret = mmc_send_ext_csd(mmc, ext_csd);
 		if (ret)
 			return;
-		/* This value is in 512B block units */
+		/* The enh_size value is in 512B block units */
 		pconf->user.enh_size =
 			((ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 2] << 16) +
 			(ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 1] << 8) +
@@ -614,6 +624,24 @@ static void parse_hwpart_user_enh_size(struct mmc *mmc,
 			ext_csd[EXT_CSD_HC_ERASE_GRP_SIZE] *
 			ext_csd[EXT_CSD_HC_WP_GRP_SIZE];
 		pconf->user.enh_size -= pconf->user.enh_start;
+		for (i = 0; i < ARRAY_SIZE(mmc->capacity_gp); i++) {
+			/*
+			 * If the eMMC already has GP partitions set,
+			 * subtract their size from the maximum USER
+			 * partition size.
+			 *
+			 * Else, if the command was used to configure new
+			 * GP partitions, subtract their size from maximum
+			 * USER partition size.
+			 */
+			if (mmc->capacity_gp[i]) {
+				/* The capacity_gp is in 1B units */
+				pconf->user.enh_size -= mmc->capacity_gp[i] >> 9;
+			} else if (pconf->gp_part[i].size) {
+				/* The gp_part[].size is in 512B units */
+				pconf->user.enh_size -= pconf->gp_part[i].size;
+			}
+		}
 	} else {
 		pconf->user.enh_size = dectoul(argv, NULL);
 	}

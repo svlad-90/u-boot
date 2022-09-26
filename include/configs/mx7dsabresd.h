@@ -14,11 +14,6 @@
 
 #define CONFIG_MXC_UART_BASE            UART1_IPS_BASE_ADDR
 
-/* MMC Config*/
-#define CONFIG_SYS_FSL_ESDHC_ADDR       0
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
 #ifdef CONFIG_IMX_BOOTAUX
 /* Set to QSPI1 A flash at default */
 #define CONFIG_SYS_AUXCORE_BOOTDATA 0x60000000
@@ -113,20 +108,9 @@
 /* DMA stuff, needed for GPMI/MXS NAND support */
 #endif
 
-#ifdef CONFIG_NAND_MXS
-#define CONFIG_SYS_FSL_USDHC_NUM	1
-#else
-#define CONFIG_SYS_FSL_USDHC_NUM	2
-#endif
-
 /* USB Configs */
 #define CONFIG_MXC_USB_PORTSC  (PORT_PTS_UTMI | PORT_PTS_PTW)
 
 #define CONFIG_USBD_HS
-
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
-#endif
 
 #endif	/* __CONFIG_H */

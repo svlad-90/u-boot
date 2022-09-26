@@ -13,6 +13,7 @@
 #include <dm.h>
 #include <env.h>
 #include <env_internal.h>
+#include <fdt_simplefb.h>
 #include <fdt_support.h>
 #include <g_dnl.h>
 #include <generic-phy.h>
@@ -197,6 +198,13 @@ int g_dnl_board_usb_cable_connected(void)
 
 	if (!IS_ENABLED(CONFIG_USB_GADGET_DWC2_OTG))
 		return -ENODEV;
+
+	/*
+	 * In case of USB boot device is detected, consider USB cable is
+	 * connected
+	 */
+	if ((get_bootmode() & TAMP_BOOT_DEVICE_MASK) == BOOT_SERIAL_USB)
+		return true;
 
 	/* if typec stusb160x is present, means DK1 or DK2 board */
 	ret = stusb160x_cable_connected();
@@ -665,9 +673,6 @@ int board_init(void)
 	if (IS_ENABLED(CONFIG_ARMV7_NONSEC))
 		sysconf_init();
 
-	if (CONFIG_IS_ENABLED(LED))
-		led_default_state();
-
 	setup_led(LEDST_ON);
 
 	return 0;
@@ -889,8 +894,10 @@ const char *env_ext4_get_dev_part(void)
 
 int mmc_get_env_dev(void)
 {
-	if (CONFIG_SYS_MMC_ENV_DEV >= 0)
-		return CONFIG_SYS_MMC_ENV_DEV;
+	const int mmc_env_dev = CONFIG_IS_ENABLED(ENV_IS_IN_MMC, (CONFIG_SYS_MMC_ENV_DEV), (-1));
+
+	if (mmc_env_dev >= 0)
+		return mmc_env_dev;
 
 	/* use boot instance to select the correct mmc device identifier */
 	return mmc_get_boot();
@@ -913,6 +920,9 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	    (strcmp(boot_device, "serial") && strcmp(boot_device, "usb")))
 		if (IS_ENABLED(CONFIG_FDT_FIXUP_PARTITIONS))
 			fdt_fixup_mtdparts(blob, nodes, ARRAY_SIZE(nodes));
+
+	if (CONFIG_IS_ENABLED(FDT_SIMPLEFB))
+		fdt_simplefb_enable_and_mem_rsv(blob);
 
 	return 0;
 }

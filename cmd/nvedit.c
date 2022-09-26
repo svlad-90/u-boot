@@ -563,6 +563,127 @@ int do_env_flags(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 }
 #endif
 
+#ifdef CONFIG_CMD_ENV_VERIFIED_IMPORT
+#ifdef CONFIG_ANDROID_BCC
+static int env_verified_import_bcc_handover(const char *iface_str, int devnum,
+					    const AvbSlotVerifyData *data)
+{
+	const char *instance_uuid = "0ab72d30-86ae-4d05-81b2-c1760be2b1f9";
+	enum bcc_mode bcc_mode;
+	bool strict_boot, new_instance, must_exist;
+	int ret;
+
+	ret = bcc_vm_instance_avf_boot_state(&strict_boot, &new_instance);
+	if (ret)
+		return ret;
+
+	bcc_mode = CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)
+		? BCC_MODE_DEBUG : BCC_MODE_NORMAL;
+	must_exist = strict_boot && !new_instance;
+	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
+				       must_exist, "U-boot env", bcc_mode, data,
+				       NULL, NULL, 0);
+	if (ret < 0)
+		return ret;
+
+	if (strict_boot && new_instance && ret != BCC_VM_INSTANCE_CREATED)
+		return -EEXIST;
+
+	return 0;
+}
+#endif
+
+/*
+ * env verified_import [-d] <interface> <dev>[#<part>]
+ *	-d:	delete existing environment before importing
+ *		otherwise overwrite / append to existing definitions
+ */
+static int do_env_verified_import(struct cmd_tbl *cmdtp, int flag,
+				  int argc, char *const argv[])
+{
+	int err, ret = CMD_RET_FAILURE;
+
+	bool del = false;
+	while (--argc > 0 && **++argv == '-') {
+		char *arg = *argv;
+		while (*++arg) {
+			switch (*arg) {
+			case 'd':
+				del = true;
+				break;
+			default:
+				return CMD_RET_USAGE;
+			}
+		}
+	}
+
+	if (argc != 2)
+		return CMD_RET_USAGE;
+
+	struct blk_desc *dev_desc = NULL;
+	struct disk_partition info = {};
+	err = part_get_info_by_dev_and_name_or_num(argv[0], argv[1],
+						   &dev_desc, &info, true);
+	if (err < 0) {
+		pr_err("Couldn't find partition\n");
+		goto err_out;
+	}
+
+	struct AvbOps *ops =
+		avb_ops_alloc(argv[0], simple_itoa(dev_desc->devnum));
+	if (!ops) {
+		pr_err("Failed to initialize avb2\n");
+		goto err_out;
+	}
+
+	const char *requested_partitions[] = { info.name, NULL };
+	AvbSlotVerifyData *out_data = NULL;
+	err = avb_verify_partitions(ops, "", requested_partitions,
+				    &out_data, NULL);
+	if (err) {
+		pr_err("Failed to verify environment at %s\n", argv[1]);
+		goto err_avb_ops_free;
+	}
+
+	bool found = false;
+	for (int i = 0; i < out_data->num_loaded_partitions; i++) {
+		AvbPartitionData *p = &out_data->loaded_partitions[i];
+		if (strcmp(info.name, p->partition_name) == 0) {
+			const env_t *env = (const env_t *)p->data;
+			size_t env_size = p->data_size - offsetof(env_t, data);
+			if (!himport_r(&env_htab, env->data, env_size, '\0',
+				       del ? 0 : H_NOCLEAR, false, 0, NULL)) {
+				pr_err("## Error: Environment import failed: "
+				       "errno = %d\n", errno);
+				goto err_avb_slot_verify_data_free;
+			}
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		pr_err("Failed to find verified partition %s\n", argv[1]);
+		goto err_avb_slot_verify_data_free;
+	}
+
+#ifdef CONFIG_ANDROID_BCC
+	if (env_verified_import_bcc_handover(argv[0], dev_desc->devnum,
+					     out_data)) {
+		pr_err("Failed to do BCC handover.\n");
+		goto err_avb_slot_verify_data_free;
+	}
+#endif
+
+	ret = CMD_RET_SUCCESS;
+err_avb_slot_verify_data_free:
+	avb_slot_verify_data_free(out_data);
+err_avb_ops_free:
+	avb_ops_free(ops);
+err_out:
+	return ret;
+}
+#endif
+
 /*
  * Interactively edit an environment variable
  */
@@ -1024,124 +1145,42 @@ sep_err:
 }
 #endif
 
-#ifdef CONFIG_CMD_ENV_VERIFIED_IMPORT
-#ifdef CONFIG_ANDROID_BCC
-static int env_verified_import_bcc_handover(const char *iface_str, int devnum,
-					    const AvbSlotVerifyData *data)
+#if defined(CONFIG_CMD_NVEDIT_INDIRECT)
+static int do_env_indirect(struct cmd_tbl *cmdtp, int flag,
+		       int argc, char *const argv[])
 {
-	const char *instance_uuid = "0ab72d30-86ae-4d05-81b2-c1760be2b1f9";
-	enum bcc_mode bcc_mode;
-	bool strict_boot, new_instance, must_exist;
-	int ret;
+	char *to = argv[1];
+	char *from = argv[2];
+	char *default_value = NULL;
+	int ret = 0;
 
-	ret = bcc_vm_instance_avf_boot_state(&strict_boot, &new_instance);
-	if (ret)
-		return ret;
-
-	bcc_mode = CONFIG_IS_ENABLED(AVB_IS_UNLOCKED)
-		? BCC_MODE_DEBUG : BCC_MODE_NORMAL;
-	must_exist = strict_boot && !new_instance;
-	ret = bcc_vm_instance_handover(iface_str, devnum, instance_uuid,
-				       must_exist, "U-boot env", bcc_mode, data,
-				       NULL, NULL, 0);
-	if (ret < 0)
-		return ret;
-
-	if (strict_boot && new_instance && ret != BCC_VM_INSTANCE_CREATED)
-		return -EEXIST;
-
-	return 0;
-}
-#endif
-
-/*
- * env verified_import [-d] <interface> <dev>[#<part>]
- *	-d:	delete existing environment before importing
- *		otherwise overwrite / append to existing definitions
- */
-static int do_env_verified_import(struct cmd_tbl *cmdtp, int flag,
-				  int argc, char *const argv[])
-{
-	int err, ret = CMD_RET_FAILURE;
-
-	bool del = false;
-	while (--argc > 0 && **++argv == '-') {
-		char *arg = *argv;
-		while (*++arg) {
-			switch (*arg) {
-			case 'd':
-				del = true;
-				break;
-			default:
-				return CMD_RET_USAGE;
-			}
-		}
-	}
-
-	if (argc != 2)
+	if (argc < 3 || argc > 4) {
 		return CMD_RET_USAGE;
-
-	struct blk_desc *dev_desc = NULL;
-	struct disk_partition info = {};
-	err = part_get_info_by_dev_and_name_or_num(argv[0], argv[1],
-						   &dev_desc, &info, true);
-	if (err < 0) {
-		pr_err("Couldn't find partition\n");
-		goto err_out;
 	}
 
-	struct AvbOps *ops =
-		avb_ops_alloc(argv[0], simple_itoa(dev_desc->devnum));
-	if (!ops) {
-		pr_err("Failed to initialize avb2\n");
-		goto err_out;
+	if (argc == 4) {
+		default_value = argv[3];
 	}
 
-	const char *requested_partitions[] = { info.name, NULL };
-	AvbSlotVerifyData *out_data = NULL;
-	err = avb_verify_partitions(ops, "", requested_partitions,
-				    &out_data, NULL);
-	if (err) {
-		pr_err("Failed to verify environment at %s\n", argv[1]);
-		goto err_avb_ops_free;
+	if (env_get(from) == NULL && default_value == NULL) {
+		printf("## env indirect: Environment variable for <from> (%s) does not exist.\n", from);
+
+		return CMD_RET_FAILURE;
 	}
 
-	bool found = false;
-	for (int i = 0; i < out_data->num_loaded_partitions; i++) {
-		AvbPartitionData *p = &out_data->loaded_partitions[i];
-		if (strcmp(info.name, p->partition_name) == 0) {
-			const env_t *env = (const env_t *)p->data;
-			size_t env_size = p->data_size - offsetof(env_t, data);
-			if (!himport_r(&env_htab, env->data, env_size, '\0',
-				       del ? 0 : H_NOCLEAR, false, 0, NULL)) {
-				pr_err("## Error: Environment import failed: "
-				       "errno = %d\n", errno);
-				goto err_avb_slot_verify_data_free;
-			}
-			found = true;
-			break;
-		}
+	if (env_get(from) == NULL) {
+		ret = env_set(to, default_value);
 	}
-	if (!found) {
-		pr_err("Failed to find verified partition %s\n", argv[1]);
-		goto err_avb_slot_verify_data_free;
+	else {
+		ret = env_set(to, env_get(from));
 	}
 
-#ifdef CONFIG_ANDROID_BCC
-	if (env_verified_import_bcc_handover(argv[0], dev_desc->devnum,
-					     out_data)) {
-		pr_err("Failed to do BCC handover.\n");
-		goto err_avb_slot_verify_data_free;
+	if (ret == 0) {
+		return CMD_RET_SUCCESS;
 	}
-#endif
-
-	ret = CMD_RET_SUCCESS;
-err_avb_slot_verify_data_free:
-	avb_slot_verify_data_free(out_data);
-err_avb_ops_free:
-	avb_ops_free(ops);
-err_out:
-	return ret;
+	else {
+		return CMD_RET_FAILURE;
+	}
 }
 #endif
 
@@ -1299,6 +1338,9 @@ static struct cmd_tbl cmd_env_sub[] = {
 #if defined(CONFIG_CMD_ENV_FLAGS)
 	U_BOOT_CMD_MKENT(flags, 1, 0, do_env_flags, "", ""),
 #endif
+#if defined(CONFIG_CMD_ENV_VERIFIED_IMPORT)
+	U_BOOT_CMD_MKENT(verified_import, 4, 0, do_env_verified_import, "", ""),
+#endif
 #if defined(CONFIG_CMD_EXPORTENV)
 	U_BOOT_CMD_MKENT(export, 4, 0, do_env_export, "", ""),
 #endif
@@ -1308,8 +1350,8 @@ static struct cmd_tbl cmd_env_sub[] = {
 #if defined(CONFIG_CMD_IMPORTENV)
 	U_BOOT_CMD_MKENT(import, 5, 0, do_env_import, "", ""),
 #endif
-#if defined(CONFIG_CMD_ENV_VERIFIED_IMPORT)
-	U_BOOT_CMD_MKENT(verified_import, 4, 0, do_env_verified_import, "", ""),
+#if defined(CONFIG_CMD_NVEDIT_INDIRECT)
+	U_BOOT_CMD_MKENT(indirect, 3, 0, do_env_indirect, "", ""),
 #endif
 #if defined(CONFIG_CMD_NVEDIT_INFO)
 	U_BOOT_CMD_MKENT(info, 3, 0, do_env_info, "", ""),
@@ -1385,6 +1427,9 @@ static char env_help_text[] =
 #if defined(CONFIG_CMD_ENV_FLAGS)
 	"env flags - print variables that have non-default flags\n"
 #endif
+#if defined(CONFIG_CMD_ENV_VERIFIED_IMPORT)
+	"env verified_import [-d] <interface> <dev>[#<part>] - import verified environment\n"
+#endif
 #if defined(CONFIG_CMD_GREPENV)
 #ifdef CONFIG_REGEX
 	"env grep [-e] [-n | -v | -b] string [...] - search environment\n"
@@ -1395,8 +1440,8 @@ static char env_help_text[] =
 #if defined(CONFIG_CMD_IMPORTENV)
 	"env import [-d] [-t [-r] | -b | -c] addr [size] [var ...] - import environment\n"
 #endif
-#if defined(CONFIG_CMD_ENV_VERIFIED_IMPORT)
-	"env verified_import [-d] <interface> <dev>[#<part>] - import verified environment\n"
+#if defined(CONFIG_CMD_NVEDIT_INDIRECT)
+	"env indirect <to> <from> [default] - sets <to> to the value of <from>, using [default] when unset\n"
 #endif
 #if defined(CONFIG_CMD_NVEDIT_INFO)
 	"env info - display environment information\n"

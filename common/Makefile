@@ -17,7 +17,7 @@ obj-y += board_r.o
 obj-$(CONFIG_DISPLAY_BOARDINFO) += board_info.o
 obj-$(CONFIG_DISPLAY_BOARDINFO_LATE) += board_info.o
 
-obj-$(CONFIG_CMD_BEDBUG) += bedbug.o
+obj-$(CONFIG_FDT_SIMPLEFB) += fdt_simplefb.o
 obj-$(CONFIG_$(SPL_TPL_)OF_LIBFDT) += fdt_support.o
 obj-$(CONFIG_MII) += miiphyutil.o
 obj-$(CONFIG_CMD_MII) += miiphyutil.o
@@ -40,7 +40,6 @@ ifndef CONFIG_DM_VIDEO
 obj-$(CONFIG_LCD) += lcd.o lcd_console.o
 endif
 obj-$(CONFIG_LCD_ROTATION) += lcd_console_rotation.o
-obj-$(CONFIG_LCD_DT_SIMPLEFB) += lcd_simplefb.o
 obj-$(CONFIG_MENU) += menu.o
 obj-$(CONFIG_UPDATE_COMMON) += update.o
 obj-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
@@ -90,6 +89,8 @@ obj-y += malloc_simple.o
 endif
 endif
 
+obj-$(CONFIG_$(SPL_TPL_)EVENT) += event.o
+
 obj-$(CONFIG_$(SPL_TPL_)HASH) += hash.o
 obj-$(CONFIG_IO_TRACE) += iotrace.o
 obj-y += memsize.o
@@ -134,6 +135,7 @@ obj-$(CONFIG_AVB_VERIFY) += avb_pubkey.o
 $(obj)/avb_pubkey.c: $(srctree)/$(subst $(quote),,$(CONFIG_AVB_PUBKEY_FILE))
 	$(call cmd,bin2c,avb_pubkey)
 
+obj-$(CONFIG_$(SPL_TPL_)AVB_VERIFY) += avb_verify.o
 obj-$(CONFIG_$(SPL_TPL_)STACKPROTECTOR) += stackprot.o
 obj-$(CONFIG_SCP03) += scp03.o
 

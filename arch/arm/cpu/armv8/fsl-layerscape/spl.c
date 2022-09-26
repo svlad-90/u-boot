@@ -12,6 +12,7 @@
 #include <image.h>
 #include <init.h>
 #include <log.h>
+#include <semihosting.h>
 #include <spl.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
@@ -27,6 +28,8 @@ DECLARE_GLOBAL_DATA_PTR;
 
 u32 spl_boot_device(void)
 {
+	if (semihosting_enabled())
+		return BOOT_DEVICE_SMH;
 #ifdef CONFIG_SPL_MMC
 	return BOOT_DEVICE_MMC1;
 #endif
@@ -93,7 +96,9 @@ void board_init_f(ulong dummy)
 	i2c_init_all();
 #endif
 #endif
-#ifdef CONFIG_VID
+#if defined(CONFIG_VID) && (defined(CONFIG_ARCH_LS1088A) || \
+			    defined(CONFIG_ARCH_LX2160A) || \
+			    defined(CONFIG_ARCH_LX2162A))
 	init_func_vid();
 #endif
 	dram_init();

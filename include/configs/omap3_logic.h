@@ -142,9 +142,6 @@
 	"nandboot=run nandbootcommon; "\
 		"bootm ${loadaddr} - ${fdtaddr}\0"\
 
-#define CONFIG_BOOTCOMMAND \
-	"run autoboot"
-
 /* Miscellaneous configurable options */
 
 /* memtest works on */
@@ -157,12 +154,8 @@
 #endif
 
 #define CONFIG_SYS_MAX_FLASH_SECT	256
-#define CONFIG_SYS_MAX_FLASH_BANKS	1
 #define CONFIG_SYS_FLASH_CFI_WIDTH	FLASH_CFI_16BIT
 #define CONFIG_SYS_FLASH_SIZE		0x4000000
-
-/* Monitor at start of flash */
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_FLASH_BASE
 
 #define CONFIG_SYS_ENV_SECT_SIZE	(128 << 10)	/* 128 KiB */
 

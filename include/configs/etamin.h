@@ -84,9 +84,6 @@
 */
 
 /* nedded by compliance test in read mode */
-#if defined(CONFIG_SPL_CMT)
-#define CONFIG_SYS_DCACHE_OFF
-#endif
 
 /* Define own nand partitions */
 #define CONFIG_ENV_RANGE		(4 * CONFIG_SYS_ENV_SECT_SIZE)
@@ -154,7 +151,6 @@
 #define ETAMIN_NAND_GPMC_CONFIG4	0x16051807
 #define ETAMIN_NAND_GPMC_CONFIG5	0x00151e1e
 #define ETAMIN_NAND_GPMC_CONFIG6	0x16000f80
-#define CONFIG_MTD_CONCAT
 
 /* Default env settings */
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -166,26 +162,5 @@
 	CONFIG_ENV_SETTINGS_BUTTONS_AND_LEDS \
 	CONFIG_ENV_SETTINGS_V2 \
 	CONFIG_ENV_SETTINGS_NAND_V2
-
-#ifndef CONFIG_RESTORE_FLASH
-
-#define CONFIG_BOOTCOMMAND \
-"if dfubutton; then " \
-	"run dfu_start; " \
-	"reset; " \
-"fi;" \
-"run nand_boot;" \
-"run nand_boot_backup;" \
-"reset;"
-
-
-#else
-#define CONFIG_BOOTCOMMAND			\
-	"setenv autoload no; "			\
-	"dhcp; "				\
-	"if tftp 80000000 debrick.scr; then "	\
-		"source 80000000; "		\
-	"fi"
-#endif
 #endif	/* CONFIG_SPL_BUILD */
 #endif	/* ! __CONFIG_ETAMIN_H */

@@ -17,7 +17,6 @@
 /*
  * SoC Configuration
  */
-#define CONFIG_SYS_CLK_FREQ		clk_get(DAVINCI_ARM_CLKID)
 #define CONFIG_SYS_OSCIN_FREQ		24000000
 #define CONFIG_SYS_TIMERBASE		DAVINCI_TIMER0_BASE
 #define CONFIG_SYS_HZ_CLOCK		clk_get(DAVINCI_AUXCLK_CLKID)
@@ -138,16 +137,8 @@
 #endif
 
 /*
- * Network & Ethernet Configuration
- */
-#ifdef CONFIG_DRIVER_TI_EMAC
-#define CONFIG_NET_RETRY_COUNT	10
-#endif
-
-/*
  * U-Boot general configuration
  */
-#define CONFIG_BOOTFILE		"zImage" /* Boot file name */
 #define CONFIG_SYS_CBSIZE	1024 /* Console I/O Buffer Size	*/
 #define CONFIG_SYS_BARGSIZE	CONFIG_SYS_CBSIZE /* Boot Args Buffer Size */
 
@@ -161,9 +152,6 @@
  * Linux Information
  */
 #define LINUX_BOOT_PARAM_ADDR	(PHYS_SDRAM_1 + 0x100)
-#define CONFIG_BOOTCOMMAND \
-		"run envboot; " \
-		"run mmcboot; "
 
 #define DEFAULT_LINUX_BOOT_ENV \
 	"loadaddr=0xc0700000\0" \
@@ -182,10 +170,6 @@
 	"boot_fdt=yes\0" \
 	"boot_fit=0\0" \
 	"console=ttyS2,115200n8\0"
-
-#ifdef CONFIG_CMD_BDI
-#define CONFIG_CLOCKS
-#endif
 
 /* SD/MMC */
 

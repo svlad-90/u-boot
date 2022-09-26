@@ -9,6 +9,7 @@
 #include <env.h>
 #include <fdtdec.h>
 #include <init.h>
+#include <image.h>
 #include <env_internal.h>
 #include <log.h>
 #include <malloc.h>
@@ -73,7 +74,7 @@ int board_early_init_r(void)
 	 * Program freq register in System counter and
 	 * enable system counter.
 	 */
-	writel(COUNTER_FREQUENCY,
+	writel(CONFIG_COUNTER_FREQUENCY,
 	       &iou_scntr_secure->base_frequency_id_register);
 
 	debug("counter val 0x%x\n",
@@ -151,6 +152,8 @@ int board_late_init(void)
 	case EMMC_MODE:
 		puts("EMMC_MODE\n");
 		if (uclass_get_device_by_name(UCLASS_MMC,
+					      "mmc@f1050000", &dev) &&
+		    uclass_get_device_by_name(UCLASS_MMC,
 					      "sdhci@f1050000", &dev)) {
 			puts("Boot from EMMC but without SD1 enabled!\n");
 			return -1;
@@ -162,6 +165,8 @@ int board_late_init(void)
 	case SD_MODE:
 		puts("SD_MODE\n");
 		if (uclass_get_device_by_name(UCLASS_MMC,
+					      "mmc@f1040000", &dev) &&
+		    uclass_get_device_by_name(UCLASS_MMC,
 					      "sdhci@f1040000", &dev)) {
 			puts("Boot from SD0 but without SD0 enabled!\n");
 			return -1;
@@ -177,6 +182,8 @@ int board_late_init(void)
 	case SD_MODE1:
 		puts("SD_MODE1\n");
 		if (uclass_get_device_by_name(UCLASS_MMC,
+					      "mmc@f1050000", &dev) &&
+		    uclass_get_device_by_name(UCLASS_MMC,
 					      "sdhci@f1050000", &dev)) {
 			puts("Boot from SD1 but without SD1 enabled!\n");
 			return -1;
@@ -243,6 +250,28 @@ int dram_init(void)
 	return 0;
 }
 
+ulong board_get_usable_ram_top(ulong total_size)
+{
+	phys_size_t size;
+	phys_addr_t reg;
+	struct lmb lmb;
+
+	if (!total_size)
+		return gd->ram_top;
+
+	/* found enough not-reserved memory to relocated U-Boot */
+	lmb_init(&lmb);
+	lmb_add(&lmb, gd->ram_base, gd->ram_size);
+	boot_fdt_add_mem_rsv_regions(&lmb, (void *)gd->fdt_blob);
+	size = ALIGN(CONFIG_SYS_MALLOC_LEN + total_size, MMU_SECTION_SIZE);
+	reg = lmb_alloc(&lmb, size, MMU_SECTION_SIZE);
+
+	if (!reg)
+		reg = gd->ram_top - size;
+
+	return reg + size;
+}
+
 void reset_cpu(void)
 {
 }
@@ -263,13 +292,13 @@ enum env_location env_get_location(enum env_operation op, int prio)
 			return ENVL_FAT;
 		if (IS_ENABLED(CONFIG_ENV_IS_IN_EXT4))
 			return ENVL_EXT4;
-		return ENVL_UNKNOWN;
+		return ENVL_NOWHERE;
 	case OSPI_MODE:
 	case QSPI_MODE_24BIT:
 	case QSPI_MODE_32BIT:
 		if (IS_ENABLED(CONFIG_ENV_IS_IN_SPI_FLASH))
 			return ENVL_SPI_FLASH;
-		return ENVL_UNKNOWN;
+		return ENVL_NOWHERE;
 	case JTAG_MODE:
 	default:
 		return ENVL_NOWHERE;

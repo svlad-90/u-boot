@@ -295,6 +295,13 @@ config MMC_MXC
 
 	  If unsure, say N.
 
+config MMC_OWL
+	bool "Actions OWL Multimedia Card Interface support"
+	depends on ARCH_OWL && DM_MMC && BLK
+	help
+	  This selects the OWL SD/MMC host controller found on board
+	  based on Actions S700/S900 SoC.
+
 config MMC_MXS
 	bool "Freescale MXS Multimedia Card Interface support"
 	depends on MX23 || MX28 || MX6 || MX7
@@ -720,7 +727,7 @@ config ZYNQ_HISPD_BROKEN
 
 config MMC_SUNXI
 	bool "Allwinner sunxi SD/MMC Host Controller support"
-	depends on ARCH_SUNXI && !UART0_PORT_F
+	depends on ARCH_SUNXI
 	default y
 	help
 	  This selects support for the SD/MMC Host Controller on

@@ -26,6 +26,7 @@
 #include <dm/read.h>
 #include <dm/root.h>
 #include <dm/uclass.h>
+#include <dm/uclass-internal.h>
 #include <dm/util.h>
 #include <linux/list.h>
 
@@ -135,12 +136,18 @@ static int dm_setup_inst(void)
 
 	if (CONFIG_IS_ENABLED(OF_PLATDATA_RT)) {
 		struct udevice_rt *urt;
+		void *start, *end;
+		int each_size;
 		void *base;
 		int n_ents;
 		uint size;
 
 		/* Allocate the udevice_rt table */
-		n_ents = ll_entry_count(struct udevice, udevice);
+		each_size = dm_udevice_size();
+		start = ll_entry_start(struct udevice, udevice);
+		end = ll_entry_end(struct udevice, udevice);
+		size = end - start;
+		n_ents = size / each_size;
 		urt = calloc(n_ents, sizeof(struct udevice_rt));
 		if (!urt)
 			return log_msg_ret("urt", -ENOMEM);
@@ -197,6 +204,8 @@ int dm_init(bool of_live)
 		if (ret)
 			return ret;
 	}
+
+	INIT_LIST_HEAD((struct list_head *)&gd->dmtag_list);
 
 	return 0;
 }
@@ -256,7 +265,7 @@ int dm_scan_plat(bool pre_reloc_only)
  * @node: Node to scan
  * @pre_reloc_only: If true, bind only drivers with the DM_FLAG_PRE_RELOC
  * flag. If false bind all drivers.
- * @return 0 if OK, -ve on error
+ * Return: 0 if OK, -ve on error
  */
 static int dm_scan_fdt_node(struct udevice *parent, ofnode parent_node,
 			    bool pre_reloc_only)
@@ -353,6 +362,28 @@ void *dm_priv_to_rw(void *priv)
 }
 #endif
 
+static int dm_probe_devices(struct udevice *dev, bool pre_reloc_only)
+{
+	u32 mask = DM_FLAG_PROBE_AFTER_BIND;
+	u32 flags = dev_get_flags(dev);
+	struct udevice *child;
+	int ret;
+
+	if (pre_reloc_only)
+		mask |= DM_FLAG_PRE_RELOC;
+
+	if ((flags & mask) == mask) {
+		ret = device_probe(dev);
+		if (ret)
+			return ret;
+	}
+
+	list_for_each_entry(child, &dev->child_head, sibling_node)
+		dm_probe_devices(child, pre_reloc_only);
+
+	return 0;
+}
+
 /**
  * dm_scan() - Scan tables to bind devices
  *
@@ -385,7 +416,7 @@ static int dm_scan(bool pre_reloc_only)
 	if (ret)
 		return ret;
 
-	return 0;
+	return dm_probe_devices(gd->dm_root, pre_reloc_only);
 }
 
 int dm_init_and_scan(bool pre_reloc_only)
@@ -404,8 +435,19 @@ int dm_init_and_scan(bool pre_reloc_only)
 			return ret;
 		}
 	}
+	if (CONFIG_IS_ENABLED(DM_EVENT)) {
+		ret = event_notify_null(EVT_DM_POST_INIT);
+		if (ret)
+			return log_msg_ret("ev", ret);
+	}
 
 	return 0;
+}
+
+void dm_get_stats(int *device_countp, int *uclass_countp)
+{
+	*device_countp = device_get_decendent_count(gd->dm_root);
+	*uclass_countp = uclass_get_count();
 }
 
 #ifdef CONFIG_ACPIGEN

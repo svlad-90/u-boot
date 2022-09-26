@@ -12,7 +12,6 @@
 #include <asm/arch/sysmap-apq8016.h>
 
 /* Build new ELF image from u-boot.bin (U-Boot + appended DTB) */
-#define CONFIG_REMAKE_ELF
 
 /* Physical Memory Map */
 #define PHYS_SDRAM_1			0x80000000
@@ -24,15 +23,9 @@
 
 /* UART */
 
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		19000000
-
 /* Fixup - in init code we switch from device to host mode,
  * it has to be done after each HCD reset */
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-
-/* BOOTP options */
-#define CONFIG_BOOTP_BOOTFILESIZE
 
 #define BOOT_TARGET_DEVICES(func) \
 	func(USB, usb, 0) \

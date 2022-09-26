@@ -55,9 +55,6 @@
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET	/* For OTG port */
 
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-
-#define CONFIG_ARP_TIMEOUT		200UL
 
 #if defined(CONFIG_TQMA6X_MMC_BOOT)
 
@@ -118,9 +115,6 @@
 			"fi; "                                                 \
 		"fi; fi; "                                                     \
 		"setenv filesize; setenv blkc \0"                              \
-
-#define CONFIG_BOOTCOMMAND \
-	"run mmcboot; run netboot; run panicboot"
 
 #elif defined(CONFIG_TQMA6X_SPI_BOOT)
 
@@ -205,11 +199,7 @@
 		"setexpr offset ${fdt_start} * "                               \
 			__stringify(TQMA6_SPI_FLASH_SECTOR_SIZE)"; "           \
 		"sf read ${fdt_addr} ${offset} ${size}; "                      \
-		"setenv size ; setenv offset\0"                                \
-
-#define CONFIG_BOOTCOMMAND                                                     \
-	"sf probe; run mmcboot; run netboot; run panicboot"                    \
-
+		"setenv size ; setenv offset\0"
 #else
 
 #error "need to define boot source"

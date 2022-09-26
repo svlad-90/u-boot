@@ -7,8 +7,6 @@
 #ifndef __OCTEONTX2_COMMON_H__
 #define __OCTEONTX2_COMMON_H__
 
-#define CONFIG_SUPPORT_RAW_INITRD
-
 /** Maximum size of image supported for bootm (and bootable FIT images) */
 #define CONFIG_SYS_BOOTM_LEN		(256 << 20)
 
@@ -17,14 +15,6 @@
 
 /** Stack starting address */
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + 0xffff0)
-
-/* Autoboot options */
-#define CONFIG_RESET_TO_RETRY
-#define CONFIG_BOOT_RETRY_TIME		-1
-#define CONFIG_BOOT_RETRY_MIN		30
-
-/* BOOTP options */
-#define CONFIG_BOOTP_BOOTFILESIZE
 
 /** Extra environment settings */
 #define CONFIG_EXTRA_ENV_SETTINGS	\
@@ -43,7 +33,6 @@
 #if defined(CONFIG_MMC_OCTEONTX)
 #define MMC_SUPPORTS_TUNING
 /** EMMC specific defines */
-#define CONFIG_SUPPORT_EMMC_RPMB
 #endif
 
 #endif /* __OCTEONTX2_COMMON_H__ */

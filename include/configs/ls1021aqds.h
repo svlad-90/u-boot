@@ -7,25 +7,8 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define CONFIG_ARMV7_SECURE_BASE	OCRAM_BASE_S_ADDR
-
-#define CONFIG_SYS_FSL_CLK
-
-#define CONFIG_DEEP_SLEEP
-
 #define CONFIG_SYS_INIT_RAM_ADDR	OCRAM_BASE_ADDR
 #define CONFIG_SYS_INIT_RAM_SIZE	OCRAM_SIZE
-
-#ifndef __ASSEMBLY__
-unsigned long get_board_sys_clk(void);
-#endif
-
-#if defined(CONFIG_QSPI_BOOT) || defined(CONFIG_SD_BOOT_QSPI)
-#define CONFIG_SYS_CLK_FREQ		100000000
-#define CONFIG_QIXIS_I2C_ACCESS
-#else
-#define CONFIG_SYS_CLK_FREQ		get_board_sys_clk()
-#endif
 
 #ifdef CONFIG_SD_BOOT
 #define CONFIG_SPL_MAX_SIZE		0x1a000
@@ -62,8 +45,6 @@ unsigned long get_board_sys_clk(void);
 #ifndef CONFIG_SYS_FSL_DDR4
 #define CONFIG_SYS_DDR_RAW_TIMING
 #endif
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_CHIP_SELECTS_PER_CTRL	4
 
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x80000000UL
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
@@ -76,7 +57,6 @@ unsigned long get_board_sys_clk(void);
  * IFC Definitions
  */
 #if !defined(CONFIG_QSPI_BOOT) && !defined(CONFIG_SD_BOOT_QSPI)
-#define CONFIG_FSL_IFC
 #define CONFIG_SYS_FLASH_BASE		0x60000000
 #define CONFIG_SYS_FLASH_BASE_PHYS	CONFIG_SYS_FLASH_BASE
 
@@ -109,10 +89,8 @@ unsigned long get_board_sys_clk(void);
 
 #define CONFIG_SYS_FLASH_QUIET_TEST
 #define CONFIG_FLASH_SHOW_PROGRESS	45
-#define CONFIG_CFI_FLASH_USE_WEAK_ACCESSORS
 #define CONFIG_SYS_WRITE_SWAPPED_DATA
 
-#define CONFIG_SYS_MAX_FLASH_BANKS	2	/* number of banks */
 #define CONFIG_SYS_MAX_FLASH_SECT	1024	/* sectors per device */
 #define CONFIG_SYS_FLASH_ERASE_TOUT	60000	/* Flash Erase Timeout (ms) */
 #define CONFIG_SYS_FLASH_WRITE_TOUT	500	/* Flash Write Timeout (ms) */
@@ -163,7 +141,6 @@ unsigned long get_board_sys_clk(void);
 /*
  * QIXIS Definitions
  */
-#define CONFIG_FSL_QIXIS
 
 #ifdef CONFIG_FSL_QIXIS
 #define QIXIS_BASE			0x7fb00000
@@ -283,9 +260,7 @@ unsigned long get_board_sys_clk(void);
 /*
  * Serial Port
  */
-#ifdef CONFIG_LPUART
-#define CONFIG_LPUART_32B_REG
-#else
+#ifndef CONFIG_LPUART
 #define CONFIG_SYS_NS16550_SERIAL
 #ifndef CONFIG_DM_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	1
@@ -298,11 +273,6 @@ unsigned long get_board_sys_clk(void);
  */
 
 /* GPIO */
-#ifdef CONFIG_DM_GPIO
-#ifndef CONFIG_MPC8XXX_GPIO
-#define CONFIG_MPC8XXX_GPIO
-#endif
-#endif
 
 /* EEPROM */
 #define CONFIG_SYS_I2C_EEPROM_NXID
@@ -318,19 +288,6 @@ unsigned long get_board_sys_clk(void);
 /*
  * MMC
  */
-
-/*
- * Video
- */
-#ifdef CONFIG_VIDEO_FSL_DCU_FB
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
-
-#define CONFIG_FSL_DIU_CH7301
-#define CONFIG_SYS_I2C_DVI_BUS_NUM	0
-#define CONFIG_SYS_I2C_QIXIS_ADDR	0x66
-#define CONFIG_SYS_I2C_DVI_ADDR		0x75
-#endif
 
 /*
  * eTSEC
@@ -357,12 +314,6 @@ unsigned long get_board_sys_clk(void);
 #define TSEC2_PHYIDX			0
 #define TSEC3_PHYIDX			0
 
-#define CONFIG_ETHPRIME			"eTSEC1"
-
-#define CONFIG_HAS_ETH0
-#define CONFIG_HAS_ETH1
-#define CONFIG_HAS_ETH2
-
 #define CONFIG_FSL_SGMII_RISER		1
 #define SGMII_RISER_PHY_OFFSET		0x1b
 
@@ -383,7 +334,6 @@ unsigned long get_board_sys_clk(void);
 #define CONFIG_PEN_ADDR_BIG_ENDIAN
 #define CONFIG_LAYERSCAPE_NS_ACCESS
 #define CONFIG_SMP_PEN_ADDR		0x01ee0200
-#define COUNTER_FREQUENCY		12500000
 
 #define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		256
@@ -413,12 +363,6 @@ unsigned long get_board_sys_clk(void);
 	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SPL_TEXT_BASE
-#else
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SYS_TEXT_BASE    /* start of monitor */
-#endif
 
 /*
  * Environment

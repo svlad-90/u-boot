@@ -98,6 +98,8 @@ enum log_category_t {
 	LOGC_ACPI,
 	/** @LOGC_BOOT: Related to boot process / boot image processing */
 	LOGC_BOOT,
+	/** @LOGC_EVENT: Related to event and event handling */
+	LOGC_EVENT,
 	/** @LOGC_COUNT: Number of log categories */
 	LOGC_COUNT,
 	/** @LOGC_END: Sentinel value for lists of log categories */
@@ -660,7 +662,7 @@ int log_remove_filter(const char *drv_name, int filter_num);
  *
  * @drv: Driver of device to enable
  * @enable: true to enable, false to disable
- * @return 0 if OK, -ENOENT if the driver was not found
+ * Return: 0 if OK, -ENOENT if the driver was not found
  */
 int log_device_set_enable(struct log_driver *drv, bool enable);
 

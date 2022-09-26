@@ -24,6 +24,7 @@
 #include <mapmem.h>
 #include <asm/io.h>
 #include <malloc.h>
+#include <memalign.h>
 #include <asm/global_data.h>
 #ifdef CONFIG_DM_HASH
 #include <dm.h>
@@ -191,7 +192,7 @@ static void fit_image_print_data(const void *fit, int noffset, const char *p,
 	const char *keyname;
 	uint8_t *value;
 	int value_len;
-	char *algo;
+	const char *algo;
 	const char *padding;
 	bool required;
 	int ret, i;
@@ -1063,11 +1064,11 @@ int fit_image_get_data_and_size(const void *fit, int noffset,
  *     0, on success
  *     -1, on failure
  */
-int fit_image_hash_get_algo(const void *fit, int noffset, char **algo)
+int fit_image_hash_get_algo(const void *fit, int noffset, const char **algo)
 {
 	int len;
 
-	*algo = (char *)fdt_getprop(fit, noffset, FIT_ALGO_PROP, &len);
+	*algo = (const char *)fdt_getprop(fit, noffset, FIT_ALGO_PROP, &len);
 	if (*algo == NULL) {
 		fit_get_debug(fit, noffset, FIT_ALGO_PROP, len);
 		return -1;
@@ -1202,7 +1203,7 @@ int fit_set_timestamp(void *fit, int noffset, time_t timestamp)
  * calculate_hash - calculate and return hash for provided input data
  * @data: pointer to the input data
  * @data_len: data length
- * @algo: requested hash algorithm
+ * @name: requested hash algorithm name
  * @value: pointer to the char, will hold hash value data (caller must
  * allocate enough free space)
  * value_len: length of the calculated hash
@@ -1230,7 +1231,7 @@ int calculate_hash(const void *data, int data_len, const char *name,
 		return -1;
 	}
 
-	hash_algo = hash_algo_lookup_by_name(algo);
+	hash_algo = hash_algo_lookup_by_name(name);
 	if (hash_algo == HASH_ALGO_INVALID) {
 		debug("Unsupported hash algorithm\n");
 		return -1;
@@ -1263,9 +1264,9 @@ int calculate_hash(const void *data, int data_len, const char *name,
 static int fit_image_check_hash(const void *fit, int noffset, const void *data,
 				size_t size, char **err_msgp)
 {
-	uint8_t value[FIT_MAX_HASH_LEN];
+	ALLOC_CACHE_ALIGN_BUFFER(uint8_t, value, FIT_MAX_HASH_LEN);
 	int value_len;
-	char *algo;
+	const char *algo;
 	uint8_t *fit_value;
 	int fit_value_len;
 	int ignore;
@@ -1309,7 +1310,8 @@ static int fit_image_check_hash(const void *fit, int noffset, const void *data,
 }
 
 int fit_image_verify_with_data(const void *fit, int image_noffset,
-			       const void *data, size_t size)
+			       const void *key_blob, const void *data,
+			       size_t size)
 {
 	int		noffset = 0;
 	char		*err_msg = "";
@@ -1319,7 +1321,7 @@ int fit_image_verify_with_data(const void *fit, int image_noffset,
 	/* Verify all required signatures */
 	if (FIT_IMAGE_ENABLE_VERIFY &&
 	    fit_image_verify_required_sigs(fit, image_noffset, data, size,
-					   gd_fdt_blob(), &verify_all)) {
+					   key_blob, &verify_all)) {
 		err_msg = "Unable to verify required signature";
 		goto error;
 	}
@@ -1342,8 +1344,8 @@ int fit_image_verify_with_data(const void *fit, int image_noffset,
 		} else if (FIT_IMAGE_ENABLE_VERIFY && verify_all &&
 				!strncmp(name, FIT_SIG_NODENAME,
 					strlen(FIT_SIG_NODENAME))) {
-			ret = fit_image_check_sig(fit, noffset, data,
-							size, -1, &err_msg);
+			ret = fit_image_check_sig(fit, noffset, data, size,
+						  gd_fdt_blob(), -1, &err_msg);
 
 			/*
 			 * Show an indication on failure, but do not return
@@ -1406,7 +1408,8 @@ int fit_image_verify(const void *fit, int image_noffset)
 		goto err;
 	}
 
-	return fit_image_verify_with_data(fit, image_noffset, data, size);
+	return fit_image_verify_with_data(fit, image_noffset, gd_fdt_blob(),
+					  data, size);
 
 err:
 	printf("error!\n%s in '%s' image node\n", err_msg,
@@ -1595,7 +1598,7 @@ int fit_image_check_comp(const void *fit, int noffset, uint8_t comp)
  *
  * @fit: FIT to check
  * @parent: Parent node to check
- * @return 0 if OK, -EADDRNOTAVAIL is a node has a name containing '@'
+ * Return: 0 if OK, -EADDRNOTAVAIL is a node has a name containing '@'
  */
 static int fdt_check_no_at(const void *fit, int parent)
 {
@@ -1883,8 +1886,7 @@ int fit_conf_get_node(const void *fit, const char *conf_uname)
 		      conf_uname, fdt_strerror(noffset));
 	}
 
-	if (conf_uname_copy)
-		free(conf_uname_copy);
+	free(conf_uname_copy);
 
 	return noffset;
 }
@@ -1961,7 +1963,7 @@ int fit_get_node_from_config(bootm_headers_t *images, const char *prop_name,
 /**
  * fit_get_image_type_property() - get property name for IH_TYPE_...
  *
- * @return the properly name where we expect to find the image in the
+ * Return: the properly name where we expect to find the image in the
  * config node
  */
 static const char *fit_get_image_type_property(int type)
@@ -2418,9 +2420,6 @@ int boot_get_fdt_fit(bootm_headers_t *images, ulong addr,
 		}
 		fdt_pack(base);
 		len = fdt_totalsize(base);
-
-		free(ovcopy);
-		ovcopy = NULL;
 	}
 #else
 	printf("config with overlays but CONFIG_OF_LIBFDT_OVERLAY not set\n");
@@ -2438,11 +2437,9 @@ out:
 		*fit_uname_configp = fit_uname_config;
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-	if (ovcopy)
-		free(ovcopy);
+	free(ovcopy);
 #endif
-	if (fit_uname_config_copy)
-		free(fit_uname_config_copy);
+	free(fit_uname_config_copy);
 	return fdt_noffset;
 }
 #endif

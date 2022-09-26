@@ -25,8 +25,6 @@
 /* MMC Configs */
 #define CONFIG_SYS_FSL_ESDHC_ADDR      0
 
-#define CONFIG_ARP_TIMEOUT     200UL
-
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 
@@ -52,8 +50,6 @@
 #endif
 
 /* Framebuffer */
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
 #define CONFIG_IMX_HDMI
 #define CONFIG_IMX_VIDEO_SKIP
 
@@ -66,7 +62,6 @@
 #define CONFIG_SPL_FS_LOAD_KERNEL_NAME "uImage"
 #define CONFIG_SPL_FS_LOAD_ARGS_NAME "imx6dl-riotboard.dtb"
 
-#define CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR        0 /* offset 69KB */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR  0 /* offset 69KB */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS 0 /* offset 69KB */
 

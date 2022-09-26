@@ -9,7 +9,6 @@
 #define __GRPEACH_H
 
 /* Board Clock , P1 clock frequency (XTAL=13.33MHz) */
-#define CONFIG_SYS_CLK_FREQ	66666666
 
 /* Miscellaneous */
 #define CONFIG_SYS_PBSIZE	256
@@ -29,6 +28,5 @@
 #define CONFIG_SH_ETHER_CACHE_WRITEBACK
 #define CONFIG_SH_ETHER_CACHE_INVALIDATE
 #define CONFIG_SH_ETHER_ALIGNE_SIZE	64
-#define CONFIG_BITBANGMII_MULTI
 
 #endif	/* __GRPEACH_H */

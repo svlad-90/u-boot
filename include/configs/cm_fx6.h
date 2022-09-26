@@ -13,7 +13,6 @@
 #include "mx6_common.h"
 
 /* Machine config */
-#define CONFIG_SYS_LITTLE_ENDIAN
 
 /* MMC */
 #define CONFIG_SYS_FSL_USDHC_NUM	3
@@ -148,11 +147,6 @@
 
 /* Ethernet */
 #define CONFIG_FEC_MXC_PHYADDR		0
-#define CONFIG_FEC_XCV_TYPE		RGMII
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_ETHPRIME			"FEC0"
-#define CONFIG_ARP_TIMEOUT		200UL
-#define CONFIG_NET_RETRY_COUNT		5
 
 /* USB */
 #define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
@@ -161,7 +155,6 @@
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET	/* For OTG port */
 
 /* SATA */
-#define CONFIG_SYS_SATA_MAX_DEVICE	1
 #define CONFIG_LBA48
 #define CONFIG_DWC_AHSATA_PORT_ID	0
 #define CONFIG_DWC_AHSATA_BASE_ADDR	SATA_ARB_BASE_ADDR
@@ -176,9 +169,6 @@
 
 /* Display */
 #define CONFIG_IMX_HDMI
-
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
 
 /* EEPROM */
 

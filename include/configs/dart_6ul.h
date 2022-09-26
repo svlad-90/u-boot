@@ -22,11 +22,6 @@
 
 #ifdef CONFIG_CMD_NET
 #define CONFIG_FEC_ENET_DEV		0
-#if (CONFIG_FEC_ENET_DEV == 0)
-#define CONFIG_ETHPRIME			"eth0"
-#elif (CONFIG_FEC_ENET_DEV == 1)
-#define CONFIG_ETHPRIME			"eth1"
-#endif
 #endif
 
 /* Environment settings */
@@ -89,8 +84,6 @@
 	"addcon=setenv bootargs ${bootargs} console=${console},${baudrate}\0" \
 	"fit_addr=0x82000000\0" \
 	ENV_MMC
-
-#define CONFIG_BOOTCOMMAND		"run mmc_mmc_fit"
 
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 0) \

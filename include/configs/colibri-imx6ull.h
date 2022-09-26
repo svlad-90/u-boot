@@ -16,7 +16,6 @@
 #define PHYS_SDRAM_SIZE			SZ_1G
 
 /* ENET1 */
-#define IMX_FEC_BASE			ENET2_BASE_ADDR
 
 /* MMC Config */
 #define CONFIG_SYS_FSL_ESDHC_ADDR	0
@@ -50,15 +49,6 @@
 	"ramdisk_addr_r=0x82200000\0" \
 	"scriptaddr=0x87000000\0"
 
-#define NFS_BOOTCMD \
-	"nfsargs=ip=:::::eth0: root=/dev/nfs\0" \
-	"nfsboot=run setup; " \
-		"setenv bootargs ${defargs} ${nfsargs} " \
-		"${setupargs} ${vidargs}; echo Booting from NFS...;" \
-		"dhcp ${kernel_addr_r} && " \
-		"tftp ${fdt_addr_r} ${fdtfile} && " \
-		"run fdt_fixup && bootz ${kernel_addr_r} - ${fdt_addr_r}\0" \
-
 #define UBI_BOOTCMD \
 	"ubiargs=ubi.mtd=ubi root=ubi0:rootfs rw rootfstype=ubifs " \
 		"ubi.fm_autoconvert=1\0" \
@@ -72,7 +62,6 @@
 
 #if defined(CONFIG_TARGET_COLIBRI_IMX6ULL_NAND)
 /* Run Distro Boot script if ubiboot fails */
-#define CONFIG_BOOTCOMMAND "run ubiboot || run distro_bootcmd;"
 #define DFU_ALT_NAND_INFO "imx6ull-bcb part 0,1;u-boot1 part 0,2;u-boot2 part 0,3;u-boot-env part 0,4;ubi partubi 0,5"
 #define MODULE_EXTRA_ENV_SETTINGS \
 	"dfu_alt_info=" DFU_ALT_NAND_INFO "\0" \
@@ -99,9 +88,9 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	BOOTENV \
 	MEM_LAYOUT_ENV_SETTINGS \
-	NFS_BOOTCMD \
 	UBI_BOOTCMD \
 	UBOOT_UPDATE \
+	"boot_script_dhcp=boot.scr\0" \
 	"bootubipart=ubi\0" \
 	"console=ttymxc0\0" \
 	"defargs=user_debug=30\0" \
@@ -124,9 +113,7 @@
 		"${board}/flash_blk.img && source ${loadaddr}\0" \
 	"splashpos=m,m\0" \
 	"splashimage=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
-	"videomode=video=ctfb:x:640,y:480,depth:18,pclk:39722,le:48,ri:16,up:33,lo:10,hs:96,vs:2,sync:0,vmode:0\0" \
-	"vidargs=video=mxsfb:640x480M-16@60"
-
+	"videomode=video=ctfb:x:640,y:480,depth:18,pclk:39722,le:48,ri:16,up:33,lo:10,hs:96,vs:2,sync:0,vmode:0\0"
 
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
@@ -141,8 +128,9 @@
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
 /* environment organization */
-
-/* Environment in eMMC, before config block at the end of 1st "boot sector" */
+#if defined(CONFIG_ENV_IS_IN_NAND)
+#define CONFIG_ENV_RANGE	(4 * CONFIG_ENV_SIZE)
+#endif
 
 #ifdef CONFIG_TARGET_COLIBRI_IMX6ULL_NAND
 /* NAND stuff */
@@ -165,8 +153,6 @@
 
 #if defined(CONFIG_DM_VIDEO)
 #define MXS_LCDIF_BASE MX6UL_LCDIF1_BASE_ADDR
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 #endif /* __COLIBRI_IMX6ULL_CONFIG_H */

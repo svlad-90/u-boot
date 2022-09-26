@@ -48,7 +48,7 @@ void board_init_f(ulong bootflag)
 	/* initialize selected port with appropriate baud rate */
 	plat_ratio = in_be32(&gur->porpllsr) & MPC85xx_PORPLLSR_PLAT_RATIO;
 	plat_ratio >>= 1;
-	bus_clk = CONFIG_SYS_CLK_FREQ * plat_ratio;
+	bus_clk = get_board_sys_clk() * plat_ratio;
 	gd->bus_clk = bus_clk;
 
 	ns16550_init((struct ns16550 *)CONFIG_SYS_NS16550_COM1,
@@ -83,12 +83,15 @@ void board_init_r(gd_t *gd, ulong dest_addr)
 			CONFIG_SPL_RELOC_MALLOC_SIZE);
 	gd->flags |= GD_FLG_FULL_MALLOC_INIT;
 
+#ifdef CONFIG_SPL_ENV_SUPPORT
 #ifndef CONFIG_SPL_NAND_BOOT
 	env_init();
+#endif
 #endif
 #ifdef CONFIG_SPL_MMC_BOOT
 	mmc_initialize(bd);
 #endif
+#ifdef CONFIG_SPL_ENV_SUPPORT
 	/* relocate environment function pointers etc. */
 #ifdef CONFIG_SPL_NAND_BOOT
 	nand_spl_load_image(CONFIG_ENV_OFFSET, CONFIG_ENV_SIZE,
@@ -97,6 +100,7 @@ void board_init_r(gd_t *gd, ulong dest_addr)
 	gd->env_valid = ENV_VALID;
 #else
 	env_relocate();
+#endif
 #endif
 
 #if CONFIG_IS_ENABLED(SYS_I2C_LEGACY)

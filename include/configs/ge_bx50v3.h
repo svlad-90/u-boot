@@ -14,14 +14,11 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/mach-imx/gpio.h>
 
-#define CONFIG_BOARD_NAME	"General Electric Bx50v3"
-
 #include "mx6_common.h"
 #include <linux/sizes.h>
 
 /* SATA Configs */
 #ifdef CONFIG_CMD_SATA
-#define CONFIG_SYS_SATA_MAX_DEVICE	1
 #define CONFIG_DWC_AHSATA_PORT_ID	0
 #define CONFIG_DWC_AHSATA_BASE_ADDR	SATA_ARB_BASE_ADDR
 #define CONFIG_LBA48
@@ -98,15 +95,6 @@
 		"run doboot; " \
 		"run failbootcmd\0" \
 
-#define MMCBOOTCOMMAND \
-	"run doquiet; " \
-	"run tryboot; " \
-
-#ifdef CONFIG_CMD_NFS
-#define CONFIG_BOOTCOMMAND NETWORKBOOTCOMMAND
-#else
-#define CONFIG_BOOTCOMMAND MMCBOOTCOMMAND
-#endif
 
 /* Physical Memory Map */
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
@@ -135,6 +123,5 @@
 
 #define CONFIG_PCI_SCAN_SHOW
 #define CONFIG_PCIE_IMX
-#define CONFIG_PCIE_IMX_POWER_GPIO	IMX_GPIO_NR(1, 5)
 
 #endif	/* __GE_BX50V3_CONFIG_H */

@@ -22,8 +22,6 @@
 #define V_OSCK				26000000  /* Clock output from T2 */
 #define V_SCLK				(V_OSCK)
 
-#define CONFIG_POWER_TPS65217
-
 /*
  * When we have NAND flash we expect to be making use of mtdparts,
  * both for ease of use in U-Boot and for passing information on to
@@ -34,7 +32,6 @@
 #define CONFIG_SYS_SPL_ARGS_ADDR		0x80F80000
 
 /* RAW SD card / eMMC */
-#define CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR	0x900	/* address 0x120000 */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR	0x80	/* address 0x10000 */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS	0x80	/* 64KiB */
 

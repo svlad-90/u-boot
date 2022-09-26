@@ -32,7 +32,6 @@
 /* Board and environment settings */
 #define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONFIG_HOSTNAME			"kontron-mx6ul"
-#define CONFIG_ETHPRIME			"eth0"
 
 #ifdef CONFIG_USB_EHCI_HCD
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
@@ -59,7 +58,6 @@
 #ifdef CONFIG_FSL_USDHC
 #define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC1_BASE_ADDR
 #define CONFIG_SYS_FSL_USDHC_NUM	2
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \

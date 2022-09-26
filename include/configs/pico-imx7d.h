@@ -21,7 +21,6 @@
 /* Falcon Mode - MMC support: args@1MB kernel@2MB */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR  0x800   /* 1MB */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS (CONFIG_CMD_SPL_WRITE_SIZE / 512)
-#define CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR        0x1000  /* 2MB */
 #endif
 
 #define CONFIG_MXC_UART_BASE		UART5_IPS_BASE_ADDR
@@ -64,9 +63,6 @@
 		"setenv fdtfile imx7d-pico-pi.dtb\0" \
 	BOOTENV
 #endif
-
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"image=zImage\0" \
@@ -123,24 +119,9 @@
 #define CONFIG_POWER_PFUZE3000
 #define CONFIG_POWER_PFUZE3000_I2C_ADDR	0x08
 
-#ifdef CONFIG_DM_VIDEO
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
-#endif
-
 /* FLASH and environment organization */
 
 /* Environment starts at 768k = 768 * 1024 = 786432 */
-/*
- * Detect overlap between U-Boot image and environment area in build-time
- *
- * CONFIG_BOARD_SIZE_LIMIT = CONFIG_ENV_OFFSET - u-boot.img offset
- * CONFIG_BOARD_SIZE_LIMIT = 768k - 69k = 699k = 715776
- *
- * Currently CONFIG_BOARD_SIZE_LIMIT does not handle expressions, so
- * write the direct value here
- */
-#define CONFIG_BOARD_SIZE_LIMIT		715776
 
 #define CONFIG_SYS_FSL_USDHC_NUM		2
 

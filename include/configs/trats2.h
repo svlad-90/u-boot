@@ -14,7 +14,6 @@
 
 #define CONFIG_TIZEN			/* TIZEN lib */
 
-#define CONFIG_SYS_L2CACHE_OFF
 #ifndef CONFIG_SYS_L2CACHE_OFF
 #define CONFIG_SYS_L2_PL310
 #define CONFIG_SYS_PL310_BASE	0x10502000
@@ -25,14 +24,8 @@
 #define PHYS_SDRAM_1			CONFIG_SYS_SDRAM_BASE
 #define SDRAM_BANK_SIZE			(256 << 20)	/* 256 MB */
 
-#define CONFIG_BOOTCOMMAND		"run autoboot"
-
 #define CONFIG_SYS_INIT_SP_ADDR	(CONFIG_SYS_LOAD_ADDR \
 					- GENERATED_GBL_DATA_SIZE)
-
-#define CONFIG_SYS_MEM_TOP_HIDE	(1 << 20)	/* ram console */
-
-#define CONFIG_SYS_MONITOR_BASE	0x00000000
 
 /* Tizen - partitions definitions */
 #define PARTS_CSA		"csa-mmc"

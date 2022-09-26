@@ -50,15 +50,12 @@ static int pci_generic_ecam_conf_address(const struct udevice *bus,
 	addr = pcie->cfg_base;
 
 	if (dev_get_driver_data(bus) == TYPE_PCI) {
-		addr += (PCI_BUS(bdf) - pcie->first_busno) << 16;
-		addr += PCI_DEV(bdf) << 11;
-		addr += PCI_FUNC(bdf) << 8;
+		addr += ((PCI_BUS(bdf) - pcie->first_busno) << 16) |
+			 (PCI_DEV(bdf) << 11) | (PCI_FUNC(bdf) << 8) | offset;
 	} else {
-		addr += (PCI_BUS(bdf) - pcie->first_busno) << 20;
-		addr += PCI_DEV(bdf) << 15;
-		addr += PCI_FUNC(bdf) << 12;
+		addr += PCIE_ECAM_OFFSET(PCI_BUS(bdf) - pcie->first_busno,
+					 PCI_DEV(bdf), PCI_FUNC(bdf), offset);
 	}
-	addr += offset;
 	*paddress = addr;
 
 	return 0;

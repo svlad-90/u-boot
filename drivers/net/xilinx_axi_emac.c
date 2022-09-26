@@ -821,7 +821,6 @@ static int axi_emac_of_to_plat(struct udevice *dev)
 	struct eth_pdata *pdata = &plat->eth_pdata;
 	int node = dev_of_offset(dev);
 	int offset = 0;
-	const char *phy_mode;
 
 	pdata->iobase = dev_read_addr(dev);
 	plat->mactype = dev_get_driver_data(dev);
@@ -832,8 +831,8 @@ static int axi_emac_of_to_plat(struct udevice *dev)
 		printf("%s: axistream is not found\n", __func__);
 		return -EINVAL;
 	}
-	plat->dmatx = (struct axidma_reg *)fdtdec_get_addr(gd->fdt_blob,
-							  offset, "reg");
+	plat->dmatx = (struct axidma_reg *)fdtdec_get_addr_size_auto_parent
+		      (gd->fdt_blob, 0, offset, "reg", 0, NULL, false);
 	if (!plat->dmatx) {
 		printf("%s: axi_dma register space not found\n", __func__);
 		return -EINVAL;
@@ -850,14 +849,9 @@ static int axi_emac_of_to_plat(struct udevice *dev)
 			plat->phy_of_handle = offset;
 		}
 
-		phy_mode = fdt_getprop(gd->fdt_blob, node, "phy-mode", NULL);
-		if (phy_mode)
-			pdata->phy_interface = phy_get_interface_by_name(phy_mode);
-		if (pdata->phy_interface == -1) {
-			printf("%s: Invalid PHY interface '%s'\n", __func__,
-			       phy_mode);
+		pdata->phy_interface = dev_read_phy_mode(dev);
+		if (pdata->phy_interface == PHY_INTERFACE_MODE_NA)
 			return -EINVAL;
-		}
 
 		plat->eth_hasnobuf = fdtdec_get_bool(gd->fdt_blob, node,
 						     "xlnx,eth-hasnobuf");

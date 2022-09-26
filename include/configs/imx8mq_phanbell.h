@@ -11,8 +11,6 @@
 
 #define CONFIG_SPL_MAX_SIZE		(172 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	0x300
 
 #ifdef CONFIG_SPL_BUILD
 /*#define CONFIG_ENABLE_DDR_TRAINING_DEBUG*/
@@ -27,22 +25,12 @@
 #define CONFIG_MALLOC_F_ADDR		0x182000
 /* For RAW image gives a error info not panic */
 #define CONFIG_SPL_ABORT_ON_RAW_IMAGE
-
-#undef CONFIG_DM_MMC
 #endif
-
-#define CONFIG_REMAKE_ELF
 
 /* ENET Config */
 /* ENET1 */
 #if defined(CONFIG_CMD_NET)
-#define CONFIG_ETHPRIME                 "FEC"
-
-#define CONFIG_FEC_XCV_TYPE             RGMII
 #define CONFIG_FEC_MXC_PHYADDR          0
-#define FEC_QUIRK_ENET_MAC
-
-#define IMX_FEC_BASE			0x30BE0000
 #endif
 
 #define CONFIG_MFG_ENV_SETTINGS \
@@ -62,8 +50,8 @@
 	"initrd_addr=0x43800000\0"		\
 	"initrd_high=0xffffffffffffffff\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+	"mmcpart=1\0" \
+	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs console=${console} root=${mmcroot}\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
@@ -103,18 +91,6 @@
 			"booti; " \
 		"fi;\0"
 
-#define CONFIG_BOOTCOMMAND \
-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
-		   "if run loadbootscript; then " \
-			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
-		   "fi; " \
-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
-
 /* Link Definitions */
 
 #define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
@@ -124,17 +100,12 @@
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
 
 #define CONFIG_SYS_SDRAM_BASE           0x40000000
 #define PHYS_SDRAM                      0x40000000
 #define PHYS_SDRAM_SIZE			0x40000000 /* 1GB DDR */
 
-#define CONFIG_SYS_MEMTEST_START	PHYS_SDRAM
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + \
-					(PHYS_SDRAM_SIZE >> 1))
-
-#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
+#define CONFIG_MXC_UART_BASE		UART_BASE_ADDR(1)
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE		1024
@@ -145,11 +116,5 @@
 
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #define CONFIG_SYS_FSL_ESDHC_ADDR       0
-
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
-
-#define CONFIG_MXC_GPIO
-
-#define CONFIG_OF_SYSTEM_SETUP
 
 #endif

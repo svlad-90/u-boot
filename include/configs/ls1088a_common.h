@@ -17,10 +17,7 @@
 #define SPL_NO_SATA
 #define SPL_NO_QSPI
 #define SPL_NO_IFC
-#undef CONFIG_DISPLAY_CPUINFO
 #endif
-
-#define CONFIG_REMAKE_ELF
 
 #include <asm/arch/stream_id_lsch3.h>
 #include <asm/arch/config.h>
@@ -49,11 +46,6 @@
 #define CPU_RELEASE_ADDR		secondary_boot_addr
 
 /* GPIO */
-#ifdef CONFIG_DM_GPIO
-#ifndef CONFIG_MPC8XXX_GPIO
-#define CONFIG_MPC8XXX_GPIO
-#endif
-#endif
 
 /* I2C */
 
@@ -62,11 +54,6 @@
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE     1
 #define CONFIG_SYS_NS16550_CLK          (get_bus_freq(0) / 2)
-
-#if !defined(SPL_NO_IFC) || defined(CONFIG_TARGET_LS1088AQDS)
-/* IFC */
-#define CONFIG_FSL_IFC
-#endif
 
 /*
  * During booting, IFC is mapped at the region of 0x30000000.
@@ -120,11 +107,6 @@ unsigned long long get_qixis_addr(void);
 #define CONFIG_SYS_LS_MC_AIOP_IMG_MAX_LENGTH	0x200000
 #define CONFIG_SYS_LS_MC_DRAM_AIOP_IMG_OFFSET	0x07000000
 
-/* Define phy_reset function to boot the MC based on mcinitcmd.
- * This happens late enough to properly fixup u-boot env MAC addresses.
- */
-#define CONFIG_RESET_PHY_R
-
 /*
  * Carve out a DDR region which will not be used by u-boot/Linux
  *
@@ -140,22 +122,13 @@ unsigned long long get_qixis_addr(void);
 
 /* SATA */
 #ifdef CONFIG_SCSI
-#define CONFIG_SCSI_AHCI_PLAT
 #define CONFIG_SYS_SATA1		AHCI_BASE_ADDR1
-
-#define CONFIG_SYS_SCSI_MAX_SCSI_ID	1
-#define CONFIG_SYS_SCSI_MAX_LUN		1
-#define CONFIG_SYS_SCSI_MAX_DEVICE	(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
-					CONFIG_SYS_SCSI_MAX_LUN)
 #endif
 
 /* Physical Memory Map */
-#define CONFIG_CHIP_SELECTS_PER_CTRL	4
 
 #define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		128
-
-/* #define CONFIG_DISPLAY_CPUINFO */
 
 #ifndef SPL_NO_ENV
 /* Initial environment variables */
@@ -173,25 +146,6 @@ unsigned long long get_qixis_addr(void);
 	"console=ttyAMA0,38400n8\0"		\
 	"mcinitcmd=fsl_mc start mc 0x580a00000"	\
 	" 0x580e00000 \0"
-
-#ifndef CONFIG_TFABOOT
-#if defined(CONFIG_QSPI_BOOT)
-#define CONFIG_BOOTCOMMAND	"sf probe 0:0;" \
-				"sf read 0x80001000 0xd00000 0x100000;"\
-				" fsl_mc lazyapply dpl 0x80001000 &&" \
-				" sf read $kernel_load $kernel_start" \
-				" $kernel_size && bootm $kernel_load"
-#elif defined(CONFIG_SD_BOOT)
-#define CONFIG_BOOTCOMMAND	"mmcinfo;mmc read 0x80001000 0x6800 0x800;"\
-				" fsl_mc lazyapply dpl 0x80001000 &&" \
-				" mmc read $kernel_load $kernel_start" \
-				" $kernel_size && bootm $kernel_load"
-#else /* NOR BOOT*/
-#define CONFIG_BOOTCOMMAND	"fsl_mc lazyapply dpl 0x580d00000 &&" \
-				" cp.b $kernel_start $kernel_load" \
-				" $kernel_size && bootm $kernel_load"
-#endif
-#endif /* CONFIG_TFABOOT  */
 #endif
 
 /* Monitor Command Prompt */

@@ -218,6 +218,25 @@ static int virtio_pci_set_status(struct udevice *udev, u8 status)
 	return 0;
 }
 
+static int virtio_pci_reset(struct udevice *udev)
+{
+	struct virtio_pci_priv *priv = dev_get_priv(udev);
+
+	/* 0 status means a reset */
+	iowrite8(0, &priv->common->device_status);
+
+	/*
+	 * After writing 0 to device_status, the driver MUST wait for a read
+	 * of device_status to return 0 before reinitializing the device.
+	 * This will flush out the status write, and flush in device writes,
+	 * including MSI-X interrupts, if any.
+	 */
+	while (ioread8(&priv->common->device_status))
+		udelay(1000);
+
+	return 0;
+}
+
 static int virtio_pci_get_features(struct udevice *udev, u64 *features)
 {
 	struct virtio_pci_priv *priv = dev_get_priv(udev);
@@ -344,25 +363,6 @@ static int virtio_pci_find_vqs(struct udevice *udev, unsigned int nvqs,
 	return 0;
 }
 
-static int virtio_pci_reset(struct udevice *udev)
-{
-	struct virtio_pci_priv *priv = dev_get_priv(udev);
-
-	/* 0 status means a reset */
-	iowrite8(0, &priv->common->device_status);
-
-	/*
-	 * After writing 0 to device_status, the driver MUST wait for a read
-	 * of device_status to return 0 before reinitializing the device.
-	 * This will flush out the status write, and flush in device writes,
-	 * including MSI-X interrupts, if any.
-	 */
-	while (ioread8(&priv->common->device_status))
-		udelay(1000);
-
-	return virtio_pci_del_vqs(udev);
-}
-
 static int virtio_pci_notify(struct udevice *udev, struct virtqueue *vq)
 {
 	struct virtio_pci_priv *priv = dev_get_priv(udev);
@@ -400,7 +400,7 @@ static int virtio_pci_notify(struct udevice *udev, struct virtqueue *vq)
  * @cap_size:	expected size of the capability
  * @cap:	capability read from the config space
  *
- * @return offset of the configuration structure
+ * Return: offset of the configuration structure
  */
 static int virtio_pci_find_capability(struct udevice *udev, u8 cfg_type,
 				      size_t cap_size,
@@ -454,38 +454,22 @@ static int virtio_pci_find_capability(struct udevice *udev, u8 cfg_type,
  * @udev:	the transport device
  * @cap:	capability to map
  *
- * @return base address of the capability
+ * Return: base address of the capability
  */
 static void __iomem *virtio_pci_map_capability(struct udevice *udev,
 					       const struct virtio_pci_cap *cap)
 {
-	unsigned long mask, flags;
-	phys_addr_t phys_addr;
-	u32 base;
-
 	/*
-	 * TODO: adding 64-bit BAR support
-	 *
-	 * Per spec, the BAR is permitted to be either 32-bit or 64-bit.
-	 * For simplicity, only read the BAR address as 32-bit.
+	 * Find the corresponding memory region that isn't system memory but is
+	 * writable.
 	 */
-	base = dm_pci_read_bar32(udev, cap->bar);
-	if (U32_MAX - base < cap->offset)
-		return NULL;
-	base += cap->offset;
+	unsigned long mask =
+			PCI_REGION_TYPE | PCI_REGION_SYS_MEMORY | PCI_REGION_RO;
+	unsigned long flags = PCI_REGION_MEM;
+	u8 *p = dm_pci_map_bar(udev, PCI_BASE_ADDRESS_0 + cap->bar, cap->offset,
+			       cap->length, mask, flags);
 
-	if (U32_MAX - base < cap->length)
-		return NULL;
-
-	/* Find the corresponding memory region that isn't system memory. */
-	mask = PCI_REGION_TYPE | PCI_REGION_SYS_MEMORY;
-	flags = PCI_REGION_MEM;
-	phys_addr = dm_pci_bus_range_to_phys(dev_get_parent(udev), base,
-					     cap->length, mask, flags);
-	if (!phys_addr)
-		return NULL;
-
-	return (void __iomem *)map_physmem(phys_addr, cap->length, MAP_NOCACHE);
+	return (void __iomem *)p;
 }
 
 static int virtio_pci_bind(struct udevice *udev)
@@ -547,7 +531,19 @@ static int virtio_pci_probe(struct udevice *udev)
 		return -EINVAL;
 	}
 
+	/* Map configuration structures */
+	priv->common = virtio_pci_map_capability(udev, &common_cap);
+	if (!priv->common) {
+		printf("(%s): could not map common config\n", udev->name);
+		return -EINVAL;
+	}
+
 	priv->notify_len = notify_cap.length;
+	priv->notify_base = virtio_pci_map_capability(udev, &notify_cap);
+	if (!priv->notify_base) {
+		printf("(%s): could not map notify config\n", udev->name);
+		return -EINVAL;
+	}
 
 	/*
 	 * Device capability is only mandatory for devices that have
@@ -559,11 +555,13 @@ static int virtio_pci_probe(struct udevice *udev)
 	if (device) {
 		priv->device_len = device_cap.length;
 		priv->device = virtio_pci_map_capability(udev, &device_cap);
+		if (!priv->device) {
+			printf("(%s): could not map device config\n",
+			       udev->name);
+			return -EINVAL;
+		}
 	}
 
-	/* Map configuration structures */
-	priv->common = virtio_pci_map_capability(udev, &common_cap);
-	priv->notify_base = virtio_pci_map_capability(udev, &notify_cap);
 	debug("(%p): common @ %p, notify base @ %p, device @ %p\n",
 	      udev, priv->common, priv->notify_base, priv->device);
 

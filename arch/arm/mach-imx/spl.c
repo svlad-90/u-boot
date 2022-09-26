@@ -57,9 +57,9 @@ u32 spl_boot_device(void)
 	/* BOOT_CFG1[7:4] - see IMX6DQRM Table 8-8 */
 	switch ((reg & IMX6_BMODE_MASK) >> IMX6_BMODE_SHIFT) {
 	 /* EIM: See 8.5.1, Table 8-9 */
-	case IMX6_BMODE_EMI:
+	case IMX6_BMODE_EIM:
 		/* BOOT_CFG1[3]: NOR/OneNAND Selection */
-		switch ((reg & IMX6_BMODE_EMI_MASK) >> IMX6_BMODE_EMI_SHIFT) {
+		switch ((reg & IMX6_BMODE_EIM_MASK) >> IMX6_BMODE_EIM_SHIFT) {
 		case IMX6_BMODE_ONENAND:
 			return BOOT_DEVICE_ONENAND;
 		case IMX6_BMODE_NOR:
@@ -201,7 +201,7 @@ int g_dnl_get_board_bcd_device_number(int gcnum)
 
 #if defined(CONFIG_SPL_MMC)
 /* called from spl_mmc to see type of boot mode for storage (RAW or FAT) */
-u32 spl_mmc_boot_mode(const u32 boot_device)
+u32 spl_mmc_boot_mode(struct mmc *mmc, const u32 boot_device)
 {
 #if defined(CONFIG_MX7) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8)
 	switch (get_boot_device()) {

@@ -10,12 +10,6 @@
 #include <linux/sizes.h>
 #include <asm/arch/stm32.h>
 
-#ifdef CONFIG_ARMV7_PSCI
-/* PSCI support */
-#define CONFIG_ARMV7_SECURE_BASE		STM32_SYSRAM_BASE
-#define CONFIG_ARMV7_SECURE_MAX_SIZE		STM32_SYSRAM_SIZE
-#endif
-
 /*
  * Configuration of the external SRAM memory used by U-Boot
  */
@@ -57,7 +51,6 @@
 /* Ethernet need */
 #ifdef CONFIG_DWC_ETH_QOS
 #define CONFIG_SERVERIP                 192.168.1.1
-#define CONFIG_BOOTP_SERVERIP
 #define CONFIG_SYS_AUTOLOAD		"no"
 #endif
 
@@ -138,7 +131,6 @@
 #endif
 
 #define STM32MP_EXTRA \
-	"altbootcmd=run bootcmd\0" \
 	"env_check=if env info -p -d -q; then env save; fi\0" \
 	"boot_net_usb_start=true\0"
 

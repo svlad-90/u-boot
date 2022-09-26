@@ -31,8 +31,6 @@
 
 #define CONFIG_SYS_INIT_SP_OFFSET	0x400000
 
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
-
 /*
  * Console
  */
@@ -40,7 +38,7 @@
 /*
  * Flash
  */
-#define CONFIG_SYS_MAX_FLASH_BANKS_DETECT	1
+
 #define CONFIG_SYS_MAX_FLASH_SECT		1024
 
 /*

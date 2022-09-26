@@ -31,7 +31,6 @@
 	func(USB, usb, 0) \
 	func(DHCP, dhcp, na)
 #include <config_distro_bootcmd.h>
-#define CONFIG_BOOTFILE			"uImage"
 #define CONFIG_EXTRA_ENV_SETTINGS				\
 			"kernel_addr_r=0x40000000\0"		\
 			"fdtfile=stih410-b2260.dtb\0"		\
@@ -50,8 +49,6 @@
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE		1024	/* Console I/O Buffer Size */
-
-#define CONFIG_SYS_MAX_FLASH_BANKS	1
 
 /* USB Configs */
 #define CONFIG_USB_OHCI_NEW

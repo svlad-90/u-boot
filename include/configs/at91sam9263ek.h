@@ -22,29 +22,12 @@
 #define CONFIG_SYS_AT91_MAIN_CLOCK	16367660 /* 16.367 MHz crystal */
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768
 
-#ifndef CONFIG_SYS_USE_BOOT_NORFLASH
-#else
-#define CONFIG_SYS_USE_NORFLASH
-#endif
-
 /*
  * Hardware drivers
  */
-#define CONFIG_ATMEL_LEGACY
 
 /* LCD */
 #define LCD_BPP				LCD_COLOR8
-#define CONFIG_LCD_LOGO			1
-#undef LCD_TEST_PATTERN
-#define CONFIG_LCD_INFO			1
-#define CONFIG_LCD_INFO_BELOW_LOGO	1
-#define CONFIG_ATMEL_LCD		1
-#define CONFIG_ATMEL_LCD_BGR555		1
-
-/*
- * BOOTP options
- */
-#define CONFIG_BOOTP_BOOTFILESIZE	1
 
 /* SDRAM */
 #define CONFIG_SYS_SDRAM_BASE		ATMEL_BASE_CS1
@@ -58,10 +41,8 @@
 #define PHYS_FLASH_1				0x10000000
 #define CONFIG_SYS_FLASH_BASE			PHYS_FLASH_1
 #define CONFIG_SYS_MAX_FLASH_SECT		256
-#define CONFIG_SYS_MAX_FLASH_BANKS		1
 
 #define CONFIG_SYS_MONITOR_SEC	1:0-3
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_FLASH_BASE
 #define CONFIG_SYS_MONITOR_LEN	(256 << 10)
 
 /* Address and size of Primary Environment Sector */
@@ -191,10 +172,6 @@
 #define CONFIG_SYS_NAND_READY_PIN		AT91_PIN_PA22
 #endif
 
-/* Ethernet */
-#define CONFIG_RESET_PHY_R		1
-#define CONFIG_AT91_WANTS_COMMON_PHY
-
 /* USB */
 #define CONFIG_USB_ATMEL
 #define CONFIG_USB_ATMEL_CLK_SEL_PLLB
@@ -203,18 +180,5 @@
 #define CONFIG_SYS_USB_OHCI_REGS_BASE		0x00a00000	/* AT91SAM9263_UHP_BASE */
 #define CONFIG_SYS_USB_OHCI_SLOT_NAME		"at91sam9263"
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
-
-#ifdef CONFIG_SYS_USE_DATAFLASH
-
-/* bootstrap + u-boot + env + linux in dataflash on CS0 */
-#define CONFIG_BOOTCOMMAND	"sf probe 0; " \
-				"sf read 0x22000000 0x84000 0x294000; " \
-				"bootm 0x22000000"
-
-#elif CONFIG_SYS_USE_NANDFLASH
-
-/* bootstrap + u-boot + env + linux in nandflash */
-#define CONFIG_BOOTCOMMAND	"nand read 0x22000000 0x200000 0x300000; bootm"
-#endif
 
 #endif

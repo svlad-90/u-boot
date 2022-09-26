@@ -172,7 +172,7 @@ struct blk_desc *blk_get_by_device(struct udevice *dev)
  * @if_type:	Interface type
  * @devnum:	Device number (0 = first)
  * @descp:	Returns block device descriptor on success
- * @return 0 on success, -ENODEV if there is no such device and no device
+ * Return: 0 on success, -ENODEV if there is no such device and no device
  * with a higher device number, -ENOENT if there is no such device but there
  * is one with a higher number, or other -ve on other error.
  */
@@ -509,6 +509,13 @@ int blk_get_from_parent(struct udevice *parent, struct udevice **devp)
 	return 0;
 }
 
+const char *blk_get_devtype(struct udevice *dev)
+{
+	struct udevice *parent = dev_get_parent(dev);
+
+	return uclass_get_name(device_get_uclass_id(parent));
+};
+
 int blk_find_max_devnum(enum if_type if_type)
 {
 	struct udevice *dev;
@@ -550,6 +557,30 @@ static int blk_flags_check(struct udevice *dev, enum blk_flag_t req_flags)
 	flags = desc->removable ? BLKF_REMOVABLE : BLKF_FIXED;
 
 	return flags & req_flags ? 0 : 1;
+}
+
+int blk_find_first(enum blk_flag_t flags, struct udevice **devp)
+{
+	int ret;
+
+	for (ret = uclass_find_first_device(UCLASS_BLK, devp);
+	     *devp && !blk_flags_check(*devp, flags);
+	     ret = uclass_find_next_device(devp))
+		return 0;
+
+	return -ENODEV;
+}
+
+int blk_find_next(enum blk_flag_t flags, struct udevice **devp)
+{
+	int ret;
+
+	for (ret = uclass_find_next_device(devp);
+	     *devp && !blk_flags_check(*devp, flags);
+	     ret = uclass_find_next_device(devp))
+		return 0;
+
+	return -ENODEV;
 }
 
 int blk_first_device_err(enum blk_flag_t flags, struct udevice **devp)
@@ -712,11 +743,15 @@ int blk_unbind_all(int if_type)
 
 static int blk_post_probe(struct udevice *dev)
 {
-	if (IS_ENABLED(CONFIG_PARTITIONS) &&
+	if (CONFIG_IS_ENABLED(PARTITIONS) &&
 	    IS_ENABLED(CONFIG_HAVE_BLOCK_DEVICE)) {
 		struct blk_desc *desc = dev_get_uclass_plat(dev);
 
 		part_init(desc);
+
+		if (desc->part_type != PART_TYPE_UNKNOWN &&
+		    part_create_block_devices(dev))
+			debug("*** creating partitions failed\n");
 	}
 
 	return 0;

@@ -50,6 +50,13 @@ config ALTERA_SPI
 	  IP core. Please find details on the "Embedded Peripherals IP
 	  User Guide" of Altera.
 
+config APPLE_SPI
+	bool "Apple SPI driver"
+	default y if ARCH_APPLE
+	help
+	  Enable the Apple SPI driver. This driver can be used to
+	  access the SPI flash and keyboard on machines based on Apple SoCs.
+
 config ATCSPI200_SPI
 	bool "Andestech ATCSPI200 SPI driver"
 	help
@@ -121,6 +128,14 @@ config CADENCE_QSPI
 	  used to access the SPI NOR flash on platforms embedding this
 	  Cadence IP core.
 
+config HAS_CQSPI_REF_CLK
+	bool "Cadence QSPI static reference clock"
+	depends on CADENCE_QSPI
+
+config CQSPI_REF_CLK
+	int "Cadence QSPI reference clock value in Hz"
+	depends on HAS_CQSPI_REF_CLK
+
 config CF_SPI
         bool "ColdFire SPI driver"
         help
@@ -177,6 +192,12 @@ config ICH_SPI
 	  Enable the Intel ICH SPI driver. This driver can be used to
 	  access the SPI NOR flash on platforms embedding this Intel
 	  ICH IP core.
+
+config IPROC_QSPI
+	bool "Broadcom iProc QSPI Flash Controller driver"
+	help
+	  Enable Broadcom iProc QSPI Flash Controller driver.
+	  This driver can be used to access the SPI NOR flash.
 
 config KIRKWOOD_SPI
 	bool "Marvell Kirkwood SPI Driver"
@@ -261,6 +282,12 @@ config SPI_MXIC
 	  Enable the Macronix MX25F0A SPI controller driver. This driver
 	  can be used to access the SPI flash on platforms embedding
 	  this Macronix IP core.
+
+config NPCM_FIU_SPI
+	bool "FIU driver for Nuvoton NPCM SoC"
+	help
+	  This enables support for the Flash Interface Unit SPI controller
+	  in master mode.
 
 config NXP_FSPI
 	bool "NXP FlexSPI driver"

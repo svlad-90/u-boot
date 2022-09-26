@@ -16,9 +16,6 @@
 /*
  * High Level Configuration Options
  */
-#define CONFIG_BOOT_RETRY_TIME		900
-#define CONFIG_BOOT_RETRY_MIN		30
-#define CONFIG_RESET_TO_RETRY
 
 #define CONFIG_SYS_SICRH	0x00000000
 #define CONFIG_SYS_SICRL	(SICRL_LBC | SICRL_SPI_D)
@@ -118,7 +115,6 @@
 #define CONFIG_SYS_FLASH_SIZE		8
 
 
-#define CONFIG_SYS_MAX_FLASH_BANKS	1
 #define CONFIG_SYS_MAX_FLASH_SECT	128
 
 #define CONFIG_SYS_FLASH_ERASE_TOUT	60000
@@ -153,7 +149,6 @@
 /*
  * HW-Watchdog
  */
-#define CONFIG_WATCHDOG		1
 #define CONFIG_SYS_WATCHDOG_VALUE	0xFFFF
 
 /*
@@ -165,7 +160,6 @@
  * Ethernet setup
  */
 #ifdef CONFIG_TSEC1
-#define CONFIG_HAS_ETH0
 #define CONFIG_TSEC1_NAME		"TSEC0"
 #define CONFIG_SYS_TSEC1_OFFSET	0x24000
 #define TSEC1_PHY_ADDR			0x1
@@ -174,14 +168,12 @@
 #endif
 
 #ifdef CONFIG_TSEC2
-#define CONFIG_HAS_ETH1
 #define CONFIG_TSEC2_NAME		"TSEC1"
 #define CONFIG_SYS_TSEC2_OFFSET	0x25000
 #define TSEC2_PHY_ADDR			0x3
 #define TSEC2_FLAGS			TSEC_GIGABIT
 #define TSEC2_PHYIDX			0
 #endif
-#define CONFIG_ETHPRIME		"TSEC1"
 
 /*
  * Serial Port
@@ -201,12 +193,10 @@
 /*
  * U-Boot environment setup
  */
-#define CONFIG_BOOTP_BOOTFILESIZE
 
 /*
  * The reserved memory
  */
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_TEXT_BASE
 #define CONFIG_SYS_MONITOR_LEN		(768 * 1024)
 
 /*
@@ -216,7 +206,6 @@
 #define CONFIG_NETDEV			eth1
 #define CONFIG_HOSTNAME		"ids8313"
 #define CONFIG_ROOTPATH		"/opt/eldk-4.2/ppc_6xx"
-#define CONFIG_BOOTFILE		"ids8313/uImage"
 #define CONFIG_UBOOTPATH		"ids8313/u-boot.bin"
 #define CONFIG_FDTFILE			"ids8313/ids8313.dtb"
 #define CONFIG_ENV_FLAGS_LIST_STATIC "ethaddr:mo,eth1addr:mo"
@@ -231,12 +220,7 @@
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 
 #define CONFIG_LOADS_ECHO
-#define CONFIG_TIMESTAMP
-#define CONFIG_BOOTCOMMAND		"run boot_cramfs"
 #undef	CONFIG_SYS_LOADS_BAUD_CHANGE
-
-#define CONFIG_JFFS2_NAND
-#define CONFIG_JFFS2_DEV		"0"
 
 /* mtdparts command line support */
 
@@ -271,14 +255,6 @@
 	"mtdids=" CONFIG_MTDIDS_DEFAULT "\0"					\
 	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0"				\
 	"\0"
-
-#define NFSBOOTCOMMAND						\
-	"setenv rootdev /dev/nfs;"					\
-	"run setipargs;run addmtd;"					\
-	"tftp ${loadaddr} ${bootfile};"				\
-	"tftp ${fdtaddr} ${fdtfile};"					\
-	"fdt addr ${fdtaddr};"						\
-	"bootm ${loadaddr} - ${fdtaddr}"
 
 /* UBI Support */
 

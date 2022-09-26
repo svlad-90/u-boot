@@ -40,7 +40,9 @@
 #endif
 #define CONFIG_SYS_NAND_U_BOOT_DST	0x30000000
 #define CONFIG_SYS_NAND_U_BOOT_START	0x30000000
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	(256 << 10)
+#ifndef CONFIG_MPC85XX_HAVE_RESET_VECTOR
+#define CONFIG_SYS_MPC85XX_NO_RESETVEC
+#endif
 #endif
 
 #ifdef CONFIG_SPIFLASH
@@ -71,9 +73,6 @@
 /* High Level Configuration Options */
 #define CONFIG_SYS_BOOK3E_HV		/* Category E.HV supported */
 
-/* support deep sleep */
-#define CONFIG_DEEP_SLEEP
-
 #ifndef CONFIG_RESET_VECTOR_ADDRESS
 #define CONFIG_RESET_VECTOR_ADDRESS	0xeffffffc
 #endif
@@ -85,8 +84,6 @@
 #define CONFIG_PCIE3			/* PCIE controller 3 */
 #define CONFIG_PCIE4			/* PCIE controller 4 */
 
-#define CONFIG_SYS_PCI_64BIT		/* enable 64-bit PCI resources */
-
 #if defined(CONFIG_SPIFLASH)
 #elif defined(CONFIG_MTD_RAW_NAND)
 #ifdef CONFIG_NXP_ESBC
@@ -95,15 +92,11 @@
 #endif
 #endif
 
-#define CONFIG_SYS_CLK_FREQ	100000000
-
 /*
  * These can be toggled for performance analysis, otherwise use default.
  */
 #define CONFIG_SYS_CACHE_STASHING
-#define CONFIG_BACKSIDE_L2_CACHE
 #define CONFIG_SYS_INIT_L2CSR0		L2CSR0_L2E
-#define CONFIG_BTB			/* toggle branch predition */
 #ifdef CONFIG_DDR_ECC
 #define CONFIG_MEM_INIT_VALUE		0xdeadbeef
 #endif
@@ -136,9 +129,6 @@
 #define CONFIG_VERY_BIG_RAM
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x00000000
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
-
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_CHIP_SELECTS_PER_CTRL	(2 * CONFIG_DIMM_SLOTS_PER_CTLR)
 
 #define CONFIG_SYS_SPD_BUS_NUM	0
 #define SPD_EEPROM_ADDRESS	0x51
@@ -180,7 +170,6 @@
 #define CONFIG_SYS_FLASH_QUIET_TEST
 #define CONFIG_FLASH_SHOW_PROGRESS	45 /* count down from 45/5: 9..1 */
 
-#define CONFIG_SYS_MAX_FLASH_BANKS	2	/* number of banks */
 #define CONFIG_SYS_MAX_FLASH_SECT	1024	/* sectors per device */
 #define CONFIG_SYS_FLASH_ERASE_TOUT	60000	/* Flash Erase Timeout (ms) */
 #define CONFIG_SYS_FLASH_WRITE_TOUT	500	/* Flash Write Timeout (ms) */
@@ -308,20 +297,8 @@
 #define CONFIG_SYS_CS1_FTIM3		CONFIG_SYS_NAND_FTIM3
 #endif
 
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SPL_TEXT_BASE
-#else
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_TEXT_BASE	/* start of monitor */
-#endif
-
 #if defined(CONFIG_RAMBOOT_PBL)
 #define CONFIG_SYS_RAMBOOT
-#endif
-
-#ifdef CONFIG_SYS_FSL_ERRATUM_A008044
-#if defined(CONFIG_MTD_RAW_NAND)
-#define CONFIG_A008044_WORKAROUND
-#endif
 #endif
 
 #define CONFIG_HWCONFIG
@@ -359,20 +336,6 @@
 #define CONFIG_SYS_NS16550_COM2	(CONFIG_SYS_CCSRBAR+0x11C600)
 #define CONFIG_SYS_NS16550_COM3	(CONFIG_SYS_CCSRBAR+0x11D500)
 #define CONFIG_SYS_NS16550_COM4	(CONFIG_SYS_CCSRBAR+0x11D600)
-
-#if defined(CONFIG_TARGET_T1042RDB_PI) || defined(CONFIG_TARGET_T1042D4RDB)
-/* Video */
-#define CONFIG_FSL_DIU_FB
-
-#ifdef CONFIG_FSL_DIU_FB
-#define CONFIG_FSL_DIU_CH7301
-#define CONFIG_SYS_DIU_ADDR	(CONFIG_SYS_CCSRBAR + 0x180000)
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
-#endif
-#endif
-
-/* I2C */
 
 /* I2C bus multiplexer */
 #define I2C_MUX_PCA_ADDR                0x70
@@ -445,7 +408,6 @@
 /* SATA */
 #define CONFIG_FSL_SATA_V2
 #ifdef CONFIG_FSL_SATA_V2
-#define CONFIG_SYS_SATA_MAX_DEVICE	1
 #define CONFIG_SATA1
 #define CONFIG_SYS_SATA1		CONFIG_SYS_MPC85xx_SATA1_ADDR
 #define CONFIG_SYS_SATA1_FLAGS		FLAGS_DMA
@@ -460,7 +422,6 @@
 
 #ifdef CONFIG_HAS_FSL_DR_USB
 #ifdef CONFIG_USB_EHCI_HCD
-#define CONFIG_USB_EHCI_FSL
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
 #endif
 #endif
@@ -499,8 +460,6 @@
 #define CONFIG_SYS_DPAA_FMAN
 #define CONFIG_SYS_DPAA_PME
 
-#define CONFIG_U_QE
-
 #define CONFIG_SYS_FDT_PAD		(0x3000 + CONFIG_SYS_QE_FMAN_FW_LENGTH)
 #endif /* CONFIG_NOBQFMAN */
 
@@ -534,8 +493,6 @@
 #define CONFIG_SYS_FM1_QSGMII21_PHY_ADDR	0x0c
 #endif
 #endif
-
-#define CONFIG_ETHPRIME		"FM1@DTSEC4"
 #endif
 
 /*
@@ -564,7 +521,6 @@
  * Environment Configuration
  */
 #define CONFIG_ROOTPATH		"/opt/nfsroot"
-#define CONFIG_BOOTFILE		"uImage"
 #define CONFIG_UBOOTPATH	"u-boot.bin"	/* U-Boot image on TFTP server*/
 
 #define __USB_PHY_TYPE	utmi
@@ -582,18 +538,11 @@
 #define FDTFILE		"t1042rdb/t1042d4rdb.dtb"
 #endif
 
-#ifdef CONFIG_FSL_DIU_FB
-#define DIU_ENVIRONMENT "video-mode=fslfb:1024x768-32@60,monitor=dvi"
-#else
-#define DIU_ENVIRONMENT
-#endif
-
 #define	CONFIG_EXTRA_ENV_SETTINGS				\
 	"hwconfig=fsl_ddr:bank_intlv=cs0_cs1;"			\
 	"usb1:dr_mode=host,phy_type=" __stringify(__USB_PHY_TYPE) ";"\
 	"usb2:dr_mode=host,phy_type=" __stringify(__USB_PHY_TYPE) "\0"\
 	"netdev=eth0\0"						\
-	"video-mode=" __stringify(DIU_ENVIRONMENT) "\0"		\
 	"uboot=" __stringify(CONFIG_UBOOTPATH) "\0"		\
 	"ubootaddr=" __stringify(CONFIG_SYS_TEXT_BASE) "\0"	\
 	"tftpflash=tftpboot $loadaddr $uboot && "		\
@@ -608,40 +557,6 @@
 	"fdtaddr=1e00000\0"					\
 	"fdtfile=" __stringify(FDTFILE) "\0"			\
 	"bdev=sda3\0"
-
-#define LINUXBOOTCOMMAND                       \
-	"setenv bootargs root=/dev/ram rw "            \
-	"console=$consoledev,$baudrate $othbootargs;"  \
-	"setenv ramdiskaddr 0x02000000;"               \
-	"setenv fdtaddr 0x00c00000;"		       \
-	"setenv loadaddr 0x1000000;"		       \
-	"bootm $loadaddr $ramdiskaddr $fdtaddr"
-
-#define HDBOOT					\
-	"setenv bootargs root=/dev/$bdev rw "		\
-	"console=$consoledev,$baudrate $othbootargs;"	\
-	"tftp $loadaddr $bootfile;"			\
-	"tftp $fdtaddr $fdtfile;"			\
-	"bootm $loadaddr - $fdtaddr"
-
-#define NFSBOOTCOMMAND			\
-	"setenv bootargs root=/dev/nfs rw "	\
-	"nfsroot=$serverip:$rootpath "		\
-	"ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname:$netdev:off " \
-	"console=$consoledev,$baudrate $othbootargs;"	\
-	"tftp $loadaddr $bootfile;"		\
-	"tftp $fdtaddr $fdtfile;"		\
-	"bootm $loadaddr - $fdtaddr"
-
-#define RAMBOOTCOMMAND				\
-	"setenv bootargs root=/dev/ram rw "		\
-	"console=$consoledev,$baudrate $othbootargs;"	\
-	"tftp $ramdiskaddr $ramdiskfile;"		\
-	"tftp $loadaddr $bootfile;"			\
-	"tftp $fdtaddr $fdtfile;"			\
-	"bootm $loadaddr $ramdiskaddr $fdtaddr"
-
-#define CONFIG_BOOTCOMMAND		LINUXBOOTCOMMAND
 
 #include <asm/fsl_secure_boot.h>
 

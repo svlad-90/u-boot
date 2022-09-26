@@ -11,15 +11,12 @@
 #include <asm/arch/imx-regs.h>
 
 #include "siemens-env-common.h"
-#include "siemens-ccp-common.h"
 
 /* SPL config */
 #ifdef CONFIG_SPL_BUILD
 
 #define CONFIG_SPL_MAX_SIZE		(124 * 1024)
 #define CONFIG_SYS_MONITOR_LEN		(1024 * 1024)
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR		0x800
 
 #define CONFIG_SPL_STACK		0x013E000
 #define CONFIG_SPL_BSS_START_ADDR	0x00128000
@@ -35,18 +32,9 @@
 
 #define CONFIG_FACTORYSET
 
-#undef CONFIG_IDENT_STRING
-#define CONFIG_IDENT_STRING		GENERATE_CCP_VERSION("01", "07")
-
-#define CONFIG_REMAKE_ELF
-
-/* ENET Config */
-#define CONFIG_FEC_XCV_TYPE		RMII
-
 /* ENET1 connects to base board and MUX with ESAI */
 #define CONFIG_FEC_ENET_DEV		1
 #define CONFIG_FEC_MXC_PHYADDR		0x0
-#define CONFIG_ETHPRIME                "eth1"
 
 /* I2C Configuration */
 #ifndef CONFIG_SPL_BUILD
@@ -117,20 +105,10 @@
 	ENV_EMMC \
 	ENV_NET
 
-#define CONFIG_BOOTCOMMAND \
-	"if usrbutton; then " \
-		"run flash_self_test; " \
-		"reset; " \
-	"fi;" \
-	"run flash_self;" \
-	"reset;"
-
 /* Default location for tftp and bootm */
 #define CONFIG_SYS_INIT_SP_ADDR		0x80200000
 
 /* On CCP board, USDHC1 is for eMMC */
-#define CONFIG_MMCROOT			"/dev/mmcblk0p2"  /* eMMC */
-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define PHYS_SDRAM_1			0x80000000
@@ -143,9 +121,6 @@
 #define CONFIG_SYS_CBSIZE		2048
 #define CONFIG_SYS_MAXARGS		64
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
-
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		8000000	/* 8MHz */
 
 #define BOOTAUX_RESERVED_MEM_BASE	0x88000000
 #define BOOTAUX_RESERVED_MEM_SIZE	SZ_128M /* Reserve from second 128MB */

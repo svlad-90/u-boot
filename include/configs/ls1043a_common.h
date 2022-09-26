@@ -26,8 +26,6 @@
 #define SPL_NO_IFC
 #endif
 
-#define CONFIG_REMAKE_ELF
-
 #include <asm/arch/stream_id_lsch2.h>
 #include <asm/arch/config.h>
 
@@ -45,9 +43,6 @@
 #define CONFIG_SYS_DDR_BLOCK2_BASE      0x880000000ULL
 
 #define CPU_RELEASE_ADDR               secondary_boot_addr
-
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		25000000	/* 25MHz */
 
 /* Serial Port */
 #define CONFIG_SYS_NS16550_SERIAL
@@ -112,17 +107,11 @@
 #endif
 
 /* GPIO */
-#ifdef CONFIG_DM_GPIO
-#ifndef CONFIG_MPC8XXX_GPIO
-#define CONFIG_MPC8XXX_GPIO
-#endif
-#endif
 
 /* IFC */
 #ifndef SPL_NO_IFC
 #if defined(CONFIG_TFABOOT) || \
 	(!defined(CONFIG_QSPI_BOOT) && !defined(CONFIG_SD_BOOT_QSPI))
-#define CONFIG_FSL_IFC
 /*
  * CONFIG_SYS_FLASH_BASE has the final address (core view)
  * CONFIG_SYS_FLASH_BASE_PHYS has the final address (IFC view)
@@ -154,13 +143,6 @@
 #endif
 
 /*  DSPI  */
-#ifndef SPL_NO_DSPI
-#ifdef CONFIG_FSL_DSPI
-#define CONFIG_SPI_FLASH_STMICRO	/* cs0 */
-#define CONFIG_SPI_FLASH_SST		/* cs1 */
-#define CONFIG_SPI_FLASH_EON		/* cs2 */
-#endif
-#endif
 
 /* FMan ucode */
 #ifndef SPL_NO_FMAN
@@ -191,7 +173,6 @@
 	"hwconfig=fsl_ddr:bank_intlv=auto\0"	\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"initrd_high=0xffffffffffffffff\0"	\
-	"fdt_addr=0x64f00000\0"			\
 	"kernel_addr=0x61000000\0"		\
 	"scriptaddr=0x80000000\0"		\
 	"scripthdraddr=0x80080000\0"		\
@@ -261,7 +242,6 @@
 		"bootm $load_addr#$board\0"
 
 
-#undef CONFIG_BOOTCOMMAND
 #ifdef CONFIG_TFABOOT
 #define QSPI_NOR_BOOTCOMMAND "run distro_bootcmd; run qspi_bootcmd; "	\
 			   "env exists secureboot && esbc_halt;"
@@ -271,17 +251,6 @@
 			   "env exists secureboot && esbc_halt;"
 #define IFC_NAND_BOOTCOMMAND "run distro_bootcmd; run nand_bootcmd; "	\
 			   "env exists secureboot && esbc_halt;"
-#else
-#if defined(CONFIG_QSPI_BOOT) || defined(CONFIG_SD_BOOT_QSPI)
-#define CONFIG_BOOTCOMMAND "run distro_bootcmd; run qspi_bootcmd; "	\
-			   "env exists secureboot && esbc_halt;"
-#elif defined(CONFIG_SD_BOOT)
-#define CONFIG_BOOTCOMMAND "run distro_bootcmd; run sd_bootcmd; "  \
-			   "env exists secureboot && esbc_halt;"
-#else
-#define CONFIG_BOOTCOMMAND "run distro_bootcmd; run nor_bootcmd; "	\
-			   "env exists secureboot && esbc_halt;"
-#endif
 #endif
 #endif
 

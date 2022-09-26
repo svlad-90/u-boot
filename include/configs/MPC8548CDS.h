@@ -19,21 +19,17 @@
 #define CONFIG_PCI1		/* PCI controller 1 */
 #define CONFIG_PCIE1		/* PCIE controller 1 (slot 1) */
 #undef CONFIG_PCI2
-#define CONFIG_SYS_PCI_64BIT	1	/* enable 64-bit PCI resources */
 
 #define CONFIG_INTERRUPTS		/* enable pci, srio, ddr interrupts */
 
 #ifndef __ASSEMBLY__
 #include <linux/stringify.h>
-extern unsigned long get_clock_freq(void);
 #endif
-#define CONFIG_SYS_CLK_FREQ	get_clock_freq() /* sysclk for MPC85xx */
 
 /*
  * These can be toggled for performance analysis, otherwise use default.
  */
 #define CONFIG_L2_CACHE			/* toggle L2 cache */
-#define CONFIG_BTB			/* toggle branch predition */
 
 /*
  * Only possible on E500 Version 2 or newer cores.
@@ -50,9 +46,6 @@ extern unsigned long get_clock_freq(void);
 
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x00000000	/* DDR is system memory*/
 #define CONFIG_SYS_SDRAM_BASE		CONFIG_SYS_DDR_SDRAM_BASE
-
-#define CONFIG_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_CHIP_SELECTS_PER_CTRL	(2 * CONFIG_DIMM_SLOTS_PER_CTLR)
 
 /* I2C addresses of SPD EEPROMs */
 #define SPD_EEPROM_ADDRESS	0x51	/* CTLR 0 DIMM 0 */
@@ -134,23 +127,12 @@ extern unsigned long get_clock_freq(void);
 #define CONFIG_SYS_FLASH_BASE_PHYS	CONFIG_SYS_FLASH_BASE
 #endif
 
-#define CONFIG_SYS_BR0_PRELIM \
-	(BR_PHYS_ADDR(CONFIG_SYS_FLASH_BASE_PHYS + 0x800000) | BR_PS_16 | BR_V)
-#define CONFIG_SYS_BR1_PRELIM \
-	(BR_PHYS_ADDR(CONFIG_SYS_FLASH_BASE_PHYS) | BR_PS_16 | BR_V)
-
-#define	CONFIG_SYS_OR0_PRELIM		0xff806e65
-#define	CONFIG_SYS_OR1_PRELIM		0xff806e65
-
 #define CONFIG_SYS_FLASH_BANKS_LIST \
 	{CONFIG_SYS_FLASH_BASE_PHYS + 0x800000, CONFIG_SYS_FLASH_BASE_PHYS}
-#define CONFIG_SYS_MAX_FLASH_BANKS	2		/* number of banks */
 #define CONFIG_SYS_MAX_FLASH_SECT	128		/* sectors per device */
 #undef	CONFIG_SYS_FLASH_CHECKSUM
 #define CONFIG_SYS_FLASH_ERASE_TOUT	60000	/* Flash Erase Timeout (ms) */
 #define CONFIG_SYS_FLASH_WRITE_TOUT	500	/* Flash Write Timeout (ms) */
-
-#define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_TEXT_BASE	/* start of monitor */
 
 #define CONFIG_SYS_FLASH_EMPTY_INFO
 
@@ -185,10 +167,6 @@ extern unsigned long get_clock_freq(void);
  * FIXME: the top 17 bits of BR2.
  */
 
-#define CONFIG_SYS_BR2_PRELIM \
-	(BR_PHYS_ADDR(CONFIG_SYS_LBC_SDRAM_BASE_PHYS) \
-	| BR_PS_32 | (3<<BR_MSEL_SHIFT) | BR_V)
-
 /*
  * The SDRAM size in MB, CONFIG_SYS_LBC_SDRAM_SIZE, is 64.
  *
@@ -202,8 +180,6 @@ extern unsigned long get_clock_freq(void);
  * 0	4    8	  12   16   20	 24   28
  * 1111 1100 0000 0000 0110 1001 0000 0001 = fc006901
  */
-
-#define CONFIG_SYS_OR2_PRELIM		0xfc006901
 
 #define CONFIG_SYS_LBC_LCRR		0x00030004	/* LB clock ratio reg */
 #define CONFIG_SYS_LBC_LBCR		0x00000000	/* LB config reg */
@@ -263,9 +239,6 @@ extern unsigned long get_clock_freq(void);
 #else
 #define CADMUS_BASE_ADDR_PHYS	CADMUS_BASE_ADDR
 #endif
-#define CONFIG_SYS_BR3_PRELIM \
-	(BR_PHYS_ADDR(CADMUS_BASE_ADDR_PHYS) | BR_PS_8 | BR_V)
-#define CONFIG_SYS_OR3_PRELIM	 0xfff00ff7
 
 #define CONFIG_SYS_INIT_RAM_LOCK	1
 #define CONFIG_SYS_INIT_RAM_ADDR	0xe4010000	/* Initial RAM address */
@@ -347,14 +320,6 @@ extern unsigned long get_clock_freq(void);
 #endif
 #define CONFIG_SYS_SRIO1_MEM_SIZE	0x20000000	/* 512M */
 
-#ifdef CONFIG_LEGACY
-#define BRIDGE_ID 17
-#define VIA_ID 2
-#else
-#define BRIDGE_ID 28
-#define VIA_ID 4
-#endif
-
 #if defined(CONFIG_PCI)
 #define CONFIG_PCI_SCAN_SHOW		/* show pci devices on startup */
 #endif	/* CONFIG_PCI */
@@ -384,9 +349,6 @@ extern unsigned long get_clock_freq(void);
 #define TSEC2_FLAGS		TSEC_GIGABIT
 #define TSEC3_FLAGS		(TSEC_GIGABIT | TSEC_REDUCED)
 #define TSEC4_FLAGS		(TSEC_GIGABIT | TSEC_REDUCED)
-
-/* Options are: eTSEC[0-3] */
-#define CONFIG_ETHPRIME		"eTSEC0"
 #endif	/* CONFIG_TSEC_ENET */
 
 /*
@@ -395,13 +357,6 @@ extern unsigned long get_clock_freq(void);
 
 #define CONFIG_LOADS_ECHO	1	/* echo on for serial download */
 #define CONFIG_SYS_LOADS_BAUD_CHANGE	1	/* allow baudrate change */
-
-/*
- * BOOTP options
- */
-#define CONFIG_BOOTP_BOOTFILESIZE
-
-#undef CONFIG_WATCHDOG			/* watchdog disabled */
 
 /*
  * Miscellaneous configurable options
@@ -418,18 +373,11 @@ extern unsigned long get_clock_freq(void);
 /*
  * Environment Configuration
  */
-#if defined(CONFIG_TSEC_ENET)
-#define CONFIG_HAS_ETH0
-#define CONFIG_HAS_ETH1
-#define CONFIG_HAS_ETH2
-#define CONFIG_HAS_ETH3
-#endif
 
 #define CONFIG_IPADDR	 192.168.1.253
 
 #define CONFIG_HOSTNAME	 "unknown"
 #define CONFIG_ROOTPATH	 "/nfsroot"
-#define CONFIG_BOOTFILE "8548cds/uImage.uboot"
 #define CONFIG_UBOOTPATH	8548cds/u-boot.bin	/* TFTP server */
 
 #define CONFIG_SERVERIP	 192.168.1.1
@@ -456,24 +404,5 @@ extern unsigned long get_clock_freq(void);
 	"ramdiskfile=ramdisk.uboot\0"		\
 	"fdtaddr=1e00000\0"			\
 	"fdtfile=mpc8548cds.dtb\0"
-
-#define NFSBOOTCOMMAND						\
-   "setenv bootargs root=/dev/nfs rw "					\
-      "nfsroot=$serverip:$rootpath "					\
-      "ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname:$netdev:off " \
-      "console=$consoledev,$baudrate $othbootargs;"			\
-   "tftp $loadaddr $bootfile;"						\
-   "tftp $fdtaddr $fdtfile;"						\
-   "bootm $loadaddr - $fdtaddr"
-
-#define RAMBOOTCOMMAND \
-   "setenv bootargs root=/dev/ram rw "					\
-      "console=$consoledev,$baudrate $othbootargs;"			\
-   "tftp $ramdiskaddr $ramdiskfile;"					\
-   "tftp $loadaddr $bootfile;"						\
-   "tftp $fdtaddr $fdtfile;"						\
-   "bootm $loadaddr $ramdiskaddr $fdtaddr"
-
-#define CONFIG_BOOTCOMMAND	NFSBOOTCOMMAND
 
 #endif	/* __CONFIG_H */

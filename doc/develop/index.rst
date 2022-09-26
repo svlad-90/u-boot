@@ -10,16 +10,22 @@ Implementation
    :maxdepth: 1
 
    bloblist
+   bootstd
    ci_testing
    commands
    config_binding
    devicetree/index
    distro
    driver-model/index
+   environment
+   event
    global_data
    logging
    makefiles
    menus
+   printf
+   smbios
+   spl
    uefi/index
    version
 
@@ -60,3 +66,11 @@ Refactoring
    checkpatch
    coccinelle
    moveconfig
+
+Code quality
+------------
+
+.. toctree::
+   :maxdepth: 1
+
+   python_cq

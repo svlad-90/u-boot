@@ -17,18 +17,10 @@
  * High Level Configuration Options
  * (easy to change)
  */
-#define CONFIG_MCFTMR
 
 #define CONFIG_SYS_UART_PORT		(0)
 
-#undef  CONFIG_WATCHDOG
-
 #undef CONFIG_MONITOR_IS_IN_RAM		/* no pre-loader required!!! ;-) */
-
-/*
- * BOOTP options
- */
-#undef CONFIG_BOOTP_BOOTFILESIZE
 
 /*
  * Clock configuration: enable only one of the following options
@@ -72,8 +64,6 @@
 #define CONFIG_PRAM		512 /* test-only for SDRAM problem!!!!!!!!!!!!!!!!!!!! */
 #endif
 
-#define CONFIG_SYS_MONITOR_BASE	(CONFIG_SYS_FLASH_BASE + 0x400)
-
 #define CONFIG_SYS_MONITOR_LEN		0x20000
 #define CONFIG_SYS_BOOTPARAMS_LEN	64*1024
 
@@ -91,7 +81,6 @@
 
 #	define CONFIG_SYS_FLASH_SIZE		0x1000000	/* Max size that the board might have */
 #	define CONFIG_SYS_FLASH_CFI_WIDTH	FLASH_CFI_16BIT
-#	define CONFIG_SYS_MAX_FLASH_BANKS	1	/* max number of memory banks */
 #	define CONFIG_SYS_MAX_FLASH_SECT	137	/* max number of sectors on one chip */
 #	define CONFIG_SYS_FLASH_CHECKSUM
 #	define CONFIG_SYS_FLASH_BANKS_LIST	{ CONFIG_SYS_FLASH_BASE }

@@ -14,9 +14,6 @@
 
 #include <configs/ti_omap3_common.h>
 
-/* Ethernet */
-#define CONFIG_NET_RETRY_COUNT		10
-
 /* Board NAND Info. */
 #ifdef CONFIG_MTD_RAW_NAND
 #define CONFIG_SYS_NAND_ECCPOS		{ 2,  3,  4,  5,  6,  7,  8,  9, 10, \
@@ -44,9 +41,6 @@
 #endif /* CONFIG_MTD_RAW_NAND */
 
 /* Environment information */
-
-#define CONFIG_BOOTFILE		"uImage"
-
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"loadaddr=0x82000000\0" \
 	"console=ttyS2,115200n8\0" \
@@ -90,25 +84,6 @@
 		"nand read ${fdtaddr} aa0000 80000; " \
 		"bootm ${loadaddr} - ${fdtaddr}\0" \
 
-#define CONFIG_BOOTCOMMAND \
-	"mmc dev ${mmcdev}; if mmc rescan; then " \
-		"echo SD/MMC found on device $mmcdev; " \
-		"if run loadbootenv; then " \
-			"run importbootenv; " \
-		"fi; " \
-		"echo Checking if uenvcmd is set ...; " \
-		"if test -n $uenvcmd; then " \
-			"echo Running uenvcmd ...; " \
-			"run uenvcmd; " \
-		"fi; " \
-		"echo Running default loadimage ...; " \
-		"setenv bootfile zImage; " \
-		"if run loadimage; then " \
-			"run loadfdt; " \
-			"run mmcboot; " \
-		"fi; " \
-	"else run nandboot; fi"
-
 /* Miscellaneous configurable options */
 
 /* We set the max number of command args high to avoid HUSH bugs. */
@@ -130,15 +105,11 @@
 /* **** PISMO SUPPORT *** */
 #define CONFIG_SYS_MAX_FLASH_SECT	520	/* max number of sectors */
 						/* on one chip */
-#define CONFIG_SYS_MAX_FLASH_BANKS	2	/* max number of flash banks */
 #define CONFIG_SYS_MONITOR_LEN		(256 << 10)	/* Reserve 2 sectors */
 
 #if defined(CONFIG_MTD_RAW_NAND)
 #define CONFIG_SYS_FLASH_BASE		NAND_BASE
 #endif
-
-/* Monitor at start of flash */
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_FLASH_BASE
 
 #define CONFIG_SYS_ENV_SECT_SIZE	(128 << 10)	/* 128 KiB */
 

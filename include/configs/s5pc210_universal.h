@@ -14,7 +14,6 @@
 #define CONFIG_TIZEN			/* TIZEN lib */
 
 /* Keep L2 Cache Disabled */
-#define CONFIG_SYS_L2CACHE_OFF		1
 
 /* Universal has 2 banks of DRAM */
 #define CONFIG_SYS_SDRAM_BASE		0x40000000
@@ -22,14 +21,8 @@
 
 #define SDRAM_BANK_SIZE			(256 << 20)	/* 256 MB */
 
-#define CONFIG_BOOTCOMMAND		"run mmcboot"
-
 #define CONFIG_SYS_INIT_SP_ADDR	(CONFIG_SYS_LOAD_ADDR \
 					- GENERATED_GBL_DATA_SIZE)
-
-#define CONFIG_SYS_MEM_TOP_HIDE	(1 << 20)	/* ram console */
-
-#define CONFIG_SYS_MONITOR_BASE	0x00000000
 
 /* Actual modem binary size is 16MiB. Add 2MiB for bad block handling */
 
@@ -105,11 +98,6 @@
 #define CONFIG_SYS_ONENAND_BASE		0x0C000000
 
 #define CONFIG_USB_GADGET_DWC2_OTG_PHY
-
-/*
- * SPI Settings
- */
-#define CONFIG_SOFT_SPI
 
 #ifndef	__ASSEMBLY__
 void universal_spi_scl(int bit);

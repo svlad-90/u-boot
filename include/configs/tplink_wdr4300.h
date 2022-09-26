@@ -9,8 +9,6 @@
 #define CONFIG_SYS_MHZ			280
 #define CONFIG_SYS_MIPS_TIMER_FREQ	(CONFIG_SYS_MHZ * 1000000)
 
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
-
 #define CONFIG_SYS_BOOTPARAMS_LEN	0x20000
 
 #define CONFIG_SYS_SDRAM_BASE		0xa0000000
@@ -24,9 +22,6 @@
  * Serial Port
  */
 #define CONFIG_SYS_NS16550_CLK		40000000
-
-#define CONFIG_BOOTCOMMAND		\
-	"dhcp 192.168.1.1:wdr4300.fit && bootm $loadaddr"
 
 /*
  * Command

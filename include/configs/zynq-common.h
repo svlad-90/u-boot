@@ -9,15 +9,7 @@
 #ifndef __CONFIG_ZYNQ_COMMON_H
 #define __CONFIG_ZYNQ_COMMON_H
 
-/* CPU clock */
-#ifndef CONFIG_CPU_FREQ_HZ
-# define CONFIG_CPU_FREQ_HZ	800000000
-#endif
-
-#define CONFIG_REMAKE_ELF
-
 /* Cache options */
-#define CONFIG_SYS_L2CACHE_OFF
 #ifndef CONFIG_SYS_L2CACHE_OFF
 # define CONFIG_SYS_L2_PL310
 # define CONFIG_SYS_PL310_BASE		0xf8f02000
@@ -28,20 +20,24 @@
 #define CONFIG_SYS_TIMER_COUNTS_DOWN
 #define CONFIG_SYS_TIMER_COUNTER	(CONFIG_SYS_TIMERBASE + 0x4)
 
+/* GUIDs for capsule updatable firmware images */
+#define XILINX_BOOT_IMAGE_GUID \
+	EFI_GUID(0x1ba29a15, 0x9969, 0x40aa, 0xb4, 0x24, \
+		 0xe8, 0x61, 0x21, 0x61, 0x86, 0x64)
+
+#define XILINX_UBOOT_IMAGE_GUID \
+	EFI_GUID(0x1a5178f0, 0x87d3, 0x4f36, 0xac, 0x63, \
+		 0x3b, 0x31, 0xa2, 0x3b, 0xe3, 0x05)
+
 /* Serial drivers */
 /* The following table includes the supported baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE  \
 	{300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400}
 
 /* Ethernet driver */
-#if defined(CONFIG_ZYNQ_GEM)
-# define CONFIG_SYS_FAULT_ECHO_LINK_DOWN
-# define CONFIG_BOOTP_MAY_FAIL
-#endif
 
 /* NOR */
 #ifdef CONFIG_MTD_NOR_FLASH
-# define CONFIG_SYS_MAX_FLASH_BANKS	1
 # define CONFIG_SYS_MAX_FLASH_SECT	512
 # define CONFIG_SYS_FLASH_ERASE_TOUT	1000
 # define CONFIG_SYS_FLASH_WRITE_TOUT	5000
@@ -203,7 +199,6 @@
 
 /* Miscellaneous configurable options */
 
-#define CONFIG_CLOCKS
 #define CONFIG_SYS_MAXARGS		32 /* max number of command args */
 #define CONFIG_SYS_CBSIZE		2048 /* Console I/O Buffer Size */
 
@@ -234,7 +229,6 @@
 /* Not using MMC raw mode - just for compilation purpose */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR	0
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS	0
-#define CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR	0
 
 /* qspi mode is working fine */
 #ifdef CONFIG_ZYNQ_QSPI

@@ -90,6 +90,11 @@ clbss_l:cmp	r0, r1			/* while not at end of BSS */
 
 ENTRY(_main)
 
+/* Call arch_very_early_init before initializing C runtime environment. */
+#if CONFIG_IS_ENABLED(ARCH_VERY_EARLY_INIT)
+	bl	arch_very_early_init
+#endif
+
 /*
  * Set up initial C runtime environment and call board_init_f(0).
  */
@@ -108,6 +113,10 @@ ENTRY(_main)
 	/* set up gd here, outside any C code */
 	mov	r9, r0
 	bl	board_init_f_init_reserve
+
+#if defined(CONFIG_DEBUG_UART) && CONFIG_IS_ENABLED(SERIAL)
+	bl	debug_uart_init
+#endif
 
 #if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_EARLY_BSS)
 	CLEAR_BSS

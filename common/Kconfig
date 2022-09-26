@@ -32,6 +32,16 @@ config CONSOLE_RECORD_OUT_SIZE
 	  more data will be recorded until some is removed. The buffer is
 	  allocated immediately after the malloc() region is ready.
 
+config CONSOLE_RECORD_OUT_SIZE_F
+	hex "Output buffer size before relocation"
+	depends on CONSOLE_RECORD
+	default 0x400 if CONSOLE_RECORD
+	help
+	  Set the size of the console output buffer before relocation. When
+	  this fills up, no more data will be recorded until some is removed.
+	  The buffer is allocated immediately after the early malloc() region is
+	  ready.
+
 config CONSOLE_RECORD_IN_SIZE
 	hex "Input buffer size"
 	depends on CONSOLE_RECORD
@@ -78,6 +88,15 @@ config SPL_LOGLEVEL
 config TPL_LOGLEVEL
 	int
 	default LOGLEVEL
+
+config VPL_LOGLEVEL
+	int "loglevel for VPL"
+	default LOGLEVEL
+	help
+	  All Messages with a loglevel smaller than the console loglevel will
+	  be compiled in to VPL. See LOGLEVEL for a list of available log
+	  levels. Setting this to a value above 4 may increase the code size
+	  significantly.
 
 config SILENT_CONSOLE
 	bool "Support a silent console"
@@ -252,6 +271,15 @@ config LOG
 
 if LOG
 
+config VPL_LOG
+	bool "Enable logging support in VPL"
+	depends on LOG
+	help
+	  This enables support for logging of status and debug messages. These
+	  can be displayed on the console, recorded in a memory buffer, or
+	  discarded if not needed. Logging supports various categories and
+	  levels of severity.
+
 config LOG_MAX_LEVEL
 	int "Maximum log level to record"
 	default 6
@@ -421,6 +449,47 @@ config TPL_LOG_CONSOLE
 
 endif
 
+config VPL_LOG
+	bool "Enable logging support in VPL"
+	depends on LOG
+	help
+	  This enables support for logging of status and debug messages. These
+	  can be displayed on the console, recorded in a memory buffer, or
+	  discarded if not needed. Logging supports various categories and
+	  levels of severity.
+
+if VPL_LOG
+
+config VPL_LOG_MAX_LEVEL
+	int "Maximum log level to record in VPL"
+	default 3
+	help
+	  This selects the maximum log level that will be recorded. Any value
+	  higher than this will be ignored. If possible log statements below
+	  this level will be discarded at build time. Levels:
+
+	    0 - emergency
+	    1 - alert
+	    2 - critical
+	    3 - error
+	    4 - warning
+	    5 - note
+	    6 - info
+	    7 - debug
+	    8 - debug content
+	    9 - debug hardware I/O
+
+config VPL_LOG_CONSOLE
+	bool "Allow log output to the console in VPL"
+	default y
+	help
+	  Enables a log driver which writes log records to the console.
+	  Generally the console is the serial port or LCD display. Only the
+	  log message is shown - other details like level, category, file and
+	  line number are omitted.
+
+endif
+
 config LOG_ERROR_RETURN
 	bool "Log all functions which return an error"
 	help
@@ -536,6 +605,37 @@ config ANDROID_BCC
 
 menu "Start-up hooks"
 
+config EVENT
+	bool "General-purpose event-handling mechanism"
+	default y if SANDBOX
+	help
+	  This enables sending and processing of events, to allow interested
+	  parties to be alerted when something happens. This is an attempt to
+	  step the flow of weak functions, hooks, functions in board_f.c
+	  and board_r.c and the Kconfig options below.
+
+	  See doc/develop/event.rst for more information.
+
+if EVENT
+
+config EVENT_DYNAMIC
+	bool "Support event registration at runtime"
+	default y if SANDBOX
+	help
+	  Enable this to support adding an event spy at runtime, without adding
+	  it to the EVENT_SPy() linker list. This increases code size slightly
+	  but provides more flexibility for boards and subsystems that need it.
+
+config EVENT_DEBUG
+	bool "Enable event debugging assistance"
+	default y if SANDBOX
+	help
+	  Enable this get usefui features for seeing what is happening with
+	  events, such as event-type names. This adds to the code size of
+	  U-Boot so can be turned off for production builds.
+
+endif # EVENT
+
 config ARCH_EARLY_INIT_R
 	bool "Call arch-specific init soon after relocation"
 	help
@@ -568,6 +668,12 @@ config BOARD_EARLY_INIT_R
 	  relocation. With this option, U-Boot calls board_early_init_r()
 	  in the post-relocation init sequence.
 
+config BOARD_POSTCLK_INIT
+	bool "Call board_postclk_init"
+	help
+	  Some boards need this to initialize select items, after clocks /
+	  timebase and before env / serial.
+
 config BOARD_LATE_INIT
 	bool "Execute Board late init"
 	help
@@ -578,6 +684,19 @@ config BOARD_LATE_INIT
 	  So this config enable the late init code with the help of board_late_init
 	  function which should defined on respective boards.
 
+config CLOCKS
+	bool "Call set_cpu_clk_info"
+	depends on ARM
+
+config SYS_FSL_CLK
+	bool
+	depends on ARCH_LS1021A || FSL_LSCH2 || FSL_LSCH3 || \
+		(FSL_ESDHC_IMX && (ARCH_MX5 || ARCH_MX6 || ARCH_MX7))
+	default y
+	help
+	  Enable to call get_clocks() in board_init_f() for platforms other
+	  than PowerPC or M68k.  This is a legacy option.  If not TARGET_BRPPT2
+
 config LAST_STAGE_INIT
 	bool "Call board-specific as last setup step"
 	help
@@ -586,12 +705,6 @@ config LAST_STAGE_INIT
 	  that depend on later phases in the init sequence). With this option,
 	  U-Boot calls last_stage_init() before the command-line interpreter is
 	  started.
-
-config MISC_INIT_F
-	bool "Execute pre-relocation misc init"
-	help
-	  Enabling this option calls the 'misc_init_f' function in the init
-	  sequence just before DRAM is inited.
 
 config MISC_INIT_R
 	bool "Execute Misc Init"
@@ -614,6 +727,12 @@ config PCI_INIT_R
 	  which will enumerate PCI buses. This is needed, for instance, in the
 	  case of DM PCI-based Ethernet devices, which will not be detected
 	  without having the enumeration performed earlier.
+
+config RESET_PHY_R
+	bool "Reset ethernet PHY during init"
+	help
+	  Implement reset_phy() in board code if required to reset the ethernet
+	  PHY.
 
 endmenu
 
@@ -796,11 +915,11 @@ config BLOBLIST
 	  from TPL to SPL to U-Boot proper (and potentially to Linux). The
 	  blob list supports multiple binary blobs of data, each with a tag,
 	  so that different U-Boot components can store data which can survive
-	  through to the next stage of the boot.
+	  through to the next phase of the boot.
 
 config SPL_BLOBLIST
 	bool "Support for a bloblist in SPL"
-	depends on BLOBLIST
+	depends on BLOBLIST && SPL_LIBGENERIC_SUPPORT && SPL_LIBCOMMON_SUPPORT
 	default y if SPL
 	help
 	  This enables a bloblist in SPL. If this is the first part of U-Boot
@@ -809,39 +928,131 @@ config SPL_BLOBLIST
 
 config TPL_BLOBLIST
 	bool "Support for a bloblist in TPL"
-	depends on BLOBLIST
+	depends on BLOBLIST && TPL_LIBGENERIC_SUPPORT && TPL_LIBCOMMON_SUPPORT
 	default y if TPL
 	help
 	  This enables a bloblist in TPL. The bloblist is set up in TPL and
 	  passed to SPL and U-Boot proper.
 
+config VPL_BLOBLIST
+	bool "Support for a bloblist in VPL"
+	depends on BLOBLIST && VPL_LIBGENERIC_SUPPORT && VPL_LIBCOMMON_SUPPORT
+	default y if VPL
+	help
+	  This enables a bloblist in VPL. The bloblist is set up in VPL and
+	  passed to SPL and U-Boot proper.
+
+if BLOBLIST
+
+choice
+	prompt "Bloblist location"
+	help
+	  Select the location of the bloblist, via various means.
+
+config BLOBLIST_FIXED
+	bool "Place bloblist at a fixed address in memory"
+	help
+	  Select this to used a fixed memory address for the bloblist. If the
+	  bloblist exists at this address from a previous phase, it used as is.
+	  If not it is created at this address in U-Boot.
+
+config BLOBLIST_ALLOC
+	bool "Allocate bloblist"
+	help
+	  Allocate the bloblist using malloc(). This avoids the need to
+	  specify a fixed address on systems where this is unknown or can
+	  change at runtime.
+
+endchoice
+
+config BLOBLIST_ADDR
+	hex "Address of bloblist"
+	default 0xc000 if SANDBOX
+	depends on BLOBLIST_FIXED
+	help
+	  Sets the address of the bloblist, set up by the first part of U-Boot
+	  which runs. Subsequent U-Boot phases typically use the same address.
+
+	  This is not used if BLOBLIST_ALLOC is selected.
+
 config BLOBLIST_SIZE
 	hex "Size of bloblist"
-	depends on BLOBLIST
 	default 0x400
 	help
 	  Sets the size of the bloblist in bytes. This must include all
 	  overhead (alignment, bloblist header, record header). The bloblist
 	  is set up in the first part of U-Boot to run (TPL, SPL or U-Boot
-	  proper), and this sane bloblist is used for subsequent stages.
-
-config BLOBLIST_ADDR
-	hex "Address of bloblist"
-	depends on BLOBLIST
-	default 0xc000 if SANDBOX
-	help
-	  Sets the address of the bloblist, set up by the first part of U-Boot
-	  which runs. Subsequent U-Boot stages typically use the same address.
+	  proper), and this sane bloblist is used for subsequent phases.
 
 config BLOBLIST_SIZE_RELOC
 	hex "Size of bloblist after relocation"
-	depends on BLOBLIST
-	default BLOBLIST_SIZE
+	default BLOBLIST_SIZE if BLOBLIST_FIXED || BLOBLIST_ALLOC
+	default 0 if BLOBLIST_PASSAGE
 	help
 	  Sets the size of the bloblist in bytes after relocation. Since U-Boot
 	  has a lot more memory available then, it is possible to use a larger
 	  size than the one set up by SPL. This bloblist is set up during the
 	  relocation process.
+
+endif # BLOBLIST
+
+if SPL_BLOBLIST
+
+choice
+	prompt "Bloblist location in SPL"
+	help
+	  Select the location of the bloblist, via various means. Typically
+	  you should use the same value for SPL as for U-Boot, since they need
+	  to look in the same place. But if BLOBLIST_ALLOC is used, then a
+	  fresh bloblist will be created each time, since there is no shared
+	  address (between phases) for the bloblist.
+
+config SPL_BLOBLIST_FIXED
+	bool "Place bloblist at a fixed address in memory"
+	help
+	  Select this to used a fixed memory address for the bloblist. If the
+	  bloblist exists at this address from a previous phase, it used as is.
+	  If not it is created at this address in SPL.
+
+config SPL_BLOBLIST_ALLOC
+	bool "Allocate bloblist"
+	help
+	  Allocate the bloblist using malloc(). This avoids the need to
+	  specify a fixed address on systems where this is unknown or can
+	  change at runtime.
+
+endchoice
+
+endif # SPL_BLOBLIST
+
+if TPL_BLOBLIST
+
+choice
+	prompt "Bloblist location in TPL"
+	help
+	  Select the location of the bloblist, via various means. Typically
+	  you should use the same value for SPL as for U-Boot, since they need
+	  to look in the same place. But if BLOBLIST_ALLOC is used, then a
+	  fresh bloblist will be created each time, since there is no shared
+	  address (between phases) for the bloblist.
+
+config TPL_BLOBLIST_FIXED
+	bool "Place bloblist at a fixed address in memory"
+	help
+	  Select this to used a fixed memory address for the bloblist. If the
+	  bloblist exists at this address from a previous phase, it used as is.
+	  If not it is created at this address in TPL.
+
+config TPL_BLOBLIST_ALLOC
+	bool "Allocate bloblist"
+	help
+	  Allocate the bloblist using malloc(). This avoids the need to
+	  specify a fixed address on systems where this is unknown or can
+	  change at runtime.
+
+endchoice
+
+endif # TPL_BLOBLIST
 
 endmenu
 
@@ -864,3 +1075,12 @@ config SPL_IMAGE_SIGN_INFO
 	  Enable image_sign_info helper functions in SPL.
 
 endif
+
+config FDT_SIMPLEFB
+	bool "FDT tools for simplefb support"
+	depends on OF_LIBFDT
+	help
+	  Enable the fdt tools to manage the simple fb nodes in device tree.
+	  These functions can be used by board to indicate to the OS
+	  the presence of the simple frame buffer with associated reserved
+	  memory

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2019 NXP
+ * Copyright 2019, 2021 NXP
  */
 
 / {
@@ -80,6 +80,10 @@
 	u-boot,dm-spl;
 };
 
+&pinctrl_wdog {
+	u-boot,dm-spl;
+};
+
 &gpio1 {
 	u-boot,dm-spl;
 };
@@ -101,6 +105,22 @@
 };
 
 &uart2 {
+	u-boot,dm-spl;
+};
+
+&crypto {
+	u-boot,dm-spl;
+};
+
+&sec_jr0 {
+	u-boot,dm-spl;
+};
+
+&sec_jr1 {
+	u-boot,dm-spl;
+};
+
+&sec_jr2 {
 	u-boot,dm-spl;
 };
 
@@ -157,7 +177,9 @@
 	};
 
 
-	flash {
+	spl {
+		filename = "spl.bin";
+
 		mkimage {
 			args = "-n spl/u-boot-spl.cfgout -T imx8mimage -e 0x912000";
 
@@ -222,6 +244,21 @@
 					fdt = "fdt";
 				};
 			};
+		};
+	};
+
+	imx-boot {
+		filename = "flash.bin";
+		pad-byte = <0x00>;
+
+		spl: blob-ext@1 {
+			offset = <0x0>;
+			filename = "spl.bin";
+		};
+
+		uboot: blob-ext@2 {
+			offset = <0x58000>;
+			filename = "u-boot.itb";
 		};
 	};
 };

@@ -6,9 +6,6 @@
 #ifndef __L1028A_COMMON_H
 #define __L1028A_COMMON_H
 
-#define CONFIG_REMAKE_ELF
-#define CONFIG_MP
-
 #include <asm/arch/stream_id_lsch3.h>
 #include <asm/arch/config.h>
 #include <asm/arch/soc.h>
@@ -28,15 +25,7 @@
  */
 #define CPU_RELEASE_ADDR		secondary_boot_addr
 
-/* Generic Timer Definitions */
-#define COUNTER_FREQUENCY		25000000	/* 25MHz */
-
 /* GPIO */
-#ifdef CONFIG_DM_GPIO
-#ifndef CONFIG_MPC8XXX_GPIO
-#define CONFIG_MPC8XXX_GPIO
-#endif
-#endif
 
 /* I2C */
 
@@ -48,7 +37,6 @@
 /* Miscellaneous configurable options */
 
 /* Physical Memory Map */
-#define CONFIG_CHIP_SELECTS_PER_CTRL	4
 
 #define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		128
@@ -59,8 +47,6 @@
 	func(USB, usb, 0) \
 	func(DHCP, dhcp, na)
 #include <config_distro_bootcmd.h>
-
-#undef CONFIG_BOOTCOMMAND
 
 #define XSPI_NOR_BOOTCOMMAND	\
 	"run xspi_hdploadcmd; run distro_bootcmd; run xspi_bootcmd; " \
@@ -85,8 +71,6 @@
 #define OCRAM_NONSECURE_SIZE		0x00010000
 #define CONFIG_SYS_FSL_QSPI_BASE	0x20000000
 
-#define CONFIG_SYS_MONITOR_BASE CONFIG_SYS_TEXT_BASE
-
 /* I2C bus multiplexer */
 #define I2C_MUX_PCA_ADDR_PRI            0x77 /* Primary Mux*/
 #define I2C_MUX_CH_DEFAULT              0x8
@@ -101,9 +85,5 @@
 #ifdef CONFIG_NXP_ESBC
 #include <asm/fsl_secure_boot.h>
 #endif
-
-/* Ethernet */
-/* smallest ENETC BD ring has 8 entries */
-#define CONFIG_SYS_RX_ETH_BUFFER		8
 
 #endif /* __L1028A_COMMON_H */

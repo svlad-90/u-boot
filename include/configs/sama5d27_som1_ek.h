@@ -21,15 +21,6 @@
 	(0x22000000 + 16 * 1024 - GENERATED_GBL_DATA_SIZE)
 #endif
 
-#undef CONFIG_BOOTCOMMAND
-#ifdef CONFIG_SD_BOOT
-/* bootstrap + u-boot + env in sd card */
-#define CONFIG_BOOTCOMMAND	"fatload mmc " CONFIG_ENV_FAT_DEVICE_AND_PART " 0x22000000 " \
-				CONFIG_DEFAULT_DEVICE_TREE ".dtb; " \
-				"fatload mmc " CONFIG_ENV_FAT_DEVICE_AND_PART " 0x23000000 zImage; " \
-				"bootz 0x23000000 - 0x22000000"
-#endif
-
 /* SPL */
 #define CONFIG_SPL_MAX_SIZE		0x10000
 #define CONFIG_SPL_BSS_START_ADDR	0x20000000
