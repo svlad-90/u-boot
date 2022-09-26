@@ -17,6 +17,7 @@
 #include <virtio.h>
 
 #include <asm/armv8/mmu.h>
+#include <asm/system.h>
 
 int pvmfw_boot_flow(void *fdt, void *image, size_t size, void *bcc,
 		    size_t bcc_size);
@@ -33,6 +34,7 @@ enum pvmfw_mem_map_idx {
 	PVMFW_MEM_MAP_MMIO,
 	PVMFW_MEM_MAP_DICE,
 	PVMFW_MEM_MAP_SDRAM,
+	PVMFW_MEM_MAP_FDT,
 };
 
 static struct mm_region pvmfw_mem_map[] = {
@@ -62,6 +64,12 @@ static struct mm_region pvmfw_mem_map[] = {
 		.phys = CONFIG_SYS_SDRAM_BASE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
+	},
+	[PVMFW_MEM_MAP_FDT] = {
+		/* FDT region. Unused if FDT is in the SDRAM region. */
+		.size = CROSVM_FDT_MAX_SIZE,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_INNER_SHARE
 	}, {
 		/* List terminator */
 		0,
@@ -80,6 +88,8 @@ static void *locate_bcc(size_t *size)
 
 void board_cleanup_before_linux(void)
 {
+	uintptr_t fdt = (uintptr_t)fw_dtb_pointer;
+
 	/*
 	 * The DM needs instantiated device drivers to be removed before the
 	 * payload is executed for features such as DM_FLAG_ACTIVE_DMA and
@@ -91,6 +101,12 @@ void board_cleanup_before_linux(void)
 	 * handle it in cleanup_before_linux().
 	 */
 	dm_remove_devices_flags(DM_REMOVE_ACTIVE_ALL);
+
+	/*
+	 * CMOs are only applied in the known RAM region.
+	 * Flush the FDT manually.
+	 */
+	flush_dcache_range(fdt, fdt + CROSVM_FDT_MAX_SIZE);
 }
 
 int board_run_command(const char *cmdline)
@@ -133,6 +149,8 @@ int dram_init(void)
 {
 	size_t bcc_size;
 	uintptr_t bcc = (uintptr_t)locate_bcc(&bcc_size);
+	uintptr_t fdt = (uintptr_t)fw_dtb_pointer;
+	u64 va_bits;
 
 	pvmfw_mem_map[PVMFW_MEM_MAP_DICE].phys = bcc;
 	pvmfw_mem_map[PVMFW_MEM_MAP_DICE].virt = bcc;
@@ -142,6 +160,34 @@ int dram_init(void)
 		return -EINVAL;
 
 	pvmfw_mem_map[PVMFW_MEM_MAP_SDRAM].size = gd->ram_size;
+
+	if (!IS_ALIGNED(fdt, PAGE_SIZE)) {
+		panic("FDT is not page-aligned");
+	}
+	if (fdt & BIT(63)) {
+		panic("FDT is not in TTBR0-addressable location");
+	}
+
+	if (fdt == CONFIG_SYS_SDRAM_BASE) {
+		/* BIOS mode. Turn the mmap entry into the list terminator. */
+		pvmfw_mem_map[PVMFW_MEM_MAP_FDT] = (struct mm_region){ 0 };
+	} else if (fdt >= CONFIG_SYS_SDRAM_BASE + gd->ram_size) {
+		/* Kernel mode. Create a mapping for the FDT. */
+		pvmfw_mem_map[PVMFW_MEM_MAP_FDT].phys = fdt;
+		pvmfw_mem_map[PVMFW_MEM_MAP_FDT].virt = fdt;
+
+		/*
+		 * CMOs are only applied in the known RAM region.
+		 * Invalidate the FDT manually.
+		 */
+		invalidate_dcache_range(fdt, fdt + CROSVM_FDT_MAX_SIZE);
+	} else {
+		panic("Unsupported FDT location");
+	}
+
+	get_tcr(0, NULL, &va_bits);
+	if (va_bits != 32)
+		panic("More than 32-bit VAs are not supported");
 
 	return 0;
 }
