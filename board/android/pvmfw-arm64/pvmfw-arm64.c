@@ -185,7 +185,7 @@ int dram_init(void)
 		panic("Unsupported FDT location");
 	}
 
-	get_tcr(0, NULL, &va_bits);
+	get_tcr(NULL, &va_bits);
 	if (va_bits != 32)
 		panic("More than 32-bit VAs are not supported");
 
