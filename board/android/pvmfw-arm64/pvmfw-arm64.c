@@ -124,6 +124,7 @@ int board_run_command(const char *cmdline)
 		__builtin_unreachable();
 	}
 
+	printf("\nStarting kernel ...\n\n");
 	cleanup_before_linux();
 	entry(fw_dtb_pointer, 0, 0, 0);
 	__builtin_unreachable();
