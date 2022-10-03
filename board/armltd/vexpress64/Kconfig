@@ -15,7 +15,6 @@ config VEXPRESS64_BASE_MODEL
 	select VIRTIO_BLK if VIRTIO_MMIO
 	select VIRTIO_NET if VIRTIO_MMIO
 	select DM_ETH if VIRTIO_NET
-	select LINUX_KERNEL_IMAGE_HEADER
 	select POSITION_INDEPENDENT
 
 choice
@@ -25,17 +24,18 @@ config TARGET_VEXPRESS64_BASE_FVP
 	bool "Support Versatile Express ARMv8a FVP BASE model"
 	select VEXPRESS64_BASE_MODEL
 	select OF_BOARD
+	select LINUX_KERNEL_IMAGE_HEADER
 
 config TARGET_VEXPRESS64_BASER_FVP
 	bool "Support Versatile Express ARMv8r64 FVP BASE model"
 	select VEXPRESS64_BASE_MODEL
 	imply OF_HAS_PRIOR_STAGE
+	select LINUX_KERNEL_IMAGE_HEADER
 
 config TARGET_VEXPRESS64_GEM5
 	bool "Support Versatile Express gem5 (vexpress_gem5) model"
+	select VEXPRESS64_BASE_MODEL
 	select OF_BOARD
-	select VIRTIO_BLK
-	select VIRTIO_NET
 	select VIRTIO_MMIO
 	select VIRTIO_PCI
 	select VIRTIO_PCI_LEGACY
