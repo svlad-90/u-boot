@@ -84,15 +84,15 @@ static int __bb_force_page_align(struct bounce_buffer *state)
 	return 1;
 }
 
-static void virtqueue_attach_desc(struct virtqueue *vq, unsigned int idx,
-				  struct virtio_sg *sg, u16 flags)
+static unsigned int virtqueue_attach_desc(struct virtqueue *vq, unsigned int i,
+					  struct virtio_sg *sg, u16 flags)
 {
-	struct vring_desc_shadow *desc_shadow = &vq->vring_desc_shadow[idx];
-	struct vring_desc *desc = &vq->vring.desc[idx];
+	struct vring_desc_shadow *desc_shadow = &vq->vring_desc_shadow[i];
+	struct vring_desc *desc = &vq->vring.desc[i];
 	void *addr;
 
 	if (IS_ENABLED(CONFIG_BOUNCE_BUFFER) && vq->vring.bouncebufs) {
-		struct bounce_buffer *bb = &vq->vring.bouncebufs[idx];
+		struct bounce_buffer *bb = &vq->vring.bouncebufs[i];
 		unsigned int bbflags;
 		int ret;
 
@@ -116,16 +116,18 @@ static void virtqueue_attach_desc(struct virtqueue *vq, unsigned int idx,
 		addr = sg->addr;
 	}
 
-	/* Update the shadow descriptor with the original buffer. */
+	/* Update the shadow descriptor. */
 	desc_shadow->addr = (u64)(uintptr_t)sg->addr;
 	desc_shadow->len = sg->length;
 	desc_shadow->flags = flags;
 
-	/* Update the shared descriptor with the bounce buffer. */
-	desc->addr = cpu_to_virtio64(vq->vdev, (u64)(uintptr_t)addr);
+	/* Update the shared descriptor to match the shadow. */
+	desc->addr = cpu_to_virtio64(vq->vdev, desc_shadow->addr);
 	desc->len = cpu_to_virtio32(vq->vdev, desc_shadow->len);
 	desc->flags = cpu_to_virtio16(vq->vdev, desc_shadow->flags);
 	desc->next = cpu_to_virtio16(vq->vdev, desc_shadow->next);
+
+	return desc_shadow->next;
 }
 
 static void virtqueue_detach_desc(struct virtqueue *vq, unsigned int idx)
@@ -145,17 +147,16 @@ int virtqueue_add(struct virtqueue *vq, struct virtio_sg *sgs[],
 		  unsigned int out_sgs, unsigned int in_sgs)
 {
 	struct vring_desc *desc;
-	unsigned int total_sg = out_sgs + in_sgs;
-	unsigned int i, n, avail, descs_used, uninitialized_var(prev);
+	unsigned int descs_used = out_sgs + in_sgs;
+	unsigned int i, n, avail, uninitialized_var(prev);
 	int head;
 
-	WARN_ON(total_sg == 0);
+	WARN_ON(descs_used == 0);
 
 	head = vq->free_head;
 
 	desc = vq->vring.desc;
 	i = head;
-	descs_used = total_sg;
 
 	if (vq->num_free < descs_used) {
 		debug("Can't add buf len %i - avail = %i\n",
@@ -170,17 +171,13 @@ int virtqueue_add(struct virtqueue *vq, struct virtio_sg *sgs[],
 		return -ENOSPC;
 	}
 
-	for (n = 0; n < out_sgs; n++) {
-		virtqueue_attach_desc(vq, i, sgs[n], VRING_DESC_F_NEXT);
-		prev = i;
-		i = virtio16_to_cpu(vq->vdev, desc[i].next);
-	}
-	for (; n < (out_sgs + in_sgs); n++) {
-		u16 flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
+	for (n = 0; n < descs_used; n++) {
+		u16 flags = VRING_DESC_F_NEXT;
 
-		virtqueue_attach_desc(vq, i, sgs[n], flags);
+		if (n >= out_sgs)
+			flags |= VRING_DESC_F_WRITE;
 		prev = i;
-		i = virtio16_to_cpu(vq->vdev, desc[i].next);
+		i = virtqueue_attach_desc(vq, i, sgs[n], flags);
 	}
 	/* Last one doesn't continue */
 	vq->vring_desc_shadow[prev].flags &= ~VRING_DESC_F_NEXT;
@@ -385,9 +382,9 @@ struct virtqueue *vring_create_virtqueue(unsigned int index, unsigned int num,
 {
 	struct virtio_dev_priv *uc_priv = dev_get_uclass_priv(udev);
 	struct udevice *vdev = uc_priv->vdev;
+	struct bounce_buffer *bbs = NULL;
 	struct virtqueue *vq;
 	void *queue = NULL;
-	struct bounce_buffer *bbs = NULL;
 	struct vring vring;
 
 	/* We assume num is a power of 2 */

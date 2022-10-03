@@ -13,6 +13,7 @@ POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}"
 
 MAKE_GOALS="
 BL31=${PWD}/u-boot/bl31.elf
+SWIG_LIB=${PWD}/external/swig/Lib
 "
 
 FILES="idbloader.img

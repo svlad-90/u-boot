@@ -16,6 +16,11 @@ PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG
 "
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}"
 
+MAKE_GOALS="
+u-boot.elf
+System.map
+"
+
 FILES="u-boot
 u-boot.elf
 System.map

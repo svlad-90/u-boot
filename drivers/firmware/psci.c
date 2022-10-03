@@ -9,20 +9,25 @@
 #include <common.h>
 #include <command.h>
 #include <dm.h>
-#include <irq_func.h>
-#include <log.h>
-#include <dm/lists.h>
 #include <efi_loader.h>
+#include <irq_func.h>
+#include <linker_lists.h>
+#include <log.h>
 #include <sysreset.h>
-#include <linux/delay.h>
-#include <linux/libfdt.h>
+#include <asm/system.h>
+#include <dm/device-internal.h>
+#include <dm/lists.h>
 #include <linux/arm-smccc.h>
+#include <linux/delay.h>
 #include <linux/errno.h>
+#include <linux/libfdt.h>
 #include <linux/printk.h>
 #include <linux/psci.h>
-#include <asm/system.h>
 
 #define DRIVER_NAME "psci"
+
+#define PSCI_METHOD_HVC 1
+#define PSCI_METHOD_SMC 2
 
 /*
  * While a 64-bit OS can make calls with SMC32 calling conventions, for some
@@ -37,19 +42,10 @@
 #endif
 
 #if CONFIG_IS_ENABLED(EFI_LOADER)
-#define __smccc_conduit_section		__efi_runtime_data
+int __efi_runtime_data psci_method;
 #else
-#define __smccc_conduit_section		__section(".data")
+int psci_method __section(".data");
 #endif
-__smccc_conduit_section
-enum arm_smccc_conduit smccc_conduit = SMCCC_CONDUIT_NONE;
-
-enum arm_smccc_conduit arm_smccc_1_1_get_conduit(void)
-{
-	return smccc_conduit;
-}
-
-static __smccc_conduit_section u32 psci_version;
 
 unsigned long __efi_runtime invoke_psci_fn
 		(unsigned long function_id, unsigned long arg0,
@@ -63,9 +59,9 @@ unsigned long __efi_runtime invoke_psci_fn
 	 * tables are not correctly relocated when SetVirtualAddressMap is
 	 * called.
 	 */
-	if (smccc_conduit == SMCCC_CONDUIT_SMC)
+	if (psci_method == PSCI_METHOD_SMC)
 		arm_smccc_smc(function_id, arg0, arg1, arg2, 0, 0, 0, 0, &res);
-	else if (smccc_conduit == SMCCC_CONDUIT_HVC)
+	else if (psci_method == PSCI_METHOD_HVC)
 		arm_smccc_hvc(function_id, arg0, arg1, arg2, 0, 0, 0, 0, &res);
 	else
 		res.a0 = PSCI_RET_DISABLED;
@@ -86,8 +82,11 @@ static u32 psci_0_2_get_version(void)
 static bool psci_is_system_reset2_supported(void)
 {
 	int ret;
+	u32 ver;
 
-	if (PSCI_VERSION_MAJOR(psci_version) >= 1) {
+	ver = psci_0_2_get_version();
+
+	if (PSCI_VERSION_MAJOR(ver) >= 1) {
 		ret = request_psci_features(PSCI_FN_NATIVE(1_1,
 							   SYSTEM_RESET2));
 
@@ -98,27 +97,95 @@ static bool psci_is_system_reset2_supported(void)
 	return false;
 }
 
-static void psci_1_x_smccc_bind(struct udevice *dev)
+static void smccc_invoke_hvc(unsigned long a0, unsigned long a1,
+			     unsigned long a2, unsigned long a3,
+			     unsigned long a4, unsigned long a5,
+			     unsigned long a6, unsigned long a7,
+			     struct arm_smccc_res *res)
 {
-	int ret, feature;
-	u32 smccc_version = ARM_SMCCC_VERSION_1_0;
+	arm_smccc_hvc(a0, a1, a2, a3, a4, a5, a6, a7, res);
+}
 
-	feature = request_psci_features(ARM_SMCCC_VERSION_FUNC_ID);
-	if (feature != PSCI_RET_NOT_SUPPORTED)
-		smccc_version = invoke_psci_fn(ARM_SMCCC_VERSION_FUNC_ID, 0, 0, 0);
+static void smccc_invoke_smc(unsigned long a0, unsigned long a1,
+			     unsigned long a2, unsigned long a3,
+			     unsigned long a4, unsigned long a5,
+			     unsigned long a6, unsigned long a7,
+			     struct arm_smccc_res *res)
+{
+	arm_smccc_smc(a0, a1, a2, a3, a4, a5, a6, a7, res);
+}
 
-	/* Bind any drivers for SMCCC-based firmware services */
-	if (smccc_version >= ARM_SMCCC_VERSION_1_1) {
-		if (smccc_conduit == SMCCC_CONDUIT_HVC) {
-			ret = device_bind_driver(dev, "kvm-hyp-services",
-						 "kvm-hyp-services", NULL);
-			if (ret)
-				pr_debug("KVM hypervisor services were not bound.\n");
+static int bind_smccc_features(struct udevice *dev, int psci_method)
+{
+	struct psci_plat_data *pdata = dev_get_plat(dev);
+	struct arm_smccc_feature *feature;
+	size_t feature_cnt, n;
+
+	if (!IS_ENABLED(CONFIG_ARM_SMCCC_FEATURES))
+		return 0;
+
+	/*
+	 * SMCCC features discovery invoke SMCCC standard function ID
+	 * ARM_SMCCC_ARCH_FEATURES but this sequence requires that this
+	 * standard ARM_SMCCC_ARCH_FEATURES function ID itself is supported.
+	 * It is queried here with invoking PSCI_FEATURES known available
+	 * from PSCI 1.0.
+	 */
+	if (!device_is_compatible(dev, "arm,psci-1.0") ||
+	    PSCI_VERSION_MAJOR(psci_0_2_get_version()) == 0)
+		return 0;
+
+	if (request_psci_features(ARM_SMCCC_ARCH_FEATURES) ==
+	    PSCI_RET_NOT_SUPPORTED)
+		return 0;
+
+	if (psci_method == PSCI_METHOD_HVC)
+		pdata->invoke_fn = smccc_invoke_hvc;
+	else
+		pdata->invoke_fn = smccc_invoke_smc;
+
+	feature_cnt = ll_entry_count(struct arm_smccc_feature, arm_smccc_feature);
+	feature = ll_entry_start(struct arm_smccc_feature, arm_smccc_feature);
+
+	for (n = 0; n < feature_cnt; n++, feature++) {
+		const char *drv_name = feature->driver_name;
+		struct udevice *dev2;
+		int ret;
+
+		if (!feature->is_supported || !feature->is_supported(pdata->invoke_fn))
+			continue;
+
+		ret = device_bind_driver(dev, drv_name, drv_name, &dev2);
+		if (ret) {
+			pr_warn("%s was not bound: %d, ignore\n", drv_name, ret);
+			continue;
 		}
-		ret = device_bind_driver(dev, "smccc-trng", "smccc-trng", NULL);
-		if (ret)
-			pr_debug("Support for SMCCC TRNG not found\n");
+
+		dev_set_parent_plat(dev2, dev_get_plat(dev));
 	}
+
+	return 0;
+}
+
+static int psci_bind(struct udevice *dev)
+{
+	/* No SYSTEM_RESET support for PSCI 0.1 */
+	if (device_is_compatible(dev, "arm,psci-0.2") ||
+	    device_is_compatible(dev, "arm,psci-1.0")) {
+		int ret;
+
+		/* bind psci-sysreset optionally */
+		ret = device_bind_driver(dev, "psci-sysreset", "psci-sysreset",
+					 NULL);
+		if (ret)
+			pr_debug("PSCI System Reset was not bound.\n");
+	}
+
+	/* From PSCI v1.0 onward we can discover services through ARM_SMCCC_FEATURE */
+	if (IS_ENABLED(CONFIG_ARM_SMCCC_FEATURES) && device_is_compatible(dev, "arm,psci-1.0"))
+		dev_or_flags(dev, DM_FLAG_PROBE_AFTER_BIND);
+
+	return 0;
 }
 
 static int psci_probe(struct udevice *dev)
@@ -137,49 +204,33 @@ static int psci_probe(struct udevice *dev)
 	}
 
 	if (!strcmp("hvc", method)) {
-		smccc_conduit = SMCCC_CONDUIT_HVC;
+		psci_method = PSCI_METHOD_HVC;
 	} else if (!strcmp("smc", method)) {
-		smccc_conduit = SMCCC_CONDUIT_SMC;
+		psci_method = PSCI_METHOD_SMC;
 	} else {
 		pr_warn("invalid \"method\" property: %s\n", method);
 		return -EINVAL;
 	}
 
-	if (psci_version >= PSCI_VERSION(0, 2))
-		psci_version = psci_0_2_get_version();
-
-	if (PSCI_VERSION_MAJOR(psci_version) >= 1)
-		psci_1_x_smccc_bind(dev);
-
-	return 0;
+	return bind_smccc_features(dev, psci_method);
 }
 
-static int psci_bind(struct udevice *dev)
+/**
+ * void do_psci_probe() - probe PSCI firmware driver
+ *
+ * Ensure that psci_method is initialized.
+ */
+static void __maybe_unused do_psci_probe(void)
 {
-	/* No SYSTEM_RESET support for PSCI 0.1 */
-	if (device_is_compatible(dev, "arm,psci-1.0"))
-		psci_version = PSCI_VERSION(1, 0);
-	else if (device_is_compatible(dev, "arm,psci-0.2"))
-		psci_version = PSCI_VERSION(0, 2);
-	else
-		psci_version = PSCI_VERSION(0, 1);
+	struct udevice *dev;
 
-	if (psci_version >= PSCI_VERSION(0, 2)) {
-		int ret;
-
-		/* bind psci-sysreset optionally */
-		ret = device_bind_driver(dev, "psci-sysreset", "psci-sysreset",
-					 NULL);
-		if (ret)
-			pr_debug("PSCI System Reset was not bound.\n");
-	}
-
-	return psci_probe(dev);
+	uclass_get_device_by_name(UCLASS_FIRMWARE, DRIVER_NAME, &dev);
 }
 
 #if IS_ENABLED(CONFIG_EFI_LOADER) && IS_ENABLED(CONFIG_PSCI_RESET)
 efi_status_t efi_reset_system_init(void)
 {
+	do_psci_probe();
 	return EFI_SUCCESS;
 }
 
@@ -203,13 +254,18 @@ void __efi_runtime EFIAPI efi_reset_system(enum efi_reset_type reset_type,
 #ifdef CONFIG_PSCI_RESET
 void reset_misc(void)
 {
+	do_psci_probe();
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_RESET, 0, 0, 0);
 }
 #endif /* CONFIG_PSCI_RESET */
 
 void psci_sys_reset(u32 type)
 {
-	bool reset2_supported = psci_is_system_reset2_supported();
+	bool reset2_supported;
+
+	do_psci_probe();
+
+	reset2_supported = psci_is_system_reset2_supported();
 
 	if (type == SYSRESET_WARM && reset2_supported) {
 		/*
@@ -225,12 +281,16 @@ void psci_sys_reset(u32 type)
 
 void psci_sys_poweroff(void)
 {
+	do_psci_probe();
+
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_OFF, 0, 0, 0);
 }
 
 #if IS_ENABLED(CONFIG_CMD_POWEROFF) && !IS_ENABLED(CONFIG_SYSRESET_CMD_POWEROFF)
 int do_poweroff(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
+	do_psci_probe();
+
 	puts("poweroff ...\n");
 	udelay(50000); /* wait 50 ms */
 
@@ -255,5 +315,8 @@ U_BOOT_DRIVER(psci) = {
 	.id = UCLASS_FIRMWARE,
 	.of_match = psci_of_match,
 	.bind = psci_bind,
-	.flags = DM_FLAG_PRE_RELOC,
+	.probe = psci_probe,
+#ifdef CONFIG_ARM_SMCCC_FEATURES
+	.plat_auto = sizeof(struct psci_plat_data),
+#endif
 };
