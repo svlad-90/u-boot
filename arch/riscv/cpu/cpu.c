@@ -11,9 +11,15 @@
 #include <init.h>
 #include <log.h>
 #include <asm/encoding.h>
+#include <asm/global_data.h>
 #include <asm/system.h>
 #include <dm/uclass-internal.h>
 #include <linux/bitops.h>
+
+void arch_setup_gd(gd_t *new_gd)
+{
+	set_gd(new_gd);
+}
 
 /*
  * The variables here must be stored in the data section since they are used
