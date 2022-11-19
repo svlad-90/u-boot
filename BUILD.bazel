@@ -1,0 +1,22 @@
+load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
+load("//build/kernel/kleaf:kernel.bzl", "kernel_build")
+
+kernel_build(
+    name = "qemu_aarch64",
+    outs = [
+        "System.map",
+        "u-boot",
+        "u-boot.bin",
+    ],
+    build_config = "build.config.qemu.aarch64",
+    deps = [
+        "//prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9:binaries",
+    ],
+)
+
+copy_to_dist_dir(
+    name = "qemu_aarch64_dist",
+    data = [":qemu_aarch64"],
+    dist_dir = "out/u-boot/dist",
+    flat = True,
+)
