@@ -1,8 +1,10 @@
+. ${ROOT_DIR}/u-boot/build.config.constants
+
 BRANCH=u-boot-mainline
 SKIP_CP_KERNEL_HDR=1
 KERNEL_DIR=u-boot
 
-CLANG_PREBUILT_BIN=prebuilts/clang/host/linux-x86/clang-r458507/bin
+CLANG_PREBUILT_BIN=prebuilts/clang/host/linux-x86/clang-${CLANG_VERSION}/bin
 CC=clang
 HOSTCC=clang
 NM=llvm-nm
