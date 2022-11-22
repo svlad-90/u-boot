@@ -17,7 +17,7 @@ NAME =
 MAKEFLAGS += -rR
 
 # Determine target architecture for the sandbox
-include include/host_arch.h
+include Makefile.host_arch
 ifeq ("", "$(CROSS_COMPILE)")
   MK_ARCH="${shell uname -m}"
 else
