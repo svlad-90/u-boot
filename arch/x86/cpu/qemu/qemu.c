@@ -129,6 +129,9 @@ int arch_early_init_r(void)
 int arch_misc_init(void)
 {
 	env_set("cbootargs", (char *)CONFIG_SYS_CMDLINE_ADDR);
+#if defined(CONFIG_SYS_LOAD_ADDR)
+	env_set_hex("loadaddr", (ulong)CONFIG_SYS_LOAD_ADDR);
+#endif
 
 	return 0;
 }

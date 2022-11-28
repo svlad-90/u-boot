@@ -147,6 +147,9 @@ int board_late_init(void)
 	ulong fdtaddr = (ulong)board_fdt_blob_setup(&err);
 
 	env_set_hex("fdtaddr", fdtaddr);
+#ifdef CONFIG_SYS_LOAD_ADDR
+	env_set_hex("loadaddr", (ulong)CONFIG_SYS_LOAD_ADDR);
+#endif
 
 	/*
 	 * If the in-memory FDT blob defines /chosen bootargs, back them
