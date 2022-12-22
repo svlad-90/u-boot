@@ -505,9 +505,16 @@ static int do_avb_verify(const char *iface,
 		data->boot.size = 0; // 0 indicates that it hasn't yet been preloaded.
 		data->vendor_boot.addr = data->boot.addr + (packed ? boot_size : SZ_64M);
 		data->vendor_boot.size = 0;
-		data->init_boot.addr = data->vendor_boot.addr + (packed ? vendor_boot_size : SZ_64M);
-		data->init_boot.size = 0;
-		ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
+		if (init_boot_size != 0) {
+			data->init_boot.addr = data->vendor_boot.addr + (packed ? vendor_boot_size : SZ_64M);
+			data->init_boot.size = 0;
+			ret = avb_verify(ops, slot_suffix, out_data, out_cmdline);
+		} else {
+			const char *min_partition_set[] =
+				{ANDROID_PARTITION_BOOT, ANDROID_PARTITION_VENDOR_BOOT, NULL};
+			ret = avb_verify_partitions(ops, slot_suffix, min_partition_set, out_data,
+						    out_cmdline);
+		}
 	} else {
 		ret = avb_verify_partitions(ops, slot_suffix, requested_partitions, out_data,
 					    out_cmdline);
@@ -659,10 +666,12 @@ int android_bootloader_boot_flow(const char* iface_str,
 				verified_vendor_boot_img = p;
 			}
 		}
-		if (verified_boot_img == NULL || verified_vendor_boot_img == NULL ||
-				verified_init_boot_img == NULL) {
+		if (verified_boot_img == NULL || verified_vendor_boot_img == NULL) {
 			debug("verified partition not found\n");
 			goto bail;
+		}
+		if (verified_init_boot_img == NULL) {
+			debug("init_boot not found. Could be a pre-TM device\n");
 		}
 	}
 
@@ -753,14 +762,14 @@ int android_bootloader_boot_flow(const char* iface_str,
 						 slot_suffix,
 						 &vendor_boot_part_info);
 	if (init_boot_part_num < 0) {
-		log_err("Failed to find init_boot partition");
-		goto bail;
+		debug("Failed to find init_boot partition\n");
+	} else {
+		printf("ANDROID: Loading ramdisk from \"%s\", partition %d.\n",
+			init_boot_part_info.name, init_boot_part_num);
 	}
-	debug("ANDROID: Loading ramdisk from \"%s\", partition %d.\n",
-		init_boot_part_info.name, init_boot_part_num);
 	if (boot_part_num < 0)
 		goto bail;
-	debug("ANDROID: Loading kernel from \"%s\", partition %d.\n",
+	printf("ANDROID: Loading kernel from \"%s\", partition %d.\n",
 		boot_part_info.name, boot_part_num);
 
 #ifdef CONFIG_ANDROID_SYSTEM_AS_ROOT

@@ -423,7 +423,7 @@ static bool _read_in_bootconfig(struct blk_desc *dev_desc,
 		}
 		char *bootconfig_buffer = (char*)(malloc(bootconfig_buffer_size));
 		if (!bootconfig_buffer) {
-	  		printf("Failed to allocate memory for bootconfig_buffer.\n");
+			printf("Failed to allocate memory for bootconfig_buffer.\n");
 			return false;
 		}
 		size_t offset = 0;
@@ -624,8 +624,8 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 					device_specific_bootconfig_img,
 					verified_bootconfig_img,
 					verified_vendor_boot_img)
-		|| !(_read_in_init_boot_ramdisk(dev_desc, init_boot_img, boot_info,
-					  verified_init_boot_img) ||
+		|| !(((init_boot_hdr != NULL) && _read_in_init_boot_ramdisk(dev_desc, init_boot_img, boot_info,
+					  verified_init_boot_img)) ||
 			 _read_in_boot_ramdisk(dev_desc, boot_img, boot_info,
 					  verified_boot_img))) {
 		goto image_load_exit;
@@ -633,6 +633,7 @@ struct andr_boot_info* android_image_load(struct blk_desc *dev_desc,
 
 	free(boot_hdr);
 	free(vboot_hdr);
+	free(init_boot_hdr);
 	return boot_info;
 
 image_load_exit:
