@@ -32,6 +32,8 @@ struct blk_desc;
 struct legacy_img_hdr;
 struct spl_boot_device;
 
+DECLARE_GLOBAL_DATA_PTR;
+
 /*
  * u_boot_first_phase() - check if this is the first U-Boot phase
  *
@@ -122,8 +124,6 @@ static inline enum u_boot_phase spl_phase(void)
 #elif defined(CONFIG_SPL_BUILD)
 	return PHASE_SPL;
 #else
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (!(gd->flags & GD_FLG_RELOC))
 		return PHASE_BOARD_F;
 	else

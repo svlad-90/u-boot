@@ -16,6 +16,8 @@
 
 #define TYPE_PCI 0x1
 
+DECLARE_GLOBAL_DATA_PTR;
+
 /**
  * struct generic_ecam_pcie - generic_ecam PCIe controller state
  * @cfg_base: The base address of memory mapped configuration space
@@ -133,7 +135,6 @@ static int pci_generic_ecam_of_to_plat(struct udevice *dev)
 {
 	struct generic_ecam_pcie *pcie = dev_get_priv(dev);
 	struct fdt_resource reg_res;
-	DECLARE_GLOBAL_DATA_PTR;
 	int err;
 
 	err = fdt_get_resource(gd->fdt_blob, dev_of_offset(dev), "reg",
