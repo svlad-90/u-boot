@@ -2,6 +2,25 @@ load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
 load("//build/kernel/kleaf:kernel.bzl", "kernel_build")
 
 kernel_build(
+    name = "beagle_x15",
+    outs = [
+        "MLO",
+        "u-boot.img",
+    ],
+    build_config = "build.config.beagle_x15",
+    deps = [
+        "//prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9:binaries",
+    ],
+)
+
+copy_to_dist_dir(
+    name = "beagle_x15_dist",
+    data = [":beagle_x15"],
+    dist_dir = "out/u-boot/dist",
+    flat = True,
+)
+
+kernel_build(
     name = "crosvm_aarch64",
     outs = [
         "System.map",
@@ -57,6 +76,26 @@ kernel_build(
 copy_to_dist_dir(
     name = "qemu_aarch64_dist",
     data = [":qemu_aarch64"],
+    dist_dir = "out/u-boot/dist",
+    flat = True,
+)
+
+kernel_build(
+    name = "qemu_arm",
+    outs = [
+        "System.map",
+        "u-boot",
+        "u-boot.bin",
+    ],
+    build_config = "build.config.qemu.arm",
+    deps = [
+        "//prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9:binaries",
+    ],
+)
+
+copy_to_dist_dir(
+    name = "qemu_arm_dist",
+    data = [":qemu_arm"],
     dist_dir = "out/u-boot/dist",
     flat = True,
 )
