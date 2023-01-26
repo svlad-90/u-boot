@@ -18,13 +18,11 @@ SECTIONS
 		*(.gnu.linkonce.t.*)
 		*(.srodata)
 		*(.rodata*)
-		. = ALIGN(16);
-		*(.dynamic);
 		. = ALIGN(512);
 	}
 	_etext = .;
 	_text_size = . - _text;
-	. = ALIGN(4096);
+	.dynamic  : { *(.dynamic) }
 	.data : {
 		_data = .;
 		*(.sdata)
@@ -50,11 +48,11 @@ SECTIONS
 		_bss_end = .;
 		_edata = .;
 	}
-	_data_size = _edata - _data;
 	.rela.dyn : { *(.rela.dyn) }
 	.rela.plt : { *(.rela.plt) }
 	.rela.got : { *(.rela.got) }
 	.rela.data : { *(.rela.data) *(.rela.data*) }
+	_data_size = . - _etext;
 
 	. = ALIGN(4096);
 	.dynsym   : { *(.dynsym) }
