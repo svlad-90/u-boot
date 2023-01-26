@@ -1,5 +1,0 @@
-PROTECTED VM FIRMWARE
-M:	Elena Petrova <lenaptr@google.com>
-S:	Maintained
-F:	board/android/pvmfw-arm64/
-F:	configs/pvmfw_arm64_defconfig

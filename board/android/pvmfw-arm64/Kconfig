@@ -1,2 +1,0 @@
-if TARGET_PVMFW_ARM_64BIT
-endif
