@@ -73,4 +73,4 @@
 
 int i8259_init(void);
 
-#endif /* _ASMI386_I8959_H_ */
+#endif /* _ASMI386_I8259_H_ */

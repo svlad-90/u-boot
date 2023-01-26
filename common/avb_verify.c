@@ -229,8 +229,8 @@ static unsigned long blk_read_and_flush(struct avb_part *part,
 	return blks;
 }
 
-static unsigned long blk_write(struct avb_part *part, lbaint_t start,
-			       lbaint_t sectors, void *buffer)
+static unsigned long avb_blk_write(struct avb_part *part, lbaint_t start,
+				   lbaint_t sectors, void *buffer)
 {
 	void *tmp_buf;
 	size_t buf_size;
@@ -376,8 +376,8 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 					start_offset % part->info.blksz,
 					buffer, residue);
 
-				ret = blk_write(part, part->info.start +
-						start_sector, 1, tmp_buf);
+				ret = avb_blk_write(part, part->info.start +
+						    start_sector, 1, tmp_buf);
 				if (ret != 1) {
 					printf("%s: write error (%ld, %lld)\n",
 					       __func__, ret, start_sector);
@@ -400,10 +400,10 @@ static AvbIOResult blk_byte_io(AvbOps *ops,
 							 start_sector,
 							 sectors, buffer);
 			} else {
-				ret = blk_write(part,
-						part->info.start +
-						start_sector,
-						sectors, buffer);
+				ret = avb_blk_write(part,
+						    part->info.start +
+						    start_sector,
+						    sectors, buffer);
 			}
 
 			if (!ret) {

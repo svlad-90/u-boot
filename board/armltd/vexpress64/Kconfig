@@ -59,12 +59,12 @@ config TARGET_VEXPRESS64_JUNO
 
 endchoice
 
-config SYS_TEXT_BASE
+config TEXT_BASE
 	default 0x88000000 if TARGET_VEXPRESS64_BASE_FVP
 	default 0xe0000000 if TARGET_VEXPRESS64_JUNO
 	default 0x00001000 if TARGET_VEXPRESS64_BASER_FVP
 	# gem5 really needs 0x10, but this is handled in the linker script
-	# because SYS_TEXT_BASE is required to be page aligned
+	# because TEXT_BASE is required to be page aligned
 	default 0x00000000 if TARGET_VEXPRESS64_GEM5
 
 config SYS_MALLOC_LEN
@@ -103,7 +103,7 @@ config JUNO_DTB_PART
 	  device tree blob to configure U-Boot.
 
 config LNX_KRNL_IMG_TEXT_OFFSET_BASE
-	default SYS_TEXT_BASE
+	default TEXT_BASE
 
 config ENV_ADDR
 	default 0x0BFC0000 if TARGET_VEXPRESS64_JUNO
