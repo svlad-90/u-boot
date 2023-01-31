@@ -74,7 +74,6 @@ machine-$(CONFIG_ARCH_NPCM)             += npcm
 machine-$(CONFIG_ARCH_OMAP2PLUS)	+= omap2
 machine-$(CONFIG_ARCH_ORION5X)		+= orion5x
 machine-$(CONFIG_ARCH_OWL)		+= owl
-machine-$(CONFIG_ARCH_PVMFW)		+= pvmfw
 machine-$(CONFIG_ARCH_RMOBILE)		+= rmobile
 machine-$(CONFIG_ARCH_ROCKCHIP)		+= rockchip
 machine-$(CONFIG_ARCH_S5PC1XX)		+= s5pc1xx
