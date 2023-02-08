@@ -2,6 +2,7 @@ obj-$(CONFIG_LIB_OPENDICE) += \
 	clear_memory.o \
 	src/android/bcc.o \
 	src/cbor_cert_op.o \
+	src/cbor_ed25519_cert_op.o \
 	src/cbor_reader.o \
 	src/cbor_writer.o \
 	src/dice.o \
