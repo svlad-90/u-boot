@@ -48,4 +48,6 @@
 	"ramdisk_addr_r=0x8c300000\0" \
 	BOOTENV
 
+#define CONFIG_ENV_FLAGS_LIST_STATIC "fdtaddr:xo"
+
 #endif /* __CONFIG_H */

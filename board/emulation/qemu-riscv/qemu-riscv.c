@@ -41,14 +41,23 @@ int board_init(void)
 
 int board_late_init(void)
 {
-	ulong kernel_start;
+	ulong fdtaddr, kernel_start;
+	const char *bootargs;
 	ofnode chosen_node;
 	int ret;
+
+	fdtaddr = (ulong)board_fdt_blob_setup(&ret);
+	env_set_hex("fdtaddr", fdtaddr);
 
 	chosen_node = ofnode_path("/chosen");
 	if (!ofnode_valid(chosen_node)) {
 		debug("No chosen node found, can't get kernel start address\n");
 		return 0;
+	}
+
+	bootargs = ofnode_read_prop(chosen_node, "bootargs", NULL);
+	if (bootargs) {
+		env_set("cbootargs", bootargs);
 	}
 
 #ifdef CONFIG_ARCH_RV64I
@@ -64,6 +73,10 @@ int board_late_init(void)
 	}
 
 	env_set_hex("kernel_start", kernel_start);
+
+#ifdef CONFIG_SYS_LOAD_ADDR
+	env_set_hex("loadaddr", (ulong)CONFIG_SYS_LOAD_ADDR);
+#endif
 
 	return 0;
 }
