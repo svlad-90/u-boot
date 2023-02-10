@@ -514,7 +514,7 @@ static bool _read_in_init_boot_ramdisk(struct blk_desc *dev_desc,
 /* Tests if partition == name + slot_suffix */
 static bool is_same_partition(const char *partition, const char *name, const char *slot_suffix) {
 	const size_t name_len = strlen(name);
-	const size_t slot_suffix_len = strlen(slot_suffix);
+	const size_t slot_suffix_len = slot_suffix ? strlen(slot_suffix) : 0;
 	return strncmp(partition, name, name_len) == 0 &&
 	    strncmp(partition + name_len, slot_suffix, slot_suffix_len) == 0 &&
 	    (strlen(partition) == name_len + slot_suffix_len);
