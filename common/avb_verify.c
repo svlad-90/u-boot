@@ -1034,11 +1034,13 @@ success_if_unlocked:
 	printf("Returning Verification success due to unlocked bootloader\n");
 success:
 	extra_args = avb_set_state(ops, verified_boot_state);
-	if (extra_args) {
-		*out_cmdline = append_cmd_line((*out_data)->cmdline, extra_args);
-	} else {
-		*out_cmdline = strdup((*out_data)->cmdline);
-	}
+        if (out_cmdline) {
+		if (extra_args) {
+			*out_cmdline = append_cmd_line((*out_data)->cmdline, extra_args);
+		} else {
+			*out_cmdline = strdup((*out_data)->cmdline);
+		}
+        }
 	return CMD_RET_SUCCESS;
 }
 
