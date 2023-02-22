@@ -749,10 +749,10 @@ static int pci_find_and_bind_driver(struct udevice *parent,
 				    struct pci_device_id *find_id,
 				    pci_dev_t bdf, struct udevice **devp)
 {
-	volatile struct pci_driver_entry *start, *entry;
+	struct pci_driver_entry *start, *entry;
 	ofnode node = ofnode_null();
-	volatile int n_ents;
 	const char *drv;
+	int n_ents;
 	int ret;
 	char name[30], *str;
 	bool bridge;
