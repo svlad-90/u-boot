@@ -269,6 +269,12 @@ int _log_buffer(enum log_category_t cat, enum log_level_t level,
 #define debug(fmt, args...)			\
 	debug_cond(_DEBUG, fmt, ##args)
 
+#define debug_xen_troops(fmt, args...) \
+	printf("@XEN_TROOPS - [%s:%d] -> " fmt, __FUNCTION__, __LINE__, ##args)
+
+#define debug_xen_marker( ) \
+	printf("@XEN_TROOPS - [%s:%d] -> %s\n", __FUNCTION__, __LINE__, "--------------- MARKER ---------------")
+
 /* Show a message if not in SPL */
 #define warn_non_spl(fmt, args...)			\
 	debug_cond(!_SPL_BUILD, fmt, ##args)

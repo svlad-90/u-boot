@@ -5,8 +5,9 @@ DEFCONFIG=cf-arm64_defconfig
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}
     ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r
     ${ROOT_DIR}/${KERNEL_DIR}/configs/xenguest_android_arm64_defconfig
-    ${ROOT_DIR}/${KERNEL_DIR}/xen-guest-android-virtio.fragment
     ${ROOT_DIR}/${KERNEL_DIR}/arm.fragment
+    ${ROOT_DIR}/${KERNEL_DIR}/cuttlefish.fragment
     ${ROOT_DIR}/${KERNEL_DIR}/avb_unlocked.fragment
+    ${ROOT_DIR}/${KERNEL_DIR}/xen-guest-android-virtio.fragment
 "
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/configs/${DEFCONFIG}"

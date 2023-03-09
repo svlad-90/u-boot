@@ -1,4 +1,15 @@
-# Disable PV block, which we do nto need for virtio Xen-based set up
+# Removal of the conflicting configurations
 # CONFIG_SANDBOX is not set
 # CONFIG_POWER is not set
-CONFIG_SYS_LOAD_ADDR=0x40000000
+
+CONFIG_CMD_MEMTEST=y
+CONFIG_CMD_BDI=y
+
+CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE=0
+
+CONFIG_IOMMU=y
+
+# Override of the configuration from the cuttlefish.fragment
+# CONFIG_USE_DEFAULT_ENV_FILE is not set
+# CONFIG_DEFAULT_ENV_FILE is not set
+CONFIG_BOOTDELAY=3
