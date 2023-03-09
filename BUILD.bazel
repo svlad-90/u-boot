@@ -116,3 +116,23 @@ copy_to_dist_dir(
     dist_dir = "out/u-boot/dist",
     flat = True,
 )
+
+kernel_build(
+    name = "xen-guest-android-virtio_aarch64",
+    outs = [
+        "System.map",
+        "u-boot",
+        "u-boot.bin",
+    ],
+    build_config = "build.config.xen-guest-android-virtio.aarch64",
+    deps = [
+        "//prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9:binaries",
+    ],
+)
+
+copy_to_dist_dir(
+    name = "xen-guest-android-virtio_aarch64_dist",
+    data = [":xen-guest-android-virtio_aarch64"],
+    dist_dir = "out/u-boot/dist",
+    flat = True,
+)

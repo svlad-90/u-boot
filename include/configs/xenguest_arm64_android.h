@@ -8,8 +8,6 @@
 
 #include <configs/xenguest_arm64.h>
 
-#define CONFIG_SYS_BOOTM_LEN	      (20 * 1024 * 1024)
-
 #undef CONFIG_EXTRA_ENV_SETTINGS
 
 /* NOTE: In case of bootm * boot , u-boot  will set/append
