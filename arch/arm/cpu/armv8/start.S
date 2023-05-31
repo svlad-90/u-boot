@@ -16,8 +16,6 @@
  *
  *************************************************************************/
 
-.globl	_start
-_start:
 #if defined(CONFIG_LINUX_KERNEL_IMAGE_HEADER)
 #include <asm/boot0-linux-kernel-header.h>
 #elif defined(CONFIG_ENABLE_ARM_SOC_BOOT0_HOOK)
@@ -26,8 +24,12 @@ _start:
  * order to boot, allow them to set that in their boot0.h file and then
  * use it here.
  */
+.globl	_start
+_start:
 #include <asm/arch/boot0.h>
 #else
+.globl	_start
+_start:
 	b	reset
 #endif
 
